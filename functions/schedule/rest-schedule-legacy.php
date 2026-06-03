@@ -373,150 +373,19 @@ function aidunite_update_schedule($request) {
     }
   }
 
-  // 必須フィールド（簡易更新でも最低限必要なもの）
-  $date       = isset($params['date'])       ? sanitize_text_field($params['date'])       : get_post_meta($post_id, 'schedule_date', true);
-  $start_time = isset($params['start_time']) ? sanitize_text_field($params['start_time']) : get_post_meta($post_id, 'schedule_start_time', true);
-  $end_time   = isset($params['end_time'])   ? sanitize_text_field($params['end_time'])   : get_post_meta($post_id, 'schedule_end_time', true);
-  $place      = isset($params['place'])      ? sanitize_text_field($params['place'])      : get_post_meta($post_id, 'schedule_place', true);
-  $note       = isset($params['note'])       ? sanitize_text_field($params['note'])       : get_post_meta($post_id, 'schedule_note', true);
-  $type       = isset($params['type'])       ? sanitize_text_field($params['type'])       : get_post_meta($post_id, 'schedule_type', true);
-
-  $matching   = !empty($params['matching']) ? 1 : (int)get_post_meta($post_id, 'matching', true);
-
-  // 統一メタキーを優先（schedule_gender, schedule_place）
-  // 後方互換性のため、旧キーも読み取る
-  $gender = '';
-  if (isset($params['schedule_gender'])) {
-    $gender = sanitize_text_field($params['schedule_gender']);
-  } elseif (isset($params['matching_gender_condition'])) {
-    $gender = sanitize_text_field($params['matching_gender_condition']);
-  } else {
-    // 既存データから取得（統一キー優先）
-    $gender = get_post_meta($post_id, 'schedule_gender', true);
-    if (!$gender) {
-      $gender = get_post_meta($post_id, 'matching_gender_condition', true);
-    }
+  if (!function_exists('aidunite_schedule_merge_legacy_params_for_persist')) {
+    require_once get_stylesheet_directory() . '/functions/schedule/schedule-persist.php';
   }
 
-  // venue_conditionもschedule_placeとして受け取る（統一メタキー優先）
-  $place_opt = '';
-  if (isset($params['schedule_place'])) {
-    $place_opt = sanitize_text_field($params['schedule_place']);
-  } elseif (isset($params['schedule_place_option'])) {
-    $place_opt = sanitize_text_field($params['schedule_place_option']);
-  } elseif (isset($params['venue_condition'])) {
-    $place_opt = sanitize_text_field($params['venue_condition']);
-  } else {
-    // 既存データから取得（統一キー優先）
-    $place_opt = get_post_meta($post_id, 'schedule_place', true);
-    if (!$place_opt) {
-      $place_opt = get_post_meta($post_id, 'schedule_place_option', true);
-    }
+  $persist_data = aidunite_schedule_merge_legacy_params_for_persist($params, $post_id);
+  $update_result = aidunite_schedule_update_published_post($post_id, $persist_data);
+  if (is_wp_error($update_result)) {
+    return $update_result;
   }
 
-  // intent / certainty の更新（仮→確定など）
-  if (isset($params['intent'])) {
-    update_post_meta($post_id, 'intent', sanitize_text_field($params['intent']));
-  }
-  if (isset($params['certainty'])) {
-    update_post_meta($post_id, 'certainty', sanitize_text_field($params['certainty']));
-  }
-
-  // 会場名・性別・クイックメモ等の追加フィールド
-  if (isset($params['venue_name'])) {
-    $venue_name = sanitize_text_field($params['venue_name']);
-    update_post_meta($post_id, 'venue_name', $venue_name);
-    // 会場名が指定されている場合、schedule_placeにも反映（スケジュール登録時と統一）
-    if (!empty($venue_name)) {
-      $place = $venue_name; // 会場名を優先
-    }
-  }
-  if (isset($params['gender'])) {
-    $gender_value = sanitize_text_field($params['gender']);
-    if (function_exists('aidunite_normalize_gender_canonical')) {
-      $gender_value = aidunite_normalize_gender_canonical($gender_value);
-    }
-    // 統一メタキーを使用
-    update_post_meta($post_id, 'schedule_gender', $gender_value);
-    update_post_meta($post_id, 'gender_condition', $gender_value);
-    // 後方互換性のため、matching_gender_conditionも更新（Phase 4で削除予定）
-    if (!empty($gender_value)) {
-      $gender = $gender_value;
-      update_post_meta($post_id, 'matching_gender_condition', $gender_value);
-    }
-  }
-
-  if ($gender !== '' && function_exists('aidunite_normalize_gender_canonical')) {
-    $gender = aidunite_normalize_gender_canonical($gender);
-  }
-
-  $intent_now = get_post_meta($post_id, 'intent', true);
-  if ($intent_now === 'recruit' && $gender !== '' && function_exists('aidunite_validate_recruit_gender_for_team')) {
-    $tid = (int) get_post_meta($post_id, 'team_id', true);
-    if ($tid) {
-      $ve = aidunite_validate_recruit_gender_for_team($tid, $gender);
-      if (is_wp_error($ve)) {
-        return $ve;
-      }
-    }
-  }
-
-  if ($intent_now === 'recruit' && $gender !== '' && function_exists('aidunite_recruit_both_gender_save_permitted')) {
-    if (!aidunite_recruit_both_gender_save_permitted($post_id, $gender)) {
-      return new WP_Error(
-        'recruit_both_not_allowed',
-        '新規の募集では「男子・女子可」（both）を設定できません。',
-        array('status' => 400)
-      );
-    }
-  }
-
-  // メモの保存（空文字クリアも可能・モーダルからのメモのみ更新用）
-  if ( isset( $params['memo'] ) ) {
-    $memo_value = sanitize_textarea_field( $params['memo'] );
-    update_post_meta( $post_id, 'schedule_quick_memo', $memo_value );
-    update_post_meta( $post_id, 'schedule_memo', $memo_value );
-  }
-
-  // 「（仮）」はタイプ保存時には付けない前提で、post_titleも同期
-  wp_update_post([
-    'ID'         => $post_id,
-    'post_title' => "{$date} {$type}"
-  ]);
-
-  update_post_meta($post_id, 'schedule_date', $date);
-  update_post_meta($post_id, 'schedule_start_time', $start_time);
-  update_post_meta($post_id, 'schedule_end_time', $end_time);
-
-  // 統一メタキーを使用（schedule_place）
-  if (!empty($place_opt)) {
-    update_post_meta($post_id, 'schedule_place', $place_opt);
-  } else {
-    // place_optが空の場合は$placeを使用
-    if (!empty($place)) {
-      update_post_meta($post_id, 'schedule_place', $place);
-    }
-  }
-
-  update_post_meta($post_id, 'schedule_note', $note);
-  update_post_meta($post_id, 'schedule_type', $type);
-  update_post_meta($post_id, 'matching', $matching);
-  update_post_meta($post_id, 'is_match_requested', $matching);
-
-  // 統一メタキーを使用（schedule_gender）
-  if (!empty($gender)) {
-    update_post_meta($post_id, 'schedule_gender', $gender);
-    // 後方互換性のため、matching_gender_conditionも更新（Phase 4で削除予定）
-    update_post_meta($post_id, 'matching_gender_condition', $gender);
-  }
-
-  // 後方互換性のため、schedule_place_optionも更新（Phase 4で削除予定）
-  if (!empty($place_opt)) {
-    update_post_meta($post_id, 'schedule_place_option', $place_opt);
-  }
-  // venue_conditionも更新（後方互換性のため）
-  if (!empty($place_opt)) {
-    update_post_meta($post_id, 'venue_condition', $place_opt);
+  if (isset($params['memo'])) {
+    $memo_value = sanitize_textarea_field((string) $params['memo']);
+    update_post_meta($post_id, 'schedule_memo', $memo_value);
   }
 
   return rest_ensure_response(['success' => true]);

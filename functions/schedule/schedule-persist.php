@@ -128,6 +128,123 @@ function aidunite_schedule_normalize_recruit_fields(array $raw) {
 }
 
 /**
+ * REST update-schedule-v2 / レガシー JSON パラメータを persist 用にマージ
+ *
+ * @param array<string, mixed> $params
+ * @param int                  $post_id 既存 schedule（0 なら新規相当）
+ * @return array<string, mixed>
+ */
+function aidunite_schedule_merge_legacy_params_for_persist(array $params, $post_id = 0) {
+    $post_id = (int) $post_id;
+    $base = [
+        'user_id' => (int) get_current_user_id(),
+    ];
+
+    if ($post_id > 0) {
+        $male_slots = (int) get_post_meta($post_id, 'male_slots', true);
+        $female_slots = (int) get_post_meta($post_id, 'female_slots', true);
+        $base = array_merge($base, [
+            'date' => (string) get_post_meta($post_id, 'schedule_date', true),
+            'start_time' => (string) get_post_meta($post_id, 'schedule_start_time', true),
+            'end_time' => (string) get_post_meta($post_id, 'schedule_end_time', true),
+            'schedule_type' => (string) get_post_meta($post_id, 'schedule_type', true),
+            'intent' => (string) get_post_meta($post_id, 'intent', true),
+            'certainty' => (string) get_post_meta($post_id, 'certainty', true),
+            'venue_condition' => (string) (get_post_meta($post_id, 'schedule_place', true)
+                ?: get_post_meta($post_id, 'schedule_place_option', true)),
+            'venue_name' => (string) get_post_meta($post_id, 'venue_name', true),
+            'gender_condition' => (string) (get_post_meta($post_id, 'schedule_gender', true)
+                ?: get_post_meta($post_id, 'matching_gender_condition', true)),
+            'male_slots' => $male_slots,
+            'female_slots' => $female_slots,
+            'male_teams' => $male_slots,
+            'female_teams' => $female_slots,
+            'team_id' => (int) get_post_meta($post_id, 'team_id', true),
+            'is_personal' => (string) get_post_meta($post_id, 'is_personal', true),
+            'attendance_required' => (string) get_post_meta($post_id, 'attendance_required', true),
+            'schedule_quick_memo' => (string) get_post_meta($post_id, 'schedule_quick_memo', true),
+        ]);
+    }
+
+    if (isset($params['date'])) {
+        $base['date'] = sanitize_text_field((string) $params['date']);
+    }
+    if (isset($params['start_date'])) {
+        $base['date'] = sanitize_text_field((string) $params['start_date']);
+    }
+    if (isset($params['start_time'])) {
+        $base['start_time'] = sanitize_text_field((string) $params['start_time']);
+    }
+    if (isset($params['end_time'])) {
+        $base['end_time'] = sanitize_text_field((string) $params['end_time']);
+    }
+    if (isset($params['start_hour'], $params['start_minute'])) {
+        $base['start_time'] = sprintf('%02d:%02d', (int) $params['start_hour'], (int) $params['start_minute']);
+    }
+    if (isset($params['end_hour'], $params['end_minute'])) {
+        $base['end_time'] = sprintf('%02d:%02d', (int) $params['end_hour'], (int) $params['end_minute']);
+    }
+    if (isset($params['type'])) {
+        $base['schedule_type'] = sanitize_text_field((string) $params['type']);
+    }
+    if (isset($params['schedule_type'])) {
+        $base['schedule_type'] = sanitize_text_field((string) $params['schedule_type']);
+    }
+    if (isset($params['intent'])) {
+        $base['intent'] = sanitize_text_field((string) $params['intent']);
+    }
+    if (isset($params['certainty'])) {
+        $base['certainty'] = sanitize_text_field((string) $params['certainty']);
+    }
+    foreach (['venue_condition', 'schedule_place', 'schedule_place_option', 'place'] as $place_key) {
+        if (isset($params[$place_key]) && (string) $params[$place_key] !== '') {
+            $base['venue_condition'] = sanitize_text_field((string) $params[$place_key]);
+            break;
+        }
+    }
+    if (isset($params['venue_name'])) {
+        $base['venue_name'] = sanitize_text_field((string) $params['venue_name']);
+    }
+    foreach (['gender_condition', 'schedule_gender', 'matching_gender_condition', 'gender'] as $gender_key) {
+        if (isset($params[$gender_key]) && (string) $params[$gender_key] !== '') {
+            $base['gender_condition'] = sanitize_text_field((string) $params[$gender_key]);
+            break;
+        }
+    }
+    if (isset($params['male_slots'])) {
+        $base['male_slots'] = (int) $params['male_slots'];
+        $base['male_teams'] = (int) $params['male_slots'];
+    }
+    if (isset($params['female_slots'])) {
+        $base['female_slots'] = (int) $params['female_slots'];
+        $base['female_teams'] = (int) $params['female_slots'];
+    }
+    if (isset($params['male_teams'])) {
+        $base['male_teams'] = (int) $params['male_teams'];
+    }
+    if (isset($params['female_teams'])) {
+        $base['female_teams'] = (int) $params['female_teams'];
+    }
+    if (isset($params['memo'])) {
+        $base['schedule_quick_memo'] = sanitize_textarea_field((string) $params['memo']);
+    }
+    if (isset($params['note'])) {
+        $base['schedule_quick_memo'] = sanitize_textarea_field((string) $params['note']);
+    }
+    if (isset($params['schedule_quick_memo'])) {
+        $base['schedule_quick_memo'] = sanitize_textarea_field((string) $params['schedule_quick_memo']);
+    }
+    if (isset($params['team_id'])) {
+        $base['team_id'] = (int) $params['team_id'];
+    }
+    if (isset($params['attendance_required'])) {
+        $base['attendance_required'] = !empty($params['attendance_required']) ? '1' : '0';
+    }
+
+    return aidunite_schedule_normalize_form_input($base);
+}
+
+/**
  * intent=recruit 時の male_slots / female_slots（both は保存しない）
  *
  * @return array{male_slots: int, female_slots: int}
