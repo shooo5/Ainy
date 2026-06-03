@@ -6,6 +6,7 @@
 ====================================================================*/
 
 require_once __DIR__ . '/notification-delivery-log.php';
+require_once __DIR__ . '/notification-persist.php';
 require_once __DIR__ . '/notification-api.php';
 
 /**
@@ -43,6 +44,30 @@ function aidunite_notify_user($user_id, $title, $message, $type = 'general', $re
   return !empty($result['success']);
 }
 
+
+if (!function_exists('aidunite_notification_should_link_to_match_detail')) {
+    /**
+     * 通知タップでマッチ詳細へ飛ばすか（結果確定系は一覧モーダルのみで本文を固定表示）
+     *
+     * @param string $type canonical type
+     * @return bool
+     */
+    function aidunite_notification_should_link_to_match_detail($type) {
+        $type = strtolower(trim((string) $type));
+        if ($type === '' || strpos($type, 'match') === false) {
+            return false;
+        }
+        $snapshot_only = [
+            'match_canceled',
+            'match_cancelled',
+            'match_rejected',
+            'match_updated',
+            'match_participant_withdrawn',
+        ];
+
+        return !in_array($type, $snapshot_only, true);
+    }
+}
 
 /*--------------------------------------------------------------
   No.2 統一通知作成関数（aidunite_create_notification）
@@ -88,7 +113,9 @@ function aidunite_create_notification($notification_data) {
             $data['link_url'] = function_exists('aidunite_get_match_feedback_survey_url')
                 ? aidunite_get_match_feedback_survey_url((int) $data['related_id'])
                 : home_url('/match-feedback/?match_id=' . (int) $data['related_id']);
-        } elseif (strpos($tid, 'match') !== false) {
+        } elseif (function_exists('aidunite_notification_should_link_to_match_detail')
+            ? aidunite_notification_should_link_to_match_detail($tid)
+            : (strpos($tid, 'match') !== false)) {
             $data['link_url'] = home_url('/match-detail/?id=' . (int) $data['related_id']);
         }
     }

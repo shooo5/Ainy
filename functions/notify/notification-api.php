@@ -135,13 +135,27 @@ function aidunite_notification_send($user_id, $type, $data) {
         ];
     }
 
-    update_post_meta($notification_id, 'type', $type);
-    update_post_meta($notification_id, 'is_read', false);
+    $meta_payload = [
+        'type'     => $type,
+        'is_read'  => false,
+    ];
     if (isset($data['related_id'])) {
-        update_post_meta($notification_id, 'related_id', (int) $data['related_id']);
+        $meta_payload['related_id'] = (int) $data['related_id'];
     }
     if (isset($data['link_url'])) {
-        update_post_meta($notification_id, 'link_url', esc_url_raw($data['link_url']));
+        $meta_payload['link_url'] = (string) $data['link_url'];
+    }
+    if (function_exists('aidunite_notification_write_post_meta')) {
+        aidunite_notification_write_post_meta($notification_id, $meta_payload);
+    } else {
+        update_post_meta($notification_id, 'type', $type);
+        update_post_meta($notification_id, 'is_read', false);
+        if (isset($data['related_id'])) {
+            update_post_meta($notification_id, 'related_id', (int) $data['related_id']);
+        }
+        if (isset($data['link_url'])) {
+            update_post_meta($notification_id, 'link_url', esc_url_raw($data['link_url']));
+        }
     }
 
     $headers = [];

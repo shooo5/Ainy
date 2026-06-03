@@ -84,6 +84,7 @@ if (!defined('AIDUNITE_MATCH_REQUESTS_PER_PAGE')) {
     define('AIDUNITE_MATCH_REQUESTS_PER_PAGE', 20);
 }
 
+require_once get_stylesheet_directory() . '/functions/user/user-persist.php';
 require_once get_stylesheet_directory() . '/functions/user/user-functions.php';
 require_once get_stylesheet_directory() . '/functions/user/profile-functions.php';
 require_once get_stylesheet_directory() . '/functions/user/favorite-teams.php';
@@ -98,10 +99,13 @@ require_once get_stylesheet_directory() . '/functions/common/notification-utils.
 require_once get_stylesheet_directory() . '/functions/schedule/schedule-edit-ui.php';
 require_once get_stylesheet_directory() . '/functions/schedule/schedule-functions.php';
 require_once get_stylesheet_directory() . '/functions/schedule/schedule-persist.php'; // 登録・更新の本体（normalize 経由）
+require_once get_stylesheet_directory() . '/functions/schedule/schedule-persist-submit.php'; // ウィザード POST 解析・バリデーション・recruit 完了
+require_once get_stylesheet_directory() . '/functions/schedule/schedule-persist-read.php'; // メタ読取正規化（Phase 3）
 require_once get_stylesheet_directory() . '/functions/schedule/schedule-registration.php'; // 統一スケジュール登録システム（REST API含む）
 require_once get_stylesheet_directory() . '/functions/schedule/meta-key-migration.php'; // Phase 4: メタキー統一移行スクリプト
 
 // 出欠管理機能
+require_once get_stylesheet_directory() . '/functions/attendance/attendance-persist.php';
 require_once get_stylesheet_directory() . '/functions/attendance/attendance-functions.php';
 require_once get_stylesheet_directory() . '/functions/attendance/attendance-notification.php';
 
@@ -141,6 +145,7 @@ require_once get_stylesheet_directory() . '/functions/e2e/test-data-api.php';
 require_once get_stylesheet_directory() . '/functions/post-types/team.php';
 
 // チーム機能
+require_once get_stylesheet_directory() . '/functions/team/team-persist.php';
 require_once get_stylesheet_directory() . '/functions/team/team-functions.php';
 require_once get_stylesheet_directory() . '/functions/team/team-registration-dual.php';
 require_once get_stylesheet_directory() . '/functions/team/team-registration-pages.php';
@@ -163,6 +168,7 @@ require_once get_stylesheet_directory() . '/functions/parent/parent-functions.ph
 
 // 決済機能
 require_once get_stylesheet_directory() . '/functions/payment/stripe-core.php';
+require_once get_stylesheet_directory() . '/functions/payment/payment-persist.php';
 require_once get_stylesheet_directory() . '/functions/payment/payment-config.php';
 require_once get_stylesheet_directory() . '/functions/payment/payment-functions.php';
 require_once get_stylesheet_directory() . '/functions/payment/payment-admin-ajax.php';
@@ -813,34 +819,44 @@ add_action('save_post', function($post_id) {
   No.43 スケジュール保存時｜match_board 自動生成処理（+ 自動match_request生成）
 --------------------------------------------------------------*/
 add_action('save_post', function($post_id) {
-  if (get_post_type($post_id) !== 'schedule') return;
-
-
-  // すでに match_board があるか確認
-  $existing = get_posts([
-    'post_type'  => 'match_board',
-    'meta_query' => [
-      ['key' => 'schedule_id', 'value' => $post_id]
-    ],
-    'post_status' => ['publish', 'draft'],
-    'numberposts' => 1
-  ]);
-
-  if ($existing) {
+  if (get_post_type($post_id) !== 'schedule') {
+    return;
+  }
+  if (wp_is_post_revision($post_id) || wp_is_post_autosave($post_id)) {
     return;
   }
 
-  // スケジュールの所有者チーム（post meta 優先、欠損時は著者の操作中チーム）
+  // 募集（intent=recruit）以外は board 自動生成しない（persist / v2 が正ルート）
+  $intent = (string) get_post_meta($post_id, 'intent', true);
+  $matching_on = in_array(get_post_meta($post_id, 'matching', true), [1, '1', true], true);
+  if ($intent !== 'recruit' && !$matching_on) {
+    return;
+  }
+
   $author_id = (int) get_post_field('post_author', $post_id);
+  if ($author_id < 1) {
+    return;
+  }
+
   $team_id = function_exists('aidunite_resolve_schedule_owner_team_id')
       ? (int) aidunite_resolve_schedule_owner_team_id((int) $post_id)
       : (int) get_user_meta($author_id, 'team_id', true);
-
-  if (!$author_id || !$team_id) {
+  if ($team_id < 1) {
     return;
   }
 
-  // match_board 作成
+  $board_exists = function_exists('aidunite_schedule_find_match_board_id_for_schedule')
+      && aidunite_schedule_find_match_board_id_for_schedule((int) $post_id) > 0;
+
+  if ($board_exists && function_exists('aidunite_schedule_create_match_board_for_recruit')) {
+    return;
+  }
+  if (!$board_exists && function_exists('aidunite_schedule_create_match_board_for_recruit')) {
+    aidunite_schedule_create_match_board_for_recruit((int) $post_id, $author_id);
+    return;
+  }
+
+  // フォールバック（persist 未読込時のみ）
   $new_board_id = wp_insert_post([
     'post_type'    => 'match_board',
     'post_title'   => '自動作成-' . $post_id,
@@ -848,9 +864,15 @@ add_action('save_post', function($post_id) {
     'post_author'  => $author_id,
     'meta_input'   => [
       'team_id'     => $team_id,
-      'schedule_id' => $post_id
-    ]
+      'schedule_id' => $post_id,
+    ],
   ]);
+  if (is_wp_error($new_board_id) || !$new_board_id) {
+    return;
+  }
+  if (function_exists('aidunite_match_board_bootstrap_open_status')) {
+    aidunite_match_board_bootstrap_open_status((int) $new_board_id);
+  }
 
   // 自動マッチ対象スケジュールを取得（マッチ度問わず）
   // match-common-functions.phpは既に読み込み済みのため、重複読み込みを防止
@@ -900,16 +922,7 @@ add_action('save_post', function($post_id) {
         continue;
       }
 
-      // match_request 登録（メタは後で安全に追加）
-      $match_request_id = wp_insert_post([
-        'post_type'   => 'match_request',
-        'post_status' => 'draft',
-        'post_title'  => 'マッチ申請（自動生成） ' . current_time('mysql'),
-        'post_author' => $author_id
-      ]);
-
-      if ($match_request_id) {
-        // チームID取得
+      if (function_exists('aidunite_match_request_create_placeholder_post')) {
         $from_author_id = (int) get_post_field('post_author', $post_id);
         $to_author_id = (int) get_post_field('post_author', $to_schedule_id);
         $from_team_id = function_exists('aidunite_resolve_schedule_owner_team_id')
@@ -919,18 +932,23 @@ add_action('save_post', function($post_id) {
             ? (int) aidunite_resolve_schedule_owner_team_id((int) $to_schedule_id)
             : (int) get_user_meta($to_author_id, 'team_id', true);
 
-        // 必要なメタデータを設定
-        update_post_meta($match_request_id, 'from_schedule_id', $post_id);
-        update_post_meta($match_request_id, 'to_schedule_id', $to_schedule_id);
-        update_post_meta($match_request_id, 'from_team_id', $from_team_id);
-        update_post_meta($match_request_id, 'request_team_id', $from_team_id);
-        update_post_meta($match_request_id, 'my_schedule_id', $post_id);
-        aidunite_update_match_request_status_meta($match_request_id, 'draft'); // 自動マッチは draft 状態
-        update_post_meta($match_request_id, 'request_status', 'draft'); // 自動マッチは draft 状態
-        update_post_meta($match_request_id, 'type', 'auto');
-        update_post_meta($match_request_id, 'is_auto_match', '1'); // 自動マッチの識別フラグ
-
-        // match_board.match_request_id 単一ポインタへの依存は廃止。状態は MR 投稿および募集側のゲーム同期で管理する。
+        $match_request_id = aidunite_match_request_create_placeholder_post([
+          'post_author' => $author_id,
+          'post_title' => 'マッチ申請（自動生成） ' . current_time('mysql'),
+          'post_status' => 'draft',
+          'status' => 'draft',
+          'from_team_id' => $from_team_id,
+          'to_team_id' => $to_team_id,
+          'other_team_id' => $to_team_id,
+          'request_team_id' => $from_team_id,
+          'my_schedule_id' => (int) $post_id,
+          'to_schedule_id' => (int) $to_schedule_id,
+          'from_schedule_id' => (int) $post_id,
+          'type' => 'auto',
+          'is_auto_match' => '1',
+        ]);
+      } else {
+        $match_request_id = 0;
       }
 
       break; // 1件だけ紐づければOK（複数紐づけたい場合は break 削除）
@@ -1938,10 +1956,18 @@ function aidunite_approve_team_creation_application($team_id) {
     } else {
         update_user_meta($user_id, 'team_id', $team_id);
         delete_user_meta($user_id, 'pending_team_id');
-        update_user_meta($user_id, 'aidunite_role', 'team_leader');
+        if (function_exists('aidunite_user_write_role_meta')) {
+            aidunite_user_write_role_meta($user_id, 'team_leader');
+        } else {
+            update_user_meta($user_id, 'aidunite_role', 'team_leader');
+        }
     }
 
-    update_post_meta($team_id, 'team_status', 'active');
+    if (function_exists('aidunite_team_write_status_meta')) {
+        aidunite_team_write_status_meta($team_id, 'active');
+    } else {
+        update_post_meta($team_id, 'team_status', 'active');
+    }
     update_post_meta($team_id, 'aidunite_team_applicant_promoted_uid', (string) $user_id);
 
     if (function_exists('aidunite_clear_user_needs_revision_state')) {
@@ -2025,136 +2051,7 @@ Ainy システム
 add_action('admin_post_approve_team_creation', 'aidunite_admin_approve_team_creation');
 add_action('admin_post_reject_team_creation', 'aidunite_admin_reject_team_creation');
 
-// スケジュール保存処理（レガシー admin-post。正ルートは page-schedule-edit.php POST または REST v2）
-add_action('admin_post_aidunite_save_schedule', 'aidunite_admin_save_schedule');
-
-/**
- * @deprecated 2026-06-02 正ルートは page-schedule-edit.php のフォーム POST または REST `/update-schedule-v2`。
- *             互換のため残置。新規画面からは呼ばないこと。
- */
-function aidunite_admin_save_schedule() {
-    if (function_exists('aidunite_match_flow_debug_log')) {
-        aidunite_match_flow_debug_log('deprecated_admin_save_schedule', ['user_id' => get_current_user_id()]);
-    }
-    // 統一認証・権限チェック
-    require_once get_template_directory() . '/functions/common/auth-middleware.php';
-    $auth_result = AidUniteAuthMiddleware::require_auth(true);
-    if (!$auth_result->is_valid()) {
-        // リダイレクトは自動で実行される
-        return;
-    }
-
-    $user_id = $auth_result->user_id;
-    $redirect_base = home_url('/schedule-edit');
-
-    // CSRF対策
-    $nonce_result = AidUniteAuthMiddleware::verify_nonce('schedule_nonce', 'aidunite_schedule_nonce');
-    if (is_wp_error($nonce_result)) {
-        wp_safe_redirect(add_query_arg('error', rawurlencode($nonce_result->get_error_message()), $redirect_base));
-        exit;
-    }
-
-    // 統一認証・権限チェック（チーム代表者のみ許可・操作中チーム）
-    $team_id = function_exists('aidunite_get_current_team_id')
-        ? (int) aidunite_get_current_team_id((int) $user_id)
-        : (int) get_user_meta($user_id, 'team_id', true);
-    $auth_result = AidUniteAuthMiddleware::require_team_leader($team_id, false);
-    if (!$auth_result->is_valid()) {
-        wp_safe_redirect(add_query_arg('error', rawurlencode($auth_result->error ?: '権限がありません'), $redirect_base));
-        exit;
-    }
-
-    // スケジュール編集権限チェック（managed に含まれる team のみ）
-    if (!empty($_POST['post_id'])) {
-        $edit_id = (int) $_POST['post_id'];
-        $schedule_team_id = (int) get_post_meta($edit_id, 'team_id', true);
-        if ($schedule_team_id > 0 && function_exists('aidunite_user_has_managed_team_access')) {
-            if (!aidunite_user_has_managed_team_access((int) $user_id, $schedule_team_id)) {
-                wp_safe_redirect(add_query_arg('error', rawurlencode('このスケジュールを編集する権限がありません'), $redirect_base));
-                exit;
-            }
-        }
-    }
-
-    // 入力値
-    $start_date = isset($_POST['start_date']) ? sanitize_text_field($_POST['start_date']) : '';
-    $end_date   = isset($_POST['end_date'])   ? sanitize_text_field($_POST['end_date'])   : '';
-    $schedule_type = isset($_POST['schedule_type']) ? sanitize_text_field($_POST['schedule_type']) : '';
-    $intent = isset($_POST['intent']) ? sanitize_text_field($_POST['intent']) : '';
-    $certainty = isset($_POST['certainty']) ? sanitize_text_field($_POST['certainty']) : '';
-    $sh = sanitize_text_field($_POST['start_hour'] ?? '');
-    $sm = sanitize_text_field($_POST['start_minute'] ?? '');
-    $eh = sanitize_text_field($_POST['end_hour'] ?? '');
-    $em = sanitize_text_field($_POST['end_minute'] ?? '');
-    $start_time = ($sh !== '' && $sm !== '') ? sprintf('%02d:%02d', (int)$sh, (int)$sm) : '';
-    $end_time   = ($eh !== '' && $em !== '') ? sprintf('%02d:%02d', (int)$eh, (int)$em) : '';
-
-    // 必須バリデーション
-    if (empty($start_date) || empty($schedule_type)) {
-        wp_safe_redirect(add_query_arg('error', rawurlencode('必須項目が不足しています（期間/種別）'), $redirect_base));
-        exit;
-    }
-
-    // 投稿データ
-    $title_map = [
-        'practice' => '練習',
-        'official_match' => '公式試合',
-        'practice_match' => '練習試合',
-        'joint_practice' => '合同練習',
-        'rest' => '休み',
-        'event' => 'イベント'
-    ];
-    $post_title = $title_map[$schedule_type] ?? 'スケジュール';
-
-    $post_args = [
-        'post_type' => 'schedule',
-        'post_status' => 'publish',
-        'post_title' => $post_title,
-    ];
-    if (!empty($_POST['post_id'])) {
-        $post_args['ID'] = intval($_POST['post_id']);
-        $saved_id = wp_update_post($post_args, true);
-    } else {
-        $post_args['post_author'] = get_current_user_id();
-        $saved_id = wp_insert_post($post_args, true);
-    }
-
-    if (is_wp_error($saved_id) || !$saved_id) {
-        $msg = is_wp_error($saved_id) ? $saved_id->get_error_message() : '保存に失敗しました';
-        wp_safe_redirect(add_query_arg('error', rawurlencode($msg), $redirect_base));
-        exit;
-    }
-
-    // メタ保存
-    update_post_meta($saved_id, 'schedule_date', $start_date);
-    if (!empty($end_date)) update_post_meta($saved_id, 'schedule_end_date', $end_date);
-    if (!empty($start_time)) update_post_meta($saved_id, 'schedule_start_time', $start_time);
-    if (!empty($end_time)) update_post_meta($saved_id, 'schedule_end_time', $end_time);
-    if (!empty($schedule_type)) update_post_meta($saved_id, 'schedule_type', $schedule_type);
-    $venue_condition = isset($_POST['venue_condition']) ? sanitize_text_field($_POST['venue_condition']) : '';
-    $gender_condition = isset($_POST['gender_condition']) ? sanitize_text_field($_POST['gender_condition']) : '';
-    if ($venue_condition !== '' || $gender_condition !== '' || $intent !== '' || $certainty !== '') {
-        $schedule_norm = aidunite_normalize_schedule_payload([
-            'intent' => $intent,
-            'certainty' => $certainty,
-            'place_type' => $venue_condition,
-            'gender' => $gender_condition,
-            'gender_condition' => $gender_condition,
-            'venue_condition' => $venue_condition,
-        ]);
-        if (!empty($schedule_norm['intent'])) {
-            update_post_meta($saved_id, 'intent', $schedule_norm['intent']);
-        }
-        if (!empty($schedule_norm['certainty'])) {
-            update_post_meta($saved_id, 'certainty', $schedule_norm['certainty']);
-        }
-        aidunite_apply_normalized_schedule_meta($saved_id, $schedule_norm);
-    }
-
-    // 完了
-    wp_safe_redirect(add_query_arg('saved', '1', $redirect_base));
-    exit;
-}
+// admin_post_aidunite_save_schedule → functions/schedule/schedule-persist.php（persist 経由）
 
 function aidunite_admin_approve_team_creation() {
     // セキュリティチェック

@@ -880,23 +880,28 @@ function get_or_create_match_request($my_team_id, $my_schedule_id, $other_team_i
     return $existing; // 既存は返すが状態は未申請ではない
   }
 
-  $new_id = wp_insert_post([
-    'post_type'   => 'match_request',
-    'post_status' => 'draft',
-    'post_title'  => 'マッチ申請（自動生成） ' . current_time('mysql'),
-    'post_author' => get_current_user_id(),
-  ]);
-
-  if (is_wp_error($new_id)) {
-    error_log("[match_request] ❌ 作成失敗: " . $new_id->get_error_message());
+  if (!function_exists('aidunite_match_request_create_placeholder_post')) {
+    error_log('[match_request] ❌ persist 未読込');
     return null;
   }
 
-  update_post_meta($new_id, 'from_team_id', $my_team_id);
-  update_post_meta($new_id, 'my_schedule_id', $my_schedule_id);
-  update_post_meta($new_id, 'to_schedule_id', $other_schedule_id);
-  update_post_meta($new_id, 'other_team_id', $other_team_id);
-  aidunite_update_match_request_status_meta($new_id, 'not_applied');
+  $new_id = aidunite_match_request_create_placeholder_post([
+    'post_author' => get_current_user_id(),
+    'post_title' => 'マッチ申請（自動生成） ' . current_time('mysql'),
+    'from_team_id' => $my_team_id,
+    'my_schedule_id' => $my_schedule_id,
+    'to_schedule_id' => $other_schedule_id,
+    'other_team_id' => $other_team_id,
+    'to_team_id' => $other_team_id,
+    'request_team_id' => $my_team_id,
+    'status' => 'not_applied',
+    'post_status' => 'draft',
+  ]);
+
+  if (is_wp_error($new_id)) {
+    error_log('[match_request] ❌ 作成失敗: ' . $new_id->get_error_message());
+    return null;
+  }
 
   error_log("[match_request] 🆕 新規作成: ID={$new_id}, from_team_id={$my_team_id}, to_schedule_id={$other_schedule_id}");
   return get_post($new_id);
@@ -1397,11 +1402,27 @@ function aidunite_generate_match_request_if_not_exists($from_schedule_id, $to_sc
 
     error_log("[🔍 GENERATE] 新規作成を開始");
 
-    // 新規作成
-    $new_req_id = wp_insert_post([
-        'post_type'   => 'match_request',
+    $from_team_id = (int) get_post_meta($from_schedule_id, 'team_id', true);
+    $to_team_id = (int) get_post_meta($to_schedule_id, 'team_id', true);
+
+    if (!function_exists('aidunite_match_request_create_placeholder_post')) {
+        error_log('[🔍 GENERATE] persist 未読込');
+        return false;
+    }
+
+    $new_req_id = aidunite_match_request_create_placeholder_post([
+        'post_title' => '自動生成: ' . $from_schedule_id . '→' . $to_schedule_id,
         'post_status' => 'draft',
-        'post_title'  => '自動生成: ' . $from_schedule_id . '→' . $to_schedule_id,
+        'status' => 'draft',
+        'from_team_id' => $from_team_id,
+        'to_team_id' => $to_team_id,
+        'other_team_id' => $to_team_id,
+        'request_team_id' => $from_team_id,
+        'my_schedule_id' => (int) $from_schedule_id,
+        'to_schedule_id' => (int) $to_schedule_id,
+        'from_schedule_id' => (int) $from_schedule_id,
+        'type' => 'auto',
+        'is_auto_match' => '1',
     ]);
 
     if (!$new_req_id || is_wp_error($new_req_id)) {
@@ -1411,23 +1432,6 @@ function aidunite_generate_match_request_if_not_exists($from_schedule_id, $to_sc
     }
 
     error_log("[🔍 GENERATE] 投稿作成成功: ID={$new_req_id}");
-
-    // 必要なmetaを保存
-    update_post_meta($new_req_id, 'from_schedule_id', $from_schedule_id);
-    update_post_meta($new_req_id, 'to_schedule_id', $to_schedule_id);
-    update_post_meta($new_req_id, 'type', 'auto');
-    aidunite_update_match_request_status_meta($new_req_id, 'draft');
-
-    // チームIDも保存
-    $from_team_id = get_post_meta($from_schedule_id, 'team_id', true);
-    $to_team_id = get_post_meta($to_schedule_id, 'team_id', true);
-    if ($from_team_id) {
-        update_post_meta($new_req_id, 'from_team_id', $from_team_id);
-    }
-    if ($to_team_id) {
-        update_post_meta($new_req_id, 'to_team_id', $to_team_id);
-    }
-
     error_log("[🔍 GENERATE] メタデータ保存完了: from_team_id={$from_team_id}, to_team_id={$to_team_id}");
 
     // match_boardのmetaにIDを保存（from_schedule_id側のboardに紐付ける想定）

@@ -336,6 +336,18 @@
 
         }
 
+        const relatedId = parseInt($card.data('related-id'), 10) || 0;
+        const $footer = $modal.find('.ainy-notification-detail-modal__footer');
+        $footer.find('.ainy-notification-detail-modal__open-match').remove();
+        if (relatedId > 0 && !normalizeLinkUrl($card.attr('data-link') || '')) {
+            const matchUrl = (cfg.matchDetailUrlBase || '/match-detail/?id=') + relatedId;
+            $('<a></a>')
+                .addClass('btn btn-secondary ainy-notification-detail-modal__open-match')
+                .attr('href', matchUrl)
+                .text(cfg.i18n?.openMatchDetail || '現在の申請状況を見る')
+                .appendTo($footer);
+        }
+
 
 
         detailModalLastFocus = document.activeElement;

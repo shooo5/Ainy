@@ -370,12 +370,13 @@ function aidunite_market_get_row_state($other_schedule, $my_schedules, $my_team_
 
 /**
  * 募集中タブのデフォルト日付範囲（GET 未指定時）
+ * from は今日+1日（当日分は現場対応不可のため一覧から除外する運用）
  *
  * @return array{from: string, to: string} Y-m-d
  */
 function aidunite_market_board_default_date_range() {
     return [
-        'from' => date('Y-m-d', strtotime('-60 days')),
+        'from' => date('Y-m-d', strtotime('+1 day')),
         'to'   => date('Y-m-d', strtotime('+120 days')),
     ];
 }
@@ -786,6 +787,204 @@ if (!function_exists('aidunite_market_get_board_my_schedules')) {
         });
 
         return $merged;
+    }
+}
+
+/**
+ * 募集 anchor 上の MR 1件が消費する性別枠（男子/女子）を解決する。
+ *
+ * @param int $request_id
+ * @param int $recruit_schedule_id 募集側 schedule（anchor）
+ * @return string male|female
+ */
+if (!function_exists('aidunite_resolve_mr_gender_slot_for_recruit_anchor')) {
+    function aidunite_resolve_mr_gender_slot_for_recruit_anchor($request_id, $recruit_schedule_id) {
+        $request_id = (int) $request_id;
+        $recruit_schedule_id = (int) $recruit_schedule_id;
+        if ($request_id <= 0) {
+            return 'male';
+        }
+
+        $established_slot_meta = (string) get_post_meta($request_id, 'established_gender_slot', true);
+        if (in_array($established_slot_meta, ['male', 'female'], true)) {
+            return $established_slot_meta;
+        }
+
+        $selected_gender = (string) get_post_meta($request_id, 'selected_gender', true);
+        if ($selected_gender === 'male') {
+            return 'male';
+        }
+        if ($selected_gender === 'female') {
+            return 'female';
+        }
+
+        $my_id = (int) get_post_meta($request_id, 'my_schedule_id', true);
+        if ($my_id <= 0) {
+            $my_id = (int) get_post_meta($request_id, 'from_schedule_id', true);
+        }
+        $to_id = (int) get_post_meta($request_id, 'to_schedule_id', true);
+        $other_schedule_id = 0;
+        if ($to_id === $recruit_schedule_id) {
+            $other_schedule_id = $my_id;
+        } elseif ($my_id === $recruit_schedule_id) {
+            $other_schedule_id = $to_id;
+        }
+        if ($other_schedule_id > 0 && function_exists('aidunite_get_schedule_gender')) {
+            $resolved = aidunite_get_schedule_gender($other_schedule_id);
+            if ($resolved === 'female') {
+                return 'female';
+            }
+            if ($resolved === 'male') {
+                return 'male';
+            }
+        }
+
+        return 'male';
+    }
+}
+
+/**
+ * 募集 anchor の性別枠ごとに、成立（承認済み含む）・承認待ち件数を集計する（掲示板 anchor と同じ母集団）。
+ *
+ * @param int $recruit_schedule_id
+ * @return array{male_established:int,female_established:int,male_pending:int,female_pending:int}
+ */
+if (!function_exists('aidunite_summarize_recruit_anchor_gender_slots')) {
+    function aidunite_summarize_recruit_anchor_gender_slots($recruit_schedule_id) {
+        $recruit_schedule_id = (int) $recruit_schedule_id;
+        $male_established = 0;
+        $female_established = 0;
+        $male_pending = 0;
+        $female_pending = 0;
+        if ($recruit_schedule_id <= 0) {
+            return [
+                'male_established'   => 0,
+                'female_established' => 0,
+                'male_pending'       => 0,
+                'female_pending'     => 0,
+            ];
+        }
+
+        $posts = [];
+        if (function_exists('aidunite_get_game_match_requests')) {
+            $posts = aidunite_get_game_match_requests($recruit_schedule_id);
+        }
+        if ($posts === []) {
+            $posts = get_posts([
+                'post_type'      => 'match_request',
+                'post_status'    => 'any',
+                'posts_per_page' => -1,
+                'meta_query'     => [
+                    'relation' => 'OR',
+                    ['key' => 'to_schedule_id', 'value' => (string) $recruit_schedule_id, 'compare' => '='],
+                    ['key' => 'my_schedule_id', 'value' => (string) $recruit_schedule_id, 'compare' => '='],
+                    ['key' => 'from_schedule_id', 'value' => (string) $recruit_schedule_id, 'compare' => '='],
+                ],
+            ]);
+        }
+
+        $recruit_gender = function_exists('aidunite_market_recruitment_gender_canonical')
+            ? aidunite_market_recruitment_gender_canonical($recruit_schedule_id)
+            : '';
+        $recruit_male_only = ($recruit_gender === 'male');
+        $recruit_female_only = ($recruit_gender === 'female');
+
+        foreach ($posts as $p) {
+            $rid = (int) $p->ID;
+            $raw = (string) get_post_meta($rid, 'status', true);
+            $norm = function_exists('aidunite_normalize_match_request_status')
+                ? aidunite_normalize_match_request_status($raw, isset($p->post_status) ? (string) $p->post_status : '')
+                : strtolower($raw);
+            if (in_array($norm, ['canceled', 'rejected'], true)) {
+                continue;
+            }
+
+            $slot = aidunite_resolve_mr_gender_slot_for_recruit_anchor($rid, $recruit_schedule_id);
+            $is_male_bucket = ($slot === 'male');
+            if ($recruit_male_only && $slot === 'female') {
+                $is_male_bucket = true;
+            } elseif ($recruit_female_only && $slot === 'male') {
+                $is_male_bucket = false;
+            } elseif ($slot === 'female') {
+                $is_male_bucket = false;
+            }
+
+            $is_pending = ($norm === 'pending')
+                || in_array($raw, ['publish', 'pending', '申請中'], true);
+            if ($is_pending) {
+                if ($is_male_bucket) {
+                    $male_pending++;
+                } else {
+                    $female_pending++;
+                }
+                continue;
+            }
+
+            $is_filled = in_array($norm, ['established', 'accepted'], true)
+                || (function_exists('aidunite_match_request_counts_as_guest_commitment')
+                    && aidunite_match_request_counts_as_guest_commitment($rid));
+            if (!$is_filled) {
+                continue;
+            }
+            if ($is_male_bucket) {
+                $male_established++;
+            } else {
+                $female_established++;
+            }
+        }
+
+        return [
+            'male_established'   => $male_established,
+            'female_established' => $female_established,
+            'male_pending'       => $male_pending,
+            'female_pending'     => $female_pending,
+        ];
+    }
+}
+
+/**
+ * マッチ申請一覧・管理者向け表示用: 募集 schedule の男子/女子「充足数/定員」。
+ * 掲示板 anchor の `aidunite_market_board_anchor_slot_row_plan` と同じ定員・成立数を用いる（participants / male_capacity は使わない）。
+ *
+ * @param int $schedule_id 募集側 schedule ID
+ * @return array{ male_current: int, female_current: int, male_cap: int, female_cap: int }
+ */
+if (!function_exists('aidunite_get_schedule_recruitment_counts')) {
+    function aidunite_get_schedule_recruitment_counts($schedule_id) {
+        $schedule_id = (int) $schedule_id;
+        if ($schedule_id <= 0) {
+            return [
+                'male_current'   => 0,
+                'female_current' => 0,
+                'male_cap'       => 0,
+                'female_cap'     => 0,
+            ];
+        }
+
+        $summary = aidunite_summarize_recruit_anchor_gender_slots($schedule_id);
+        $male_plan = function_exists('aidunite_market_board_anchor_slot_row_plan')
+            ? aidunite_market_board_anchor_slot_row_plan(
+                $schedule_id,
+                'male',
+                (int) $summary['male_established'],
+                (int) $summary['male_pending']
+            )
+            : ['capacity' => 0];
+        $female_plan = function_exists('aidunite_market_board_anchor_slot_row_plan')
+            ? aidunite_market_board_anchor_slot_row_plan(
+                $schedule_id,
+                'female',
+                (int) $summary['female_established'],
+                (int) $summary['female_pending']
+            )
+            : ['capacity' => 0];
+
+        return [
+            'male_current'   => (int) $summary['male_established'],
+            'female_current' => (int) $summary['female_established'],
+            'male_cap'       => (int) ($male_plan['capacity'] ?? 0),
+            'female_cap'     => (int) ($female_plan['capacity'] ?? 0),
+        ];
     }
 }
 

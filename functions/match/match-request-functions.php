@@ -58,6 +58,133 @@ if (!function_exists('aidunite_reset_match_request_lifecycle_meta_for_reapply'))
         foreach ($keys_to_delete as $key) {
             delete_post_meta($request_id, $key);
         }
+
+        if (function_exists('aidunite_clear_match_chat_bindings_for_reapply')) {
+            aidunite_clear_match_chat_bindings_for_reapply($request_id);
+        }
+    }
+}
+
+if (!function_exists('aidunite_clear_match_chat_bindings_for_reapply')) {
+    /**
+     * 再申請時に前回成立・キャンセルで残ったチャットポインタを外す。
+     * completed ルームを pending 表示や承認前の遷移に再利用しないため。
+     *
+     * @param int $request_id
+     * @return void
+     */
+    function aidunite_clear_match_chat_bindings_for_reapply($request_id) {
+        $request_id = (int) $request_id;
+        if ($request_id <= 0) {
+            return;
+        }
+
+        if (function_exists('aidunite_complete_active_match_request_chat_rooms')) {
+            aidunite_complete_active_match_request_chat_rooms($request_id);
+        }
+
+        delete_post_meta($request_id, 'chat_room_id');
+
+        $match_game_id = function_exists('aidunite_resolve_match_game_id_for_match_request')
+            ? (int) aidunite_resolve_match_game_id_for_match_request($request_id)
+            : (int) get_post_meta($request_id, 'to_schedule_id', true);
+        if ($match_game_id <= 0 || $match_game_id === 9999) {
+            return;
+        }
+
+        if (
+            function_exists('aidunite_count_game_established_match_requests')
+            && aidunite_count_game_established_match_requests($match_game_id, 0) > 0
+        ) {
+            return;
+        }
+
+        delete_post_meta($match_game_id, 'active_match_chat_room_id');
+    }
+}
+
+if (!function_exists('aidunite_find_team_schedule_on_recruit_date')) {
+    /**
+     * 募集 schedule と同日の、指定チームの schedule を1件探す（?id= 通知導線の my_schedule 補正用）
+     *
+     * @param int $team_id
+     * @param int $other_schedule_id
+     * @return int schedule ID or 0
+     */
+    function aidunite_find_team_schedule_on_recruit_date($team_id, $other_schedule_id) {
+        $team_id = (int) $team_id;
+        $other_schedule_id = (int) $other_schedule_id;
+        if ($team_id <= 0 || $other_schedule_id <= 0) {
+            return 0;
+        }
+        $schedule_date = (string) get_post_meta($other_schedule_id, 'schedule_date', true);
+        if ($schedule_date === '') {
+            return 0;
+        }
+        $posts = get_posts([
+            'post_type'      => 'schedule',
+            'post_status'    => 'publish',
+            'posts_per_page' => 1,
+            'orderby'        => 'ID',
+            'order'          => 'DESC',
+            'meta_query'     => [
+                'relation' => 'AND',
+                [
+                    'key'     => 'team_id',
+                    'value'   => $team_id,
+                    'compare' => '=',
+                ],
+                [
+                    'key'     => 'schedule_date',
+                    'value'   => $schedule_date,
+                    'compare' => '=',
+                ],
+            ],
+            'fields' => 'ids',
+        ]);
+
+        return !empty($posts[0]) ? (int) $posts[0] : 0;
+    }
+}
+
+if (!function_exists('aidunite_resolve_my_schedule_id_for_match_application')) {
+    /**
+     * 申請 POST の my_schedule_id が他チーム所有のとき、操作中チームの schedule に補正する。
+     * 通知リンク ?id=match_request から再申請した場合の schedule_actor_team_mismatch 防止。
+     *
+     * @param int $actor_team_id
+     * @param int $posted_my_schedule_id
+     * @param int $other_schedule_id
+     * @param int $match_request_id
+     * @return int
+     */
+    function aidunite_resolve_my_schedule_id_for_match_application($actor_team_id, $posted_my_schedule_id, $other_schedule_id, $match_request_id = 0) {
+        $actor_team_id = (int) $actor_team_id;
+        $posted_my_schedule_id = (int) $posted_my_schedule_id;
+        $other_schedule_id = (int) $other_schedule_id;
+        $match_request_id = (int) $match_request_id;
+
+        if ($posted_my_schedule_id > 0) {
+            $sch_team = (int) get_post_meta($posted_my_schedule_id, 'team_id', true);
+            if ($sch_team <= 0 || $sch_team === $actor_team_id) {
+                return $posted_my_schedule_id;
+            }
+        }
+
+        if ($match_request_id > 0) {
+            $from_team = (int) get_post_meta($match_request_id, 'from_team_id', true);
+            $mr_my = (int) get_post_meta($match_request_id, 'my_schedule_id', true);
+            if ($from_team === $actor_team_id && $mr_my > 0) {
+                $owner = (int) get_post_meta($mr_my, 'team_id', true);
+                if ($owner <= 0 || $owner === $actor_team_id) {
+                    return $mr_my;
+                }
+            }
+        }
+
+        $found = aidunite_find_team_schedule_on_recruit_date($actor_team_id, $other_schedule_id);
+
+        return $found > 0 ? $found : $posted_my_schedule_id;
     }
 }
 
@@ -451,6 +578,7 @@ function aidunite_save_match_application_core(array $post_data, $user_id) {
 
     $my_schedule_id = (int) ($post_data['my_schedule_id'] ?? 0);
     $other_schedule_id = (int) ($post_data['other_schedule_id'] ?? 0);
+    $match_request_id_hint = (int) ($post_data['request_id'] ?? $post_data['match_request_id'] ?? 0);
     $selected_start_time = sanitize_text_field($post_data['selected_start_time'] ?? $post_data['preferred_start'] ?? '');
     $selected_end_time = sanitize_text_field($post_data['selected_end_time'] ?? $post_data['preferred_end'] ?? '');
     $selected_place = sanitize_text_field($post_data['selected_place'] ?? $post_data['preferred_place'] ?? '');
@@ -536,10 +664,16 @@ function aidunite_save_match_application_core(array $post_data, $user_id) {
         update_post_meta($new_schedule_id, 'schedule_end_date', $schedule_date);
         update_post_meta($new_schedule_id, 'schedule_start_time', $selected_start_time);
         update_post_meta($new_schedule_id, 'schedule_end_time', $selected_end_time);
-        update_post_meta($new_schedule_id, 'schedule_place', $my_place);
-        update_post_meta($new_schedule_id, 'schedule_place_option', $my_place);
-        update_post_meta($new_schedule_id, 'schedule_gender', $my_gender);
-        update_post_meta($new_schedule_id, 'matching_gender_condition', $my_gender);
+        if (function_exists('aidunite_schedule_write_place_meta')) {
+            aidunite_schedule_write_place_meta($new_schedule_id, $my_place);
+        } else {
+            update_post_meta($new_schedule_id, 'schedule_place', $my_place);
+        }
+        if (function_exists('aidunite_schedule_write_gender_meta')) {
+            aidunite_schedule_write_gender_meta($new_schedule_id, $my_gender);
+        } else {
+            update_post_meta($new_schedule_id, 'schedule_gender', $my_gender);
+        }
         update_post_meta($new_schedule_id, 'team_id', $my_team_id);
         update_post_meta($new_schedule_id, 'intent', 'tentative');
         update_post_meta($new_schedule_id, 'schedule_type', '練習試合');
@@ -557,6 +691,31 @@ function aidunite_save_match_application_core(array $post_data, $user_id) {
             update_post_meta($new_schedule_id, 'female_slots', 1);
         }
         $my_schedule_id = $new_schedule_id;
+    }
+
+    if ($other_schedule_id > 0 && function_exists('aidunite_resolve_my_schedule_id_for_match_application')) {
+        $resolve_rid = $match_request_id_hint;
+        if ($resolve_rid <= 0 && function_exists('get_latest_match_request_bidirectional')) {
+            $existing_for_resolve = get_latest_match_request_bidirectional(
+                $my_team_id,
+                $my_schedule_id,
+                $target_schedule_team_id,
+                $other_schedule_id,
+                ['restrict_to_to_schedule_id' => $other_schedule_id]
+            );
+            if ($existing_for_resolve) {
+                $resolve_rid = (int) $existing_for_resolve->ID;
+            }
+        }
+        $resolved_my_schedule_id = aidunite_resolve_my_schedule_id_for_match_application(
+            $my_team_id,
+            $my_schedule_id,
+            $other_schedule_id,
+            $resolve_rid
+        );
+        if ($resolved_my_schedule_id > 0) {
+            $my_schedule_id = $resolved_my_schedule_id;
+        }
     }
 
     $my_schedule = get_post($my_schedule_id);
@@ -688,21 +847,29 @@ function aidunite_save_match_application_core(array $post_data, $user_id) {
             if (function_exists('aidunite_reset_match_request_lifecycle_meta_for_reapply')) {
                 aidunite_reset_match_request_lifecycle_meta_for_reapply($request_id);
             }
-            aidunite_update_match_request_status_meta($request_id, 'pending');
-            update_post_meta($request_id, 'request_status', 'pending');
-            update_post_meta($request_id, 'from_team_id', $my_team_id);
-            update_post_meta($request_id, 'other_team_id', $target_schedule_team_id);
-            update_post_meta($request_id, 'to_team_id', $target_schedule_team_id);
-            update_post_meta($request_id, 'selected_start_time', $selected_start_time);
-            update_post_meta($request_id, 'selected_end_time', $selected_end_time);
-            update_post_meta($request_id, 'selected_place', $selected_place);
-            update_post_meta($request_id, 'selected_gender', $selected_gender);
-            update_post_meta($request_id, 'preferred_start', $selected_start_time);
-            update_post_meta($request_id, 'preferred_end', $selected_end_time);
-            update_post_meta($request_id, 'preferred_place', $selected_place);
-            update_post_meta($request_id, 'preferred_gender', $selected_gender);
-            if (function_exists('aidunite_recruit_schedule_fingerprint')) {
-                update_post_meta($request_id, 'recruit_condition_fp', aidunite_recruit_schedule_fingerprint($other_schedule_id));
+            if (function_exists('aidunite_match_request_write_application_meta')) {
+                aidunite_match_request_write_application_meta((int) $request_id, [
+                    'status' => 'pending',
+                    'from_team_id' => $my_team_id,
+                    'other_team_id' => $target_schedule_team_id,
+                    'to_team_id' => $target_schedule_team_id,
+                    'request_team_id' => $my_team_id,
+                    'to_schedule_id' => $other_schedule_id,
+                    'my_schedule_id' => $my_schedule_id,
+                    'selected_start_time' => $selected_start_time,
+                    'selected_end_time' => $selected_end_time,
+                    'selected_place' => $selected_place,
+                    'selected_gender' => $selected_gender,
+                ]);
+            } else {
+                aidunite_update_match_request_status_meta($request_id, 'pending');
+                update_post_meta($request_id, 'from_team_id', $my_team_id);
+                update_post_meta($request_id, 'other_team_id', $target_schedule_team_id);
+                update_post_meta($request_id, 'to_team_id', $target_schedule_team_id);
+                update_post_meta($request_id, 'selected_start_time', $selected_start_time);
+                update_post_meta($request_id, 'selected_end_time', $selected_end_time);
+                update_post_meta($request_id, 'selected_place', $selected_place);
+                update_post_meta($request_id, 'selected_gender', $selected_gender);
             }
 
             if (function_exists('aidunite_match_flow_debug_log')) {
@@ -729,39 +896,44 @@ function aidunite_save_match_application_core(array $post_data, $user_id) {
                 'post_modified_gmt' => current_time('mysql', true),
             ]);
 
-            // レガシー Ajax 経路と同様：更新のみ（通知・掲示板同期は新規作成時のみ）
+            $notify_terminal_reapply = in_array($norm, ['canceled', 'rejected'], true)
+                || $existing_request->post_status === 'draft';
+            if ($notify_terminal_reapply && function_exists('aidunite_match_request_after_create_hooks')) {
+                aidunite_match_request_after_create_hooks((int) $request_id, [
+                    'notify'                => true,
+                    'reapply_received_only' => true,
+                    'to_schedule_id'        => (int) $other_schedule_id,
+                    'from_team_id'          => (int) $my_team_id,
+                    'to_team_id'            => (int) $target_schedule_team_id,
+                ]);
+            }
+
             return ['success' => true, 'request_id' => (int) $request_id, 'message' => 'application_updated'];
         }
     }
 
-    $request_data = [
-        'post_type' => 'match_request',
-        'post_status' => 'publish',
+    $create_args = [
+        'post_author' => $user_id,
         'post_title' => "マッチ申請: チーム{$my_team_id} → スケジュール{$other_schedule_id}",
         'post_content' => "申請時間: {$selected_start_time} - {$selected_end_time}",
-        'post_author' => $user_id,
-        'meta_input' => [
-            'from_team_id' => $my_team_id,
-            'other_team_id' => $target_schedule_team_id,
-            'to_team_id' => $target_schedule_team_id,
-            'request_team_id' => $my_team_id,
-            'to_schedule_id' => $other_schedule_id,
-            'my_schedule_id' => $my_schedule_id,
-            'status' => 'pending',
-            'request_status' => 'pending',
-            'selected_start_time' => $selected_start_time,
-            'selected_end_time' => $selected_end_time,
-            'selected_place' => $selected_place,
-            'selected_gender' => $selected_gender,
-            'preferred_start' => $selected_start_time,
-            'preferred_end' => $selected_end_time,
-            'preferred_place' => $selected_place,
-            'preferred_gender' => $selected_gender,
-            'recruit_condition_fp' => function_exists('aidunite_recruit_schedule_fingerprint') ? aidunite_recruit_schedule_fingerprint($other_schedule_id) : '',
-        ],
+        'from_team_id' => $my_team_id,
+        'other_team_id' => $target_schedule_team_id,
+        'to_team_id' => $target_schedule_team_id,
+        'request_team_id' => $my_team_id,
+        'to_schedule_id' => $other_schedule_id,
+        'my_schedule_id' => $my_schedule_id,
+        'status' => 'pending',
+        'selected_start_time' => $selected_start_time,
+        'selected_end_time' => $selected_end_time,
+        'selected_place' => $selected_place,
+        'selected_gender' => $selected_gender,
     ];
 
-    $request_id = wp_insert_post($request_data);
+    if (!function_exists('aidunite_match_request_create_application_post')) {
+        return ['success' => false, 'message' => 'creation_failed', 'code' => 'persist_unavailable'];
+    }
+
+    $request_id = aidunite_match_request_create_application_post($create_args);
 
     if (is_wp_error($request_id)) {
         if (function_exists('aidunite_match_flow_debug_log')) {
@@ -771,10 +943,6 @@ function aidunite_save_match_application_core(array $post_data, $user_id) {
             ]);
         }
         return ['success' => false, 'message' => 'creation_failed', 'code' => 'creation_failed'];
-    }
-
-    if (function_exists('aidunite_match_request_ensure_link_team_meta')) {
-        aidunite_match_request_ensure_link_team_meta((int) $request_id);
     }
 
     if (function_exists('aidunite_match_flow_debug_log')) {
@@ -788,12 +956,13 @@ function aidunite_save_match_application_core(array $post_data, $user_id) {
         ]);
     }
 
-    do_action('aidunite_match_request_saved', (int) $request_id);
-
-    send_match_request_received_notification($request_id, $target_schedule_team_id, $my_team_id);
-    update_board_status_on_apply($other_schedule_id);
-    if (function_exists('aidunite_sync_match_board_status_from_game')) {
-        aidunite_sync_match_board_status_from_game((int) $other_schedule_id);
+    if (function_exists('aidunite_match_request_after_create_hooks')) {
+        aidunite_match_request_after_create_hooks((int) $request_id, [
+            'notify' => true,
+            'to_schedule_id' => (int) $other_schedule_id,
+            'from_team_id' => (int) $my_team_id,
+            'to_team_id' => (int) $target_schedule_team_id,
+        ]);
     }
 
     return ['success' => true, 'request_id' => (int) $request_id, 'message' => 'application_created'];
@@ -934,22 +1103,25 @@ function au_propose_reconfirm_conditions() {
     if ($to_schedule_id > 0 && $my_schedule_id_for_place > 0 && function_exists('_aidunite_resolve_selected_place_for_established')) {
         $applicant_place = (string) _aidunite_resolve_selected_place_for_established('', $to_schedule_id, $my_schedule_id_for_place);
     }
+    $selection_args = [];
     if ($applicant_place !== '' && in_array($applicant_place, ['home', 'away', 'either'], true)) {
-        update_post_meta($request_id, 'selected_place', $applicant_place);
-        update_post_meta($request_id, 'preferred_place', $applicant_place);
+        $selection_args['selected_place'] = $applicant_place;
     } elseif ($current_place !== '') {
-        update_post_meta($request_id, 'selected_place', $current_place);
-        update_post_meta($request_id, 'preferred_place', $current_place);
+        $selection_args['selected_place'] = $current_place;
     }
     if ($current_gender !== '') {
-        update_post_meta($request_id, 'selected_gender', $current_gender);
-        update_post_meta($request_id, 'preferred_gender', $current_gender);
+        $selection_args['selected_gender'] = $current_gender;
     }
     if ($current_start !== '' && $current_end !== '') {
-        update_post_meta($request_id, 'selected_start_time', $current_start);
-        update_post_meta($request_id, 'selected_end_time', $current_end);
-        update_post_meta($request_id, 'preferred_start', $current_start);
-        update_post_meta($request_id, 'preferred_end', $current_end);
+        $selection_args['selected_start_time'] = $current_start;
+        $selection_args['selected_end_time'] = $current_end;
+    }
+    if (!empty($selection_args) && function_exists('aidunite_match_request_write_application_meta')) {
+        aidunite_match_request_write_application_meta((int) $request_id, $selection_args);
+    } elseif (!empty($selection_args)) {
+        foreach ($selection_args as $k => $v) {
+            update_post_meta($request_id, $k, $v);
+        }
     }
 
     update_post_meta($request_id, 'proposal_pending_accept', 1);
@@ -1212,13 +1384,12 @@ function handle_update_match_request_status() {
         }
     }
 
-    // ステータス更新
+    // ステータス更新（persist: accepted → established + *_at）
     aidunite_update_match_request_status_meta(
         $request_id,
         $status,
         isset($request->post_status) ? (string) $request->post_status : ''
     );
-    update_post_meta($request_id, $status . '_at', current_time('mysql'));
 
     aidunite_touch_match_request_post_modified((int) $request_id);
 
@@ -1338,12 +1509,16 @@ function handle_update_match_request_status() {
         if (function_exists('aidunite_after_match_established')) {
             aidunite_after_match_established($request_id);
         }
-        if (function_exists('aidunite_get_game_chat_room_for_match_request')) {
+        $forked_new_chat = function_exists('aidunite_match_request_should_fork_new_chat_room')
+            && aidunite_match_request_should_fork_new_chat_room((int) $request_id);
+        if (!$forked_new_chat && function_exists('aidunite_get_game_chat_room_for_match_request')) {
             $canonical_room = aidunite_get_game_chat_room_for_match_request((int) $request_id);
-            if ($canonical_room && !empty($canonical_room->id)) {
+            if ($canonical_room && !empty($canonical_room->id) && (string) ($canonical_room->status ?? '') === 'active') {
                 $chat_room_id = (int) $canonical_room->id;
                 $redirect_url = home_url('/chat?room_id=' . $chat_room_id);
             }
+        } elseif ($chat_room_id > 0) {
+            $redirect_url = home_url('/chat?room_id=' . $chat_room_id);
         }
     } elseif ($status === 'rejected') {
         send_match_rejection_notification($request_id);
@@ -1385,7 +1560,7 @@ function handle_update_match_request_status() {
         if (function_exists('aidunite_notify_match_request_canceled')) {
             aidunite_notify_match_request_canceled($request_id, (int) $current_team_id);
         } elseif (function_exists('send_match_cancellation_notification')) {
-            send_match_cancellation_notification($request_id);
+            send_match_cancellation_notification($request_id, (int) $current_team_id);
         }
     }
 

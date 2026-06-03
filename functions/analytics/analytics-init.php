@@ -15,6 +15,7 @@ require_once $aidunite_analytics_dir . '/analytics-db.php';
 require_once $aidunite_analytics_dir . '/page-analytics-aggregate.php';
 require_once $aidunite_analytics_dir . '/page-analytics-tracker.php';
 require_once $aidunite_analytics_dir . '/rest-page-analytics.php';
+require_once $aidunite_analytics_dir . '/analytics-persist.php';
 require_once $aidunite_analytics_dir . '/page-events.php';
 require_once $aidunite_analytics_dir . '/rest-page-events.php';
 require_once $aidunite_analytics_dir . '/team-funnel.php';

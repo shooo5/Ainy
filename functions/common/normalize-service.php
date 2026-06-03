@@ -546,7 +546,11 @@ function aidunite_normalize_analytics_payload(array $payload) {
         $out['event_type'] = $payload['event_type'];
     }
     if (isset($payload['funnel_step_id'])) {
-        $out['funnel_step_id'] = strtolower(trim((string) $payload['funnel_step_id']));
+        $step = strtolower(trim((string) $payload['funnel_step_id']));
+        if ($step === 'accepted') {
+            $step = 'established';
+        }
+        $out['funnel_step_id'] = $step;
     }
     return $out;
 }
@@ -596,6 +600,10 @@ function aidunite_normalize_payload_by_domain($domain, array $payload, array $op
  * @param array $normalized aidunite_normalize_match_request_payload の戻り値
  */
 function aidunite_apply_normalized_match_request_meta($match_request_id, array $normalized) {
+    if (function_exists('aidunite_match_request_write_normalized_meta')) {
+        aidunite_match_request_write_normalized_meta((int) $match_request_id, $normalized);
+        return;
+    }
     $match_request_id = (int) $match_request_id;
     if ($match_request_id <= 0) {
         return;
@@ -631,6 +639,9 @@ function aidunite_apply_normalized_match_request_meta($match_request_id, array $
  * @return string 保存した canonical status
  */
 function aidunite_update_match_request_status_meta($match_request_id, $status_raw, $post_status = '') {
+    if (function_exists('aidunite_match_request_update_status_meta')) {
+        return aidunite_match_request_update_status_meta((int) $match_request_id, (string) $status_raw, (string) $post_status);
+    }
     $match_request_id = (int) $match_request_id;
     if ($match_request_id <= 0) {
         return '';
@@ -652,6 +663,10 @@ function aidunite_update_match_request_status_meta($match_request_id, $status_ra
  * @return void
  */
 function aidunite_update_match_request_cancel_reason_meta($match_request_id, $reason_code, $legacy_message = '') {
+    if (function_exists('aidunite_match_request_update_cancel_reason_meta')) {
+        aidunite_match_request_update_cancel_reason_meta((int) $match_request_id, (string) $reason_code, (string) $legacy_message);
+        return;
+    }
     $match_request_id = (int) $match_request_id;
     if ($match_request_id <= 0) {
         return;
@@ -661,7 +676,6 @@ function aidunite_update_match_request_cancel_reason_meta($match_request_id, $re
         return;
     }
     update_post_meta($match_request_id, 'cancel_reason_code', $code);
-    // backward compatibility
     update_post_meta($match_request_id, 'canceled_reason', $code);
     update_post_meta($match_request_id, 'aidunite_cancel_reason', $code);
     if ($legacy_message !== '') {
@@ -685,13 +699,23 @@ function aidunite_apply_normalized_schedule_meta($schedule_id, array $normalized
     }
     $place = $normalized['schedule_place'] ?? $normalized['place_type'] ?? $normalized['venue_condition'] ?? null;
     if ($place !== null && $place !== '') {
-        update_post_meta($schedule_id, 'schedule_place', $place);
-        update_post_meta($schedule_id, 'schedule_place_option', $place);
+        if (function_exists('aidunite_schedule_write_place_meta')) {
+            aidunite_schedule_write_place_meta($schedule_id, $place);
+        } else {
+            update_post_meta($schedule_id, 'schedule_place', $place);
+        }
     }
-    $gender = $normalized['matching_gender_condition'] ?? $normalized['gender'] ?? $normalized['gender_condition'] ?? null;
+    $gender = $normalized['schedule_gender']
+        ?? $normalized['matching_gender_condition']
+        ?? $normalized['gender']
+        ?? $normalized['gender_condition']
+        ?? null;
     if ($gender !== null && $gender !== '') {
-        update_post_meta($schedule_id, 'matching_gender_condition', $gender);
-        update_post_meta($schedule_id, 'schedule_gender', $gender);
+        if (function_exists('aidunite_schedule_write_gender_meta')) {
+            aidunite_schedule_write_gender_meta($schedule_id, $gender);
+        } else {
+            update_post_meta($schedule_id, 'schedule_gender', $gender);
+        }
     }
     if (isset($normalized['is_match_requested'])) {
         $is_mr = (int) $normalized['is_match_requested'];
@@ -742,6 +766,9 @@ function aidunite_update_team_type_meta($team_id, $team_type_raw) {
  * @return string 保存した値（空なら未保存）
  */
 function aidunite_update_team_payment_mode_meta($team_id, $payment_mode_raw) {
+    if (function_exists('aidunite_team_write_payment_mode_meta')) {
+        return aidunite_team_write_payment_mode_meta((int) $team_id, (string) $payment_mode_raw);
+    }
     $team_id = (int) $team_id;
     if ($team_id <= 0) {
         return '';
@@ -751,6 +778,7 @@ function aidunite_update_team_payment_mode_meta($team_id, $payment_mode_raw) {
         return '';
     }
     update_post_meta($team_id, 'payment_mode', $normalized);
+
     return $normalized;
 }
 
@@ -762,6 +790,9 @@ function aidunite_update_team_payment_mode_meta($team_id, $payment_mode_raw) {
  * @return string 保存した値（空なら未保存）
  */
 function aidunite_update_user_registration_status_meta($user_id, $status_raw) {
+    if (function_exists('aidunite_user_write_registration_status_meta')) {
+        return aidunite_user_write_registration_status_meta((int) $user_id, (string) $status_raw);
+    }
     $user_id = (int) $user_id;
     if ($user_id <= 0) {
         return '';
@@ -772,5 +803,6 @@ function aidunite_update_user_registration_status_meta($user_id, $status_raw) {
         return '';
     }
     update_user_meta($user_id, 'registration_status', $status);
+
     return $status;
 }

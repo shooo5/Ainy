@@ -2,6 +2,8 @@
 /**
  * 決済設定・データ構造管理
  * 金額設定、プラン設定、支払いステータス管理
+ *
+ * @see docs/spec/payment.md §11 persist
  */
 
 /**
@@ -138,6 +140,11 @@ function aidunite_get_payment_status($user_id) {
  * 支払いステータスを設定
  */
 function aidunite_set_payment_status($user_id, $status) {
+    if (function_exists('aidunite_user_write_payment_status_meta')) {
+        aidunite_user_write_payment_status_meta((int) $user_id, (string) $status);
+
+        return;
+    }
     update_user_meta($user_id, 'payment_status', $status);
     update_user_meta($user_id, 'payment_status_updated', current_time('mysql'));
 }
@@ -153,6 +160,11 @@ function aidunite_get_stripe_customer_id($user_id) {
  * Stripe顧客IDを設定
  */
 function aidunite_set_stripe_customer_id($user_id, $customer_id) {
+    if (function_exists('aidunite_user_write_stripe_customer_meta')) {
+        aidunite_user_write_stripe_customer_meta((int) $user_id, (string) $customer_id);
+
+        return;
+    }
     update_user_meta($user_id, 'stripe_customer_id', $customer_id);
 }
 
@@ -167,6 +179,11 @@ function aidunite_get_stripe_subscription_id($user_id) {
  * StripeサブスクリプションIDを設定
  */
 function aidunite_set_stripe_subscription_id($user_id, $subscription_id) {
+    if (function_exists('aidunite_user_write_stripe_subscription_meta')) {
+        aidunite_user_write_stripe_subscription_meta((int) $user_id, (string) $subscription_id);
+
+        return;
+    }
     update_user_meta($user_id, 'stripe_subscription_id', $subscription_id);
 }
 
@@ -181,9 +198,12 @@ function aidunite_get_team_payment_mode($team_id) {
  * チームの支払いモードを設定
  */
 function aidunite_set_team_payment_mode($team_id, $mode) {
-    if (function_exists('aidunite_update_team_payment_mode_meta')) {
-        $saved = aidunite_update_team_payment_mode_meta($team_id, $mode);
-        if ($saved !== '') {
+    if (function_exists('aidunite_team_write_payment_mode_meta')) {
+        if (aidunite_team_write_payment_mode_meta((int) $team_id, (string) $mode) !== '') {
+            return;
+        }
+    } elseif (function_exists('aidunite_update_team_payment_mode_meta')) {
+        if (aidunite_update_team_payment_mode_meta($team_id, $mode) !== '') {
             return;
         }
     }
@@ -208,6 +228,11 @@ function aidunite_get_selected_plan_id($team_id) {
  * 選択プランIDを設定
  */
 function aidunite_set_selected_plan_id($team_id, $plan_id) {
+    if (function_exists('aidunite_team_write_selected_plan_meta')) {
+        aidunite_team_write_selected_plan_meta((int) $team_id, (string) $plan_id);
+
+        return;
+    }
     update_post_meta($team_id, 'selected_plan_id', $plan_id);
 }
 
@@ -222,6 +247,11 @@ function aidunite_get_trial_start_date($team_id) {
  * トライアル開始日を設定
  */
 function aidunite_set_trial_start_date($team_id, $date = null) {
+    if (function_exists('aidunite_team_write_trial_start_date_meta')) {
+        aidunite_team_write_trial_start_date_meta((int) $team_id, $date);
+
+        return;
+    }
     if ($date === null) {
         $date = current_time('mysql');
     }

@@ -195,6 +195,11 @@ if (!$is_participant) {
     ], ['%d', '%d', '%s']);
 }
 
+// 画面表示時点で既読を最新まで同期（JS 失敗時も未読バッジが残らないようにする）
+if (function_exists('aidunite_sync_chat_read_status_to_latest')) {
+    aidunite_sync_chat_read_status_to_latest((int) $chat_id, (int) $user_id);
+}
+
 // ヘッダー表示用の情報を取得（room_typeに応じて分岐）
 if ($room_type === 'match') {
     $team_a_name = aidunite_get_team_name($chat_room->team_a_id);
@@ -1489,8 +1494,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function markRoomAsRead(messageId) {
         var messageIdInt = parseInt(messageId || 0, 10) || 0;
-        if (!currentRoomId || messageIdInt <= 0) return Promise.resolve();
-        if (messageIdInt <= lastMarkedReadMessageId) return Promise.resolve();
+        if (!currentRoomId) return Promise.resolve();
+        if (messageIdInt > 0 && messageIdInt <= lastMarkedReadMessageId) return Promise.resolve();
 
         return fetch('/wp-json/aidunite/v1/chats/' + currentRoomId + '/read', {
             method: 'POST',
@@ -1498,10 +1503,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 'Content-Type': 'application/json',
                 'X-WP-Nonce': nonce
             },
-            body: JSON.stringify({ message_id: messageIdInt })
+            body: JSON.stringify({ message_id: messageIdInt > 0 ? messageIdInt : 0 })
         }).then(function(response) {
             if (response.ok) {
-                lastMarkedReadMessageId = messageIdInt;
+                if (messageIdInt > 0) {
+                    lastMarkedReadMessageId = messageIdInt;
+                } else {
+                    lastMarkedReadMessageId = Number.MAX_SAFE_INTEGER;
+                }
                 return;
             }
             return response.json().catch(function() { return {}; }).then(function(data) {
@@ -1826,9 +1835,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 var currentMessageId = parseInt(list[i].id, 10) || 0;
                 if (currentMessageId > latestMessageId) latestMessageId = currentMessageId;
             }
-            if (latestMessageId > 0) {
-                markRoomAsRead(latestMessageId);
-            }
+            markRoomAsRead(latestMessageId);
 
             if (suppressRender) {
                 messages = list;
@@ -2435,7 +2442,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // ページ離脱時に接続/タイマーを閉じる
+    // ページ離脱時に接続/タイマーを閉じる（コミュニケーション一覧の未読表示を即更新）
+    window.addEventListener('pagehide', function() {
+        try {
+            sessionStorage.setItem('aidunite_timeline_force_refresh', '1');
+        } catch (e) { /* ignore */ }
+    });
+
     window.addEventListener('beforeunload', function() {
         if (pollTimer) {
             clearTimeout(pollTimer);

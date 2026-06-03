@@ -188,7 +188,11 @@ if (isset($_POST['update_team_status'], $_POST['team_id'], $_POST['team_status_n
     if ($team_id && in_array($team_status_new, $allowed, true)) {
         $team_post = get_post($team_id);
         if ($team_post && $team_post->post_type === 'team') {
-            update_post_meta($team_id, 'team_status', $team_status_new);
+            if (function_exists('aidunite_team_write_status_meta')) {
+                aidunite_team_write_status_meta($team_id, $team_status_new);
+            } else {
+                update_post_meta($team_id, 'team_status', $team_status_new);
+            }
             $redirect = add_query_arg(['team_status_updated' => 1, 'team_id' => $team_id], wp_get_referer() ?: home_url('/team-management'));
             wp_safe_redirect($redirect);
             exit;

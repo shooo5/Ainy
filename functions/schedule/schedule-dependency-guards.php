@@ -331,8 +331,16 @@ function aidunite_sync_match_board_status_from_game($recruit_schedule_id) {
         return '';
     }
 
+    if (function_exists('aidunite_match_board_sync_status_from_game')) {
+        return (string) aidunite_match_board_sync_status_from_game($recruit_schedule_id);
+    }
+
     $board_status = aidunite_compute_match_board_status_from_game($recruit_schedule_id);
+    if (function_exists('aidunite_match_board_write_status_meta')) {
+        return (string) aidunite_match_board_write_status_meta($board_id, $board_status);
+    }
     update_post_meta($board_id, 'match_board_status', $board_status);
+
     return $board_status;
 }
 

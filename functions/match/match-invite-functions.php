@@ -254,31 +254,30 @@ function aidunite_process_match_invite_approval($token, $school_name, $approver_
         ];
     }
 
-    // match_requestを作成
-    $request_id = wp_insert_post([
-        'post_type' => 'match_request',
-        'post_status' => 'publish',
-        'post_title' => '試合招待承認 ' . current_time('mysql'),
-        'post_author' => $user_id
-    ]);
-
-    if (is_wp_error($request_id)) {
-        error_log("❌ match_request作成失敗：" . $request_id->get_error_message());
+    if (!function_exists('aidunite_match_request_create_guest_invite_post')) {
         return [
             'success' => false,
-            'message' => '試合申請の作成に失敗しました'
+            'message' => 'サーバー設定エラーです',
         ];
     }
 
-    // メタデータを保存
-    update_post_meta($request_id, 'from_team_id', $from_team_id);
-    update_post_meta($request_id, 'to_team_id', $to_team_id);
-    update_post_meta($request_id, 'my_schedule_id', $schedule_id);
-    update_post_meta($request_id, 'to_schedule_id', 9999); // 固定値
-    update_post_meta($request_id, 'approver_school_name', sanitize_text_field($school_name));
-    update_post_meta($request_id, 'approver_name', sanitize_text_field($approver_name));
-    update_post_meta($request_id, 'approver_type', 'guest_invite');
-    update_post_meta($request_id, 'approved_at', current_time('mysql'));
+    $request_id = aidunite_match_request_create_guest_invite_post([
+        'post_author' => $user_id,
+        'from_team_id' => $from_team_id,
+        'to_team_id' => $to_team_id,
+        'my_schedule_id' => $schedule_id,
+        'to_schedule_id' => 9999,
+        'approver_school_name' => $school_name,
+        'approver_name' => $approver_name,
+    ]);
+
+    if (is_wp_error($request_id)) {
+        error_log('❌ match_request作成失敗：' . $request_id->get_error_message());
+        return [
+            'success' => false,
+            'message' => '試合申請の作成に失敗しました',
+        ];
+    }
 
     // トークンを無効化
     aidunite_invalidate_match_invite_token($token);

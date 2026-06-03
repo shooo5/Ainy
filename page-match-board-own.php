@@ -128,7 +128,7 @@ window.aiduniteMatchBoardConfig.initialTab = <?php echo json_encode($initial_mar
                 $today = date('Y-m-d');
                 $default_range = function_exists('aidunite_market_board_default_date_range')
                     ? aidunite_market_board_default_date_range()
-                    : ['from' => date('Y-m-d', strtotime('-60 days')), 'to' => date('Y-m-d', strtotime('+120 days'))];
+                    : ['from' => date('Y-m-d', strtotime('+1 day')), 'to' => date('Y-m-d', strtotime('+120 days'))];
                 $date_from_default = $default_range['from'];
                 $date_to_default = $default_range['to'];
                 $date_from = isset($_GET['date_from']) ? sanitize_text_field(wp_unslash($_GET['date_from'])) : $date_from_default;
@@ -142,7 +142,9 @@ window.aiduniteMatchBoardConfig.initialTab = <?php echo json_encode($initial_mar
                     $filter_gender = '';
                 }
                 $filter_area   = isset($_GET['filter_area']) ? sanitize_text_field($_GET['filter_area']) : '';
-                if ($date_from === '') $date_from = $today;
+                if ($date_from === '') {
+                    $date_from = $date_from_default;
+                }
                 if ($date_to === '') $date_to = $date_to_default;
 
                 $my_matching_schedules = aidunite_market_get_my_matching_schedules($current_user_team_id);

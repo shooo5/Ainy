@@ -28,8 +28,21 @@ if ($request_id_param > 0) {
         get_footer();
         return;
     }
-    $my_schedule_id = (int) get_post_meta($req_post->ID, 'my_schedule_id', true);
+    $mr_my_schedule_id = (int) get_post_meta($req_post->ID, 'my_schedule_id', true);
     $to_schedule_id_meta = (int) get_post_meta($req_post->ID, 'to_schedule_id', true);
+    $from_team_id_url = (int) get_post_meta($req_post->ID, 'from_team_id', true);
+    if ($from_team_id_url === $my_team_id) {
+        $my_schedule_id = $mr_my_schedule_id;
+    } elseif (function_exists('aidunite_resolve_my_schedule_id_for_match_application')) {
+        $my_schedule_id = aidunite_resolve_my_schedule_id_for_match_application(
+            $my_team_id,
+            $mr_my_schedule_id,
+            $to_schedule_id_meta,
+            (int) $req_post->ID
+        );
+    } else {
+        $my_schedule_id = $mr_my_schedule_id;
+    }
     $approver_type = get_post_meta($req_post->ID, 'approver_type', true);
     $is_guest_invite = ($to_schedule_id_meta === 9999 || $approver_type === 'guest_invite');
 
@@ -329,8 +342,15 @@ if ($match_request_id_param > 0) {
         $host_team = $mr_to > 0 ? (int) get_post_meta($mr_to, 'team_id', true) : 0;
         $viewer_team = (int) $current_user_team_id;
         $viewer_ok = ($from_tid === $viewer_team) || ($host_team === $viewer_team);
-        if ($pair_ok && $viewer_ok) {
+        if ($viewer_ok && ($pair_ok || $match_request_id_param > 0)) {
             $latest_request = $mr_pick;
+            if (!$pair_ok && $mr_to > 0 && (int) get_post_meta($mr_to, 'team_id', true) === $viewer_team) {
+                $my_schedule_id = $mr_to;
+                $other_schedule_id = $mr_my > 0 ? $mr_my : $other_schedule_id;
+            } elseif (!$pair_ok && $mr_my > 0 && (int) get_post_meta($mr_my, 'team_id', true) === $viewer_team) {
+                $my_schedule_id = $mr_my;
+                $other_schedule_id = $mr_to > 0 ? $mr_to : $other_schedule_id;
+            }
         }
     }
 }
@@ -377,7 +397,7 @@ if ($latest_request) {
                 // ページのother_schedule_idが一致する場合、このユーザーが受信者
                 $is_applicant = false;
             } else {
-                $is_applicant = true; // デフォルト
+                $is_applicant = false;
             }
         }
     }
@@ -516,11 +536,15 @@ if ($application_status === 'reconfirm_required' && $latest_request) {
 }
 $established_chat_url = '';
 if (in_array((string) $application_status, ['accepted', 'established'], true) && $latest_request) {
-    $established_room_id = (int) get_post_meta((int) $latest_request->ID, 'chat_room_id', true);
-    if ($established_room_id > 0) {
-        $established_chat_url = home_url('/chat?room_id=' . $established_room_id);
-    } else {
-        $established_chat_url = home_url('/chat?match_id=' . (int) $latest_request->ID);
+    $chat_room_obj = function_exists('aidunite_get_game_chat_room_for_match_request')
+        ? aidunite_get_game_chat_room_for_match_request((int) $latest_request->ID)
+        : null;
+    if ($chat_room_obj && !empty($chat_room_obj->id) && (string) ($chat_room_obj->status ?? '') === 'active') {
+        $established_chat_url = home_url('/chat?room_id=' . (int) $chat_room_obj->id);
+    } elseif (function_exists('aidunite_match_request_should_fork_new_chat_room')
+        && aidunite_match_request_should_fork_new_chat_room((int) $latest_request->ID)) {
+        // active が無い再承認サイクルは match_id 経由で新規ルーム作成へ
+        $established_chat_url = home_url('/match-chat/?match_id=' . (int) $latest_request->ID);
     }
 }
 
@@ -1423,8 +1447,13 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
                     break;
                 default:
                     $conclusion_icon_file = 'check_circle.svg';
-                    $conclusion_title = 'この条件で申請できます';
-                    $conclusion_desc = '条件が一致しているため、この内容で申請できます。';
+                    if ($application_status === 'received' && !empty($is_received_request)) {
+                        $conclusion_title = 'この条件で承認できます';
+                        $conclusion_desc = '申請内容に問題がなければ、承認すると試合が成立します。';
+                    } else {
+                        $conclusion_title = 'この条件で申請できます';
+                        $conclusion_desc = '条件が一致しているため、この内容で申請できます。';
+                    }
                     break;
             }
             ?>
@@ -2689,6 +2718,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const matchRequestBodyReapply = {
                 my_schedule_id: parseInt('<?php echo esc_js($my_schedule_id); ?>', 10) || 0,
                 other_schedule_id: parseInt('<?php echo esc_js($other_schedule_id); ?>', 10) || 0,
+                match_request_id: parseInt('<?php echo $latest_request ? (int) $latest_request->ID : 0; ?>', 10) || 0,
                 selected_start_time: selectedStartTime,
                 selected_end_time: selectedEndTime,
                 selected_place: placeValue,

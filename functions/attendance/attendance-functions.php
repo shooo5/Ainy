@@ -3,7 +3,9 @@
  * 出欠管理関数
  *
  * スケジュールごとの出欠確認機能を提供します。
+ * attendance_data の保存正本は attendance-persist.php。
  *
+ * @see docs/spec/schedule.md §14.9
  * @version 1.0.0
  * @created 2026-01-10
  */
@@ -98,23 +100,29 @@ if (!function_exists('aidunite_save_attendance')) {
                 }
             }
 
-            $attendance_data[$user_id] = [
+            $row = [
                 'status' => $status_for_storage,
-                'note' => sanitize_textarea_field($note),
+                'note' => $note,
                 'user_type' => $user_type,
                 'response_date' => current_time('mysql'),
                 'response_time' => current_time('mysql', true),
             ];
 
-            $result = update_post_meta($schedule_id, 'attendance_data', $attendance_data);
-            if ($result !== false) {
-                $saved_data = get_post_meta($schedule_id, 'attendance_data', true);
-                if (is_array($saved_data) && isset($saved_data[$user_id]) && $saved_data[$user_id]['status'] === $status_for_storage) {
-                    return true;
-                }
+            if (function_exists('aidunite_attendance_write_user_row')) {
+                return aidunite_attendance_write_user_row($schedule_id, $user_id, $row);
             }
 
-            return false;
+            $attendance_data[$user_id] = [
+                'status' => $status_for_storage,
+                'note' => sanitize_textarea_field($note),
+                'user_type' => $user_type,
+                'response_date' => $row['response_date'],
+                'response_time' => $row['response_time'],
+            ];
+
+            $result = update_post_meta($schedule_id, 'attendance_data', $attendance_data);
+
+            return $result !== false;
         } finally {
             aidunite_release_attendance_lock($schedule_id);
         }

@@ -90,320 +90,118 @@ if (empty($preset_date)) {
     $preset_date = date('Y-m-d');
 }
 
-// POST処理
+// POST処理（解析・バリデーション: schedule-persist-submit.php → persist 正本）
 if ($_POST && isset($_POST['schedule_nonce']) && wp_verify_nonce($_POST['schedule_nonce'], 'aidunite_schedule_nonce')) {
     $team_id = function_exists('aidunite_resolve_user_team_id_for_schedule_ops')
         ? (int) aidunite_resolve_user_team_id_for_schedule_ops((int) $user_id)
         : (int) get_user_meta($user_id, 'team_id', true);
-    $intent = sanitize_text_field($_POST['intent'] ?? '');
-    $schedule_type = sanitize_text_field($_POST['schedule_type'] ?? '');
-    // 目的に応じて表示名を正規化（UI統一）
-    $schedule_type_original = $schedule_type;
-    if ($intent === 'tentative') {
-        // 仮押さえは表示名に「（仮）」を付与
-        if (mb_strpos($schedule_type, '（仮）') === false) {
-            $schedule_type .= '（仮）';
-        }
-    } elseif ($intent === 'confirmed') {
-        // 確定は「（仮）」を除去
-        $schedule_type = str_replace('（仮）', '', $schedule_type);
-    }
-    $start_date = sanitize_text_field($_POST['start_date'] ?? '');
-    $end_date = sanitize_text_field($_POST['end_date'] ?? '');
-    $start_hour = sanitize_text_field($_POST['start_hour'] ?? '13');
-    $start_minute = sanitize_text_field($_POST['start_minute'] ?? '00');
-    $end_hour = sanitize_text_field($_POST['end_hour'] ?? '14');
-    $end_minute = sanitize_text_field($_POST['end_minute'] ?? '00');
-    $venue_condition = sanitize_text_field($_POST['venue_condition'] ?? '');
-    $venue_name = sanitize_text_field($_POST['venue_name'] ?? '');
-    $gender_condition = sanitize_text_field($_POST['gender_condition'] ?? '');
-    $male_teams = intval($_POST['male_teams'] ?? 1);
-    $female_teams = intval($_POST['female_teams'] ?? 1);
-    $all_confirmed_dates = sanitize_text_field($_POST['all_confirmed_dates'] ?? '');
-    $schedule_gender = sanitize_text_field($_POST['schedule_gender'] ?? '');
-    $schedule_quick_memo = sanitize_text_field($_POST['schedule_quick_memo'] ?? '');
-    $attendance_required = isset($_POST['attendance_required']) ? '1' : '0';
 
-    // 予定の種類（チーム＝全員に表示 / プライベート＝本人のみ）。保護者・選手は常にプライベート
-    $schedule_visibility = sanitize_text_field($_POST['schedule_visibility'] ?? 'team');
-    $post_user_role = function_exists('aidunite_get_user_role') ? aidunite_get_user_role(get_current_user_id()) : '';
-    $post_is_team_leader = ($post_user_role === 'team_leader');
-    $is_personal = ($schedule_visibility === 'personal') ? '1' : '0';
-    if (!$post_is_team_leader) {
-        $is_personal = '1';
-    }
+    $parsed = function_exists('aidunite_schedule_parse_wizard_post')
+        ? aidunite_schedule_parse_wizard_post($_POST, [
+            'user_id' => $user_id,
+            'team_id' => $team_id,
+            'trial_simplified' => $schedule_edit_trial_simplified,
+            'is_team_leader' => $is_team_leader,
+        ])
+        : [];
 
-    if ($schedule_edit_trial_simplified && $post_is_team_leader) {
-        $intent               = 'recruit';
-        $schedule_visibility  = 'team';
-        $is_personal          = '0';
-        $attendance_required  = '0';
-        if ($gender_condition === '' && function_exists('aidunite_activation_recruit_gender_for_team')) {
-            $gender_condition = aidunite_activation_recruit_gender_for_team($team_id);
-        }
-        if ($gender_condition === 'male') {
-            $male_teams   = max(1, $male_teams);
-            $female_teams = 0;
-        } elseif ($gender_condition === 'female') {
-            $female_teams = max(1, $female_teams);
-            $male_teams   = 0;
-        }
-    }
-
-    if (function_exists('aidunite_schedule_normalize_recruit_fields')) {
-        $recruit_fields = aidunite_schedule_normalize_recruit_fields([
-            'intent' => $intent,
-            'certainty' => ($intent === 'tentative') ? 'tentative' : 'firm',
-            'venue_condition' => $venue_condition,
-            'gender_condition' => $gender_condition,
-        ]);
-        $intent = $recruit_fields['intent'];
-        $venue_condition = $recruit_fields['venue_condition'];
-        $gender_condition = $recruit_fields['gender_condition'];
-    }
-
-    // 時間合成
-    $start_time = $start_hour . ':' . $start_minute;
-    $end_time = $end_hour . ':' . $end_minute;
-
-    // バリデーション
-    $errors = [];
-    if (empty($intent)) $errors[] = '目的を選択してください';
-    if (empty($schedule_type)) $errors[] = '種別を選択してください';
-    if (empty($start_date)) $errors[] = '開始日を入力してください';
-
-    // 重複スケジュールチェック
-    if (empty($errors)) {
-        if ($team_id) {
-            // 同じ日付・時間帯での重複をチェック
-            $existing_schedules = get_posts([
-                'post_type' => 'schedule',
-                'post_status' => 'publish',
-                'meta_query' => [
-                    'relation' => 'AND',
-                    ['key' => 'team_id', 'value' => $team_id],
-                    ['key' => 'schedule_date', 'value' => $start_date],
-                    ['key' => 'schedule_start_time', 'value' => $start_time],
-                    ['key' => 'schedule_end_time', 'value' => $end_time],
-                ],
-                'posts_per_page' => 1
-            ]);
-
-            if (!empty($existing_schedules)) {
-                $errors[] = '同じ日付・時間帯に既にスケジュールが登録されています。重複を避けるため、時間を変更してください。';
-            }
-        }
-    }
-
-    // 時間検証（開始<終了、同値不可）
-    $start_cmp = intval($start_hour) * 60 + intval($start_minute);
-    $end_cmp = intval($end_hour) * 60 + intval($end_minute);
-    if (!($start_cmp < $end_cmp)) $errors[] = '終了時間は開始時間より後にしてください';
-
-    // recruit時の必須
-    if ($intent === 'recruit') {
-        if (empty($venue_condition)) $errors[] = '会場条件は必須です';
-        if (empty($gender_condition)) $errors[] = '性別条件は必須です';
-
-        if (!empty($gender_condition) && $team_id && function_exists('aidunite_validate_recruit_gender_for_team')) {
-            $gender_team_err = aidunite_validate_recruit_gender_for_team((int) $team_id, $gender_condition);
-            if (is_wp_error($gender_team_err)) {
-                $errors[] = $gender_team_err->get_error_message();
-            }
-        }
-
-        // アウェイは募集数UIを隠すため、サーバー側で最小値を補完
-        if ($venue_condition === 'away') {
-            if ($gender_condition === 'male' && $male_teams < 1) {
-                $male_teams = 1;
-            } elseif ($gender_condition === 'female' && $female_teams < 1) {
-                $female_teams = 1;
-            }
-        }
-
-        // 性別条件に応じた募集数の計算（MVP: male / female のみ）
-        $total_recruit_count = 0;
-        if ($gender_condition === 'male') {
-            $total_recruit_count = $male_teams;
-        } elseif ($gender_condition === 'female') {
-            $total_recruit_count = $female_teams;
-        }
-
-        if ($total_recruit_count < 1) {
-            $errors[] = 'チーム数は必須です';
-        }
-
-        // どちらでもで2以上でもホーム固定しない（成立時にホームなら自枠・アウェイなら先方枠を使用）
-    }
+    $errors = function_exists('aidunite_schedule_validate_wizard_submission')
+        ? aidunite_schedule_validate_wizard_submission($parsed, $team_id, [
+            'edit_post_id' => (int) ($parsed['post_id'] ?? 0),
+        ])
+        : ['フォーム処理が利用できません'];
 
     if (empty($errors)) {
         try {
-            $post_id_from_form = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
-            $dates_to_process = []; // 編集時は空のまま（新規時のみセット）
+            $intent = (string) ($parsed['intent'] ?? '');
+            $post_id_from_form = (int) ($parsed['post_id'] ?? 0);
+            $success_count = 0;
+            $dates_to_process = [];
 
-            // 編集モード: 既存投稿を更新（新規追加しない）
             if ($post_id_from_form > 0) {
                 $edit_post = get_post($post_id_from_form);
                 $is_personal_edit = $edit_post ? (get_post_meta($post_id_from_form, 'is_personal', true) === '1') : false;
                 $can_edit = $edit_post && $edit_post->post_type === 'schedule'
                     && ((int) $edit_post->post_author === (int) $user_id
                         || (!$is_personal_edit && ($is_team_leader || $is_admin)));
-                if ($can_edit) {
-                    $post_id = $post_id_from_form;
-                    $date = $start_date; // 編集時はフォームの開始日1件のみ
 
+                if ($can_edit) {
+                    $date = (string) ($parsed['start_date'] ?? '');
                     $edit_blocked_by_match = false;
-                    if ( function_exists( 'aidunite_can_update_schedule' ) ) {
-                        $params_for_gate = array(
-                            'date'            => $date,
-                            'start_time'      => $start_time,
-                            'end_time'        => $end_time,
-                            'type'            => $schedule_type,
-                            'place'           => $venue_condition,
-                            'schedule_place'  => $venue_condition,
-                            'schedule_gender' => $gender_condition,
-                            'intent'          => $intent,
-                            'matching'        => ( $intent === 'recruit' ) ? 1 : 0,
-                        );
-                        $edit_gate = aidunite_can_update_schedule( (int) $post_id, $params_for_gate );
-                        if ( is_wp_error( $edit_gate ) ) {
-                            $errors[]            = $edit_gate->get_error_message();
+
+                    if (function_exists('aidunite_can_update_schedule')) {
+                        $params_for_gate = [
+                            'date' => $date,
+                            'start_time' => (string) ($parsed['start_time'] ?? ''),
+                            'end_time' => (string) ($parsed['end_time'] ?? ''),
+                            'type' => (string) ($parsed['schedule_type'] ?? ''),
+                            'place' => (string) ($parsed['venue_condition'] ?? ''),
+                            'schedule_place' => (string) ($parsed['venue_condition'] ?? ''),
+                            'schedule_gender' => (string) ($parsed['gender_condition'] ?? ''),
+                            'intent' => $intent,
+                            'matching' => ($intent === 'recruit') ? 1 : 0,
+                        ];
+                        $edit_gate = aidunite_can_update_schedule($post_id_from_form, $params_for_gate);
+                        if (is_wp_error($edit_gate)) {
+                            $errors[] = $edit_gate->get_error_message();
                             $edit_blocked_by_match = true;
                         }
                     }
 
-                    if ( $edit_blocked_by_match ) {
-                        $success_count = 0;
-                    } else {
-                        $persist_data = aidunite_schedule_normalize_form_input([
-                            'intent' => $intent,
-                            'certainty' => ($intent === 'tentative') ? 'tentative' : 'firm',
-                            'schedule_type' => $schedule_type,
-                            'date' => $date,
-                            'start_time' => $start_time,
-                            'end_time' => $end_time,
-                            'venue_condition' => $venue_condition,
-                            'venue_name' => $venue_name,
-                            'gender_condition' => $gender_condition,
-                            'male_teams' => $male_teams,
-                            'female_teams' => $female_teams,
-                            'team_id' => $team_id,
-                            'user_id' => $user_id,
-                            'is_personal' => $is_personal,
-                            'attendance_required' => $attendance_required,
-                            'schedule_quick_memo' => $schedule_quick_memo,
-                            'schedule_gender' => $schedule_gender,
-                        ]);
-                        $update_result = aidunite_schedule_update_published_post($post_id, $persist_data);
+                    if (!$edit_blocked_by_match) {
+                        $persist_data = aidunite_schedule_persist_payload_from_wizard($parsed, $date, $user_id, $team_id);
+                        $update_result = aidunite_schedule_update_published_post($post_id_from_form, $persist_data);
                         if (is_wp_error($update_result)) {
                             $errors[] = $update_result->get_error_message();
-                            $success_count = 0;
                         } else {
                             $success_count = 1;
                         }
-                    } // end else ! $edit_blocked_by_match
+                    }
                 } else {
                     $errors[] = '編集対象のスケジュールが見つからないか、編集権限がありません。';
-                    $success_count = 0;
                 }
             } else {
-            // 新規登録: 複数日程の処理
-            if (!empty($all_confirmed_dates)) {
-                // カンマ区切りの日付文字列を配列に変換
-                $date_array = explode(',', $all_confirmed_dates);
-                $dates_to_process = array_map('trim', $date_array);
-            } else {
-                // 単一日程の場合
-                $dates_to_process = [$start_date];
-            }
-
-
-        // 各日程に対してスケジュールを作成
-        $success_count = 0;
-        foreach ($dates_to_process as $date) {
-            $persist_data = aidunite_schedule_normalize_form_input([
-                'intent' => $intent,
-                'certainty' => ($intent === 'tentative') ? 'tentative' : 'firm',
-                'schedule_type' => $schedule_type,
-                'date' => $date,
-                'start_time' => $start_time,
-                'end_time' => $end_time,
-                'venue_condition' => $venue_condition,
-                'venue_name' => $venue_name,
-                'gender_condition' => $gender_condition,
-                'male_teams' => $male_teams,
-                'female_teams' => $female_teams,
-                'team_id' => $team_id,
-                'user_id' => $user_id,
-                'is_personal' => $is_personal,
-                'attendance_required' => $attendance_required,
-                'schedule_quick_memo' => $schedule_quick_memo,
-                'schedule_gender' => $schedule_gender,
-            ]);
-
-            $created_id = aidunite_schedule_create_published_post($persist_data);
-            if (is_wp_error($created_id)) {
-                $errors[] = $created_id->get_error_message();
-                continue;
-            }
-
-            if ($attendance_required === '1') {
-                require_once get_stylesheet_directory() . '/functions/attendance/attendance-notification.php';
-                if (function_exists('aidunite_notify_attendance_request')) {
-                    aidunite_notify_attendance_request((int) $created_id);
-                }
-            }
-
-            $success_count++;
-        }
-            } // 新規登録の else ブロック終了
-
-        if ($success_count > 0) {
-            // 高マッチ通知を送信（マッチ希望の場合のみ・新規登録時のみ）
-            if ($intent === 'recruit' && !empty($dates_to_process)) {
+                $dates_to_process = (array) ($parsed['dates_to_process'] ?? []);
                 foreach ($dates_to_process as $date) {
-                    // 各日程のスケジュールIDを取得
-                    $schedule_posts = get_posts([
-                        'post_type' => 'schedule',
-                        'post_status' => 'publish',
-                        'posts_per_page' => 1,
-                        'meta_query' => [
-                            ['key' => 'schedule_date', 'value' => $date],
-                            ['key' => 'team_id', 'value' => $team_id]
-                        ],
-                        'orderby' => 'date',
-                        'order' => 'DESC'
-                    ]);
+                    $persist_data = aidunite_schedule_persist_payload_from_wizard($parsed, $date, $user_id, $team_id);
+                    $created_id = aidunite_schedule_create_published_post($persist_data);
+                    if (is_wp_error($created_id)) {
+                        $errors[] = $created_id->get_error_message();
+                        continue;
+                    }
 
-                    if (!empty($schedule_posts)) {
-                        $schedule_id = $schedule_posts[0]->ID;
-                        // 高マッチ通知関数が存在する場合のみ実行
-                        if (function_exists('send_high_match_notifications')) {
-                            send_high_match_notifications($schedule_id, $team_id);
+                    if ($intent === 'recruit' && function_exists('aidunite_schedule_finalize_new_recruit')) {
+                        aidunite_schedule_finalize_new_recruit((int) $created_id, $user_id, $team_id);
+                    }
+
+                    if (($parsed['attendance_required'] ?? '0') === '1') {
+                        require_once get_stylesheet_directory() . '/functions/attendance/attendance-notification.php';
+                        if (function_exists('aidunite_notify_attendance_request')) {
+                            aidunite_notify_attendance_request((int) $created_id);
                         }
                     }
+
+                    $success_count++;
                 }
             }
 
-            // 成功時リダイレクト（トライアル recruit かつミッション中 → マイページ stage2）
-            if (
-                function_exists('aidunite_schedule_edit_should_redirect_to_mypage')
-                && aidunite_schedule_edit_should_redirect_to_mypage($team_id, $intent)
-            ) {
-                wp_safe_redirect(add_query_arg('activation', 'stage2', home_url('/mypage/')));
+            if ($success_count > 0) {
+                if (
+                    function_exists('aidunite_schedule_edit_should_redirect_to_mypage')
+                    && aidunite_schedule_edit_should_redirect_to_mypage($team_id, $intent)
+                ) {
+                    wp_safe_redirect(add_query_arg('activation', 'stage2', home_url('/mypage/')));
+                    exit;
+                }
+
+                $management_url = add_query_arg('refresh', '1', home_url('/schedule-management'));
+                wp_redirect($management_url);
                 exit;
             }
 
-            // 成功時はスケジュール管理へ（?refresh=1 でキャッシュを無効化しリアルタイム反映）
-            $management_url = home_url('/schedule-management');
-            $management_url = add_query_arg('refresh', '1', $management_url);
-            wp_redirect($management_url);
-            exit;
-        } else {
-            if ( empty( $errors ) ) {
+            if (empty($errors)) {
                 $errors[] = 'スケジュールの保存に失敗しました';
             }
-        }
         } catch (Exception $e) {
             $errors[] = 'スケジュールの保存中にエラーが発生しました: ' . $e->getMessage();
         }

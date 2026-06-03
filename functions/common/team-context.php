@@ -341,8 +341,12 @@ function aidunite_user_attach_approved_team_membership($user_id, $team_id) {
         update_user_meta($user_id, 'team_id', $team_id);
     }
 
-    update_user_meta($user_id, 'user_type', 'team_leader');
-    update_user_meta($user_id, 'aidunite_role', 'team_leader');
+    if (function_exists('aidunite_set_user_type')) {
+        aidunite_set_user_type($user_id, 'team_leader');
+    } else {
+        update_user_meta($user_id, 'user_type', 'team_leader');
+        update_user_meta($user_id, 'aidunite_role', 'team_leader');
+    }
 
     $publish_ids = aidunite_filter_team_ids_to_publish_for_operations(
         aidunite_read_user_managed_team_ids_meta($user_id)
@@ -399,8 +403,12 @@ function aidunite_user_remove_team_membership($user_id, $team_id) {
             ? aidunite_get_managed_team_ids($user_id)
             : $ids;
         if ($remaining === []) {
-            update_user_meta($user_id, 'user_type', 'general');
-            delete_user_meta($user_id, 'aidunite_role');
+            if (function_exists('aidunite_set_user_type')) {
+                aidunite_set_user_type($user_id, 'general');
+            } else {
+                update_user_meta($user_id, 'user_type', 'general');
+                delete_user_meta($user_id, 'aidunite_role');
+            }
             if (defined('AIDUNITE_USER_META_CURRENT_OPERATING_TEAM_ID')) {
                 delete_user_meta($user_id, AIDUNITE_USER_META_CURRENT_OPERATING_TEAM_ID);
             }
@@ -408,7 +416,11 @@ function aidunite_user_remove_team_membership($user_id, $team_id) {
         return;
     }
 
-    update_user_meta($user_id, 'aidunite_role', 'general');
+    if (function_exists('aidunite_set_user_type')) {
+        aidunite_set_user_type($user_id, 'general');
+    } else {
+        update_user_meta($user_id, 'aidunite_role', 'general');
+    }
 }
 
 /**
@@ -453,8 +465,12 @@ function aidunite_user_detach_rejected_pending_team($user_id, $team_id) {
     }
 
     if (empty(aidunite_get_managed_team_ids($user_id))) {
-        update_user_meta($user_id, 'user_type', 'general');
-        delete_user_meta($user_id, 'aidunite_role');
+        if (function_exists('aidunite_set_user_type')) {
+            aidunite_set_user_type($user_id, 'general');
+        } else {
+            update_user_meta($user_id, 'user_type', 'general');
+            delete_user_meta($user_id, 'aidunite_role');
+        }
         delete_user_meta($user_id, AIDUNITE_USER_META_CURRENT_OPERATING_TEAM_ID);
     }
 }

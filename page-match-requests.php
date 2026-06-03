@@ -3,43 +3,11 @@
  * Template Name: マッチ申請一覧
  * マッチ申請一覧（テーブル形式・管理者は申請ID列あり）
  * 列: 申請チーム, 日程, 時間, 会場, 会場名, 性別, 募集チーム数（男子 ◯/● 女子 ◯/●）, 申請ステータス, リマインド通知, 操作
+ * 管理者のみ: 募集schedule ID, 申請元schedule ID, 掲示板(match_board) ID
  */
 
 require_once get_template_directory() . '/functions/common/auth-middleware.php';
 
-/**
- * スケジュールの募集チーム数（男子・女子の現在数/定員）を返す
- *
- * @param int $schedule_id スケジュールID
- * @return array{ male_current: int, female_current: int, male_cap: int, female_cap: int }
- */
-function aidunite_get_schedule_recruitment_counts($schedule_id) {
-    $male_cap = (int) (get_post_meta($schedule_id, 'male_capacity', true) ?: 0);
-    $female_cap = (int) (get_post_meta($schedule_id, 'female_capacity', true) ?: 0);
-    $participants = get_post_meta($schedule_id, 'participants', true);
-    $male_current = 0;
-    $female_current = 0;
-    if (!empty($participants)) {
-        $ids = array_filter(array_map('trim', explode(',', $participants)));
-        foreach ($ids as $tid) {
-            $g = get_post_meta($tid, 'team_gender_option', true);
-            if (function_exists('aidunite_normalize_team_gender_option')) {
-                $g = aidunite_normalize_team_gender_option((string) $g);
-            }
-            if ($g === 'male') {
-                $male_current++;
-            } elseif ($g === 'female') {
-                $female_current++;
-            }
-        }
-    }
-    return [
-        'male_current' => $male_current,
-        'female_current' => $female_current,
-        'male_cap' => $male_cap,
-        'female_cap' => $female_cap,
-    ];
-}
 $auth_result = AidUniteAuthMiddleware::require([
     'roles' => ['team_leader', 'administrator'],
     'redirect' => true,
@@ -110,14 +78,27 @@ foreach ($requests_raw as $request) {
     // 募集チーム数（男子 ◯/● 女子 ◯/●）を to_schedule_id 単位でキャッシュして付与
     static $schedule_recruitment_cache = [];
     if (!isset($schedule_recruitment_cache[$to_schedule_id])) {
-        $schedule_recruitment_cache[$to_schedule_id] = aidunite_get_schedule_recruitment_counts($to_schedule_id);
+        $schedule_recruitment_cache[$to_schedule_id] = function_exists('aidunite_get_schedule_recruitment_counts')
+            ? aidunite_get_schedule_recruitment_counts($to_schedule_id)
+            : ['male_current' => 0, 'female_current' => 0, 'male_cap' => 0, 'female_cap' => 0];
     }
     $recruitment_counts = $schedule_recruitment_cache[$to_schedule_id];
+
+    $board_id = 0;
+    $board_status = '';
+    if ($is_admin && function_exists('aidunite_schedule_find_match_board_id_for_schedule')) {
+        $board_id = aidunite_schedule_find_match_board_id_for_schedule((int) $to_schedule_id);
+        if ($board_id > 0) {
+            $board_status = (string) get_post_status($board_id);
+        }
+    }
 
     $requests_list[] = [
         'request_id' => $request->ID,
         'request' => $request,
         'to_schedule_id' => $to_schedule_id,
+        'match_board_id' => $board_id,
+        'match_board_status' => $board_status,
         'recruitment_counts' => $recruitment_counts,
         'from_schedule_id' => $from_schedule_id,
         'schedule' => $schedule,
@@ -255,6 +236,9 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
         <th class="col-no">No</th>
         <?php if ($is_admin) : ?>
         <th class="admin-cell admin-cell--id">申請ID</th>
+        <th class="admin-cell admin-cell--id" title="募集側 schedule（teamA 等・to_schedule_id）">募集schedule</th>
+        <th class="admin-cell admin-cell--id" title="申請元 schedule（teamB 等・from_schedule_id / my_schedule_id）">申請元schedule</th>
+        <th class="admin-cell admin-cell--id" title="match_board 投稿ID（meta schedule_id=募集schedule）">掲示板ID</th>
         <?php endif; ?>
         <th class="admin-cell admin-cell--text">申請チーム</th>
         <th class="admin-cell admin-cell--date">日程</th>
@@ -302,6 +286,19 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
         <td class="col-no"><?php echo (int) $row_no; ?></td>
         <?php if ($is_admin) : ?>
         <?php aidunite_admin_list_echo_cell('id', (string) $r['request_id']); ?>
+        <?php
+        aidunite_admin_list_echo_cell('id', (string) (int) $r['to_schedule_id']);
+        $from_sid = (int) ($r['from_schedule_id'] ?? 0);
+        aidunite_admin_list_echo_cell('id', $from_sid > 0 ? (string) $from_sid : '—');
+        $board_disp = '—';
+        if (!empty($r['match_board_id'])) {
+            $board_disp = (string) (int) $r['match_board_id'];
+            if (!empty($r['match_board_status'])) {
+                $board_disp .= ' (' . $r['match_board_status'] . ')';
+            }
+        }
+        aidunite_admin_list_echo_cell('id', $board_disp);
+        ?>
         <?php endif; ?>
         <?php aidunite_admin_list_echo_cell('text', $r['from_team_name']); ?>
         <?php aidunite_admin_list_echo_cell('date', $r['schedule_date']); ?>
@@ -322,9 +319,11 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
         <td><?php echo esc_html($reminder_disp); ?></td>
         <td>
           <?php
-          $detail_url = $r['from_schedule_id']
-              ? home_url('/match-detail?schedule_id=' . $r['from_schedule_id'])
-              : home_url('/match-detail?request_id=' . $r['request_id']);
+          $detail_args = ['schedule_id' => (int) $r['to_schedule_id']];
+          if (!empty($r['from_schedule_id'])) {
+              $detail_args['my_schedule_id'] = (int) $r['from_schedule_id'];
+          }
+          $detail_url = add_query_arg($detail_args, home_url('/match-detail/'));
           ?>
           <?php if ($r['can_respond']) : ?>
             <button type="button" class="button button-small match-approve-btn">承認</button>

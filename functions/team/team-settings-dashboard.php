@@ -517,15 +517,33 @@ function aidunite_team_settings_save_from_post($team_id, $user_id) {
         return $updated;
     }
 
-    update_post_meta($team_id, 'team_name', $team_name);
-    update_post_meta($team_id, 'team_name_kana', $team_name_kana);
-    update_post_meta($team_id, 'team_description', $team_description);
-    update_post_meta($team_id, 'sport_type', $sport_type);
-    update_post_meta($team_id, 'team_category', $team_category);
-    aidunite_update_team_type_meta($team_id, $team_type);
-    update_post_meta($team_id, 'team_gender_option', $incoming_gender);
-    update_post_meta($team_id, 'team_place', $team_place);
-    update_post_meta($team_id, 'team_logo', $team_logo);
+    if (function_exists('aidunite_team_persist_settings_meta')) {
+        aidunite_team_persist_settings_meta($team_id, [
+            'team_name' => $team_name,
+            'team_name_kana' => $team_name_kana,
+            'team_description' => $team_description,
+            'sport_type' => $sport_type,
+            'team_category' => $team_category,
+            'team_type' => $team_type,
+            'team_gender_option' => $incoming_gender,
+            'gender' => $incoming_gender,
+            'team_place' => $team_place,
+            'team_logo' => $team_logo,
+            'registrant_name' => $registrant_name,
+            'contact_mail' => $contact_mail,
+            'contact_phone' => $contact_phone,
+        ]);
+    } else {
+        update_post_meta($team_id, 'team_name', $team_name);
+        update_post_meta($team_id, 'team_name_kana', $team_name_kana);
+        update_post_meta($team_id, 'team_description', $team_description);
+        update_post_meta($team_id, 'sport_type', $sport_type);
+        update_post_meta($team_id, 'team_category', $team_category);
+        aidunite_update_team_type_meta($team_id, $team_type);
+        update_post_meta($team_id, 'team_gender_option', $incoming_gender);
+        update_post_meta($team_id, 'team_place', $team_place);
+        update_post_meta($team_id, 'team_logo', $team_logo);
+    }
     if (function_exists('aidunite_save_team_logo_crop_meta')) {
         aidunite_save_team_logo_crop_meta(
             $team_id,
@@ -534,9 +552,11 @@ function aidunite_team_settings_save_from_post($team_id, $user_id) {
             wp_unslash($_POST['team_logo_zoom'] ?? 100)
         );
     }
-    update_post_meta($team_id, 'registrant_name', $registrant_name);
-    update_post_meta($team_id, 'contact_mail', $contact_mail);
-    update_post_meta($team_id, 'contact_phone', $contact_phone);
+    if (!function_exists('aidunite_team_persist_settings_meta')) {
+        update_post_meta($team_id, 'registrant_name', $registrant_name);
+        update_post_meta($team_id, 'contact_mail', $contact_mail);
+        update_post_meta($team_id, 'contact_phone', $contact_phone);
+    }
 
     delete_post_meta($team_id, 'team_location');
     delete_post_meta($team_id, 'team_contact');

@@ -55,6 +55,8 @@ add_action('template_redirect', function() {
         wp_die('対戦チャットルームが見つかりません。');
     }
 
+    // 完了済みルームは履歴として開く（完了済みタブの「チャット」から新規ルームを生成しない）
+
     // 統合チャット画面用のパラメータを設定して再利用
     $_GET['room_id'] = intval($chat_room->id);
 

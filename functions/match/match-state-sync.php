@@ -210,8 +210,11 @@ if (!function_exists('aidunite_apply_established_to_schedules')) {
 
             if (in_array($selected_place, ['home', 'away', 'either'], true)) {
                 $place_for_schedule = aidunite_resolve_place_for_viewer($selected_place, $from_team_id, $to_team_id, (int) get_post_meta($sid, 'team_id', true));
-                update_post_meta($sid, 'schedule_place', $place_for_schedule);
-                update_post_meta($sid, 'schedule_place_option', $place_for_schedule);
+                if (function_exists('aidunite_schedule_write_place_meta')) {
+                    aidunite_schedule_write_place_meta($sid, $place_for_schedule);
+                } else {
+                    update_post_meta($sid, 'schedule_place', $place_for_schedule);
+                }
                 if (in_array($place_for_schedule, ['home', 'away', 'either'], true)) {
                     update_post_meta($sid, 'venue_name', '');
                 }
@@ -733,9 +736,19 @@ if (!function_exists('aidunite_after_match_established')) {
                     aidunite_sync_match_board_status_from_game($match_game_id);
                 }
                 $room_id = (int) get_post_meta($request_id, 'chat_room_id', true);
-                if ($room_id <= 0 && function_exists('aidunite_get_active_chat_room_for_match_game')) {
+                if (
+                    $room_id <= 0
+                    && function_exists('aidunite_get_active_chat_room_for_match_game')
+                    && !(function_exists('aidunite_match_request_should_fork_new_chat_room')
+                        && aidunite_match_request_should_fork_new_chat_room($request_id))
+                ) {
                     $active_room = aidunite_get_active_chat_room_for_match_game($match_game_id);
-                    if ($active_room && !empty($active_room->id) && function_exists('aidunite_bind_match_game_chat_room')) {
+                    if (
+                        $active_room
+                        && !empty($active_room->id)
+                        && (string) ($active_room->status ?? '') === 'active'
+                        && function_exists('aidunite_bind_match_game_chat_room')
+                    ) {
                         aidunite_bind_match_game_chat_room($request_id, $match_game_id, (int) $active_room->id);
                     }
                 }
@@ -821,8 +834,13 @@ if (!function_exists('aidunite_restore_schedule_from_pre_established_backup')) {
         if ($had_backup) {
             update_post_meta($schedule_id, 'schedule_start_time', get_post_meta($schedule_id, 'pre_established_start_time', true));
             update_post_meta($schedule_id, 'schedule_end_time', get_post_meta($schedule_id, 'pre_established_end_time', true));
-            update_post_meta($schedule_id, 'schedule_place', get_post_meta($schedule_id, 'pre_established_place', true));
-            update_post_meta($schedule_id, 'schedule_place_option', get_post_meta($schedule_id, 'pre_established_place_option', true));
+            $restore_place = (string) (get_post_meta($schedule_id, 'pre_established_place', true)
+                ?: get_post_meta($schedule_id, 'pre_established_place_option', true));
+            if (function_exists('aidunite_schedule_write_place_meta')) {
+                aidunite_schedule_write_place_meta($schedule_id, $restore_place);
+            } else {
+                update_post_meta($schedule_id, 'schedule_place', $restore_place);
+            }
             update_post_meta($schedule_id, 'schedule_gender', get_post_meta($schedule_id, 'pre_established_gender', true));
             update_post_meta($schedule_id, 'male_slots', get_post_meta($schedule_id, 'pre_established_male_slots', true));
             update_post_meta($schedule_id, 'female_slots', get_post_meta($schedule_id, 'pre_established_female_slots', true));
@@ -1102,8 +1120,13 @@ if (!function_exists('aidunite_rollback_established_from_schedules')) {
             if ($had_backup) {
                 update_post_meta($sid, 'schedule_start_time', get_post_meta($sid, 'pre_established_start_time', true));
                 update_post_meta($sid, 'schedule_end_time', get_post_meta($sid, 'pre_established_end_time', true));
-                update_post_meta($sid, 'schedule_place', get_post_meta($sid, 'pre_established_place', true));
-                update_post_meta($sid, 'schedule_place_option', get_post_meta($sid, 'pre_established_place_option', true));
+                $restore_place = (string) (get_post_meta($sid, 'pre_established_place', true)
+                    ?: get_post_meta($sid, 'pre_established_place_option', true));
+                if (function_exists('aidunite_schedule_write_place_meta')) {
+                    aidunite_schedule_write_place_meta($sid, $restore_place);
+                } else {
+                    update_post_meta($sid, 'schedule_place', $restore_place);
+                }
                 update_post_meta($sid, 'schedule_gender', get_post_meta($sid, 'pre_established_gender', true));
                 update_post_meta($sid, 'male_slots', get_post_meta($sid, 'pre_established_male_slots', true));
                 update_post_meta($sid, 'female_slots', get_post_meta($sid, 'pre_established_female_slots', true));

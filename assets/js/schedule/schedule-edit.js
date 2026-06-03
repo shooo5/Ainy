@@ -616,8 +616,12 @@ function initializeMemoCounter() {
 
     const sync = () => {
         counter.textContent = String(memoInput.value.length);
+        if (typeof updateConfirmation === 'function') {
+            updateConfirmation();
+        }
     };
     memoInput.addEventListener('input', sync);
+    memoInput.addEventListener('change', sync);
     sync();
 }
 
@@ -1744,6 +1748,10 @@ function goToStep(stepNumber, options) {
 
     if (stepNumber === 3) {
         syncScheduleTypesFromIntent({ force: true });
+    }
+
+    if (stepNumber === 4 && typeof updateConfirmation === 'function') {
+        updateConfirmation();
     }
 
     // STEP2〜4：ヒーローステッパーを見せるため先頭へ（フォーム中腹へのフォーカス追従を避ける）

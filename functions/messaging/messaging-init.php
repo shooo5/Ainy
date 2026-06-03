@@ -9,6 +9,7 @@ require_once __DIR__ . '/database-schema.php';
 require_once __DIR__ . '/rest-api.php';
 require_once __DIR__ . '/sse-functions.php';
 require_once __DIR__ . '/message-functions.php';
+require_once __DIR__ . '/chat-persist.php';
 require_once __DIR__ . '/chat-functions.php';
 require_once __DIR__ . '/notification-functions.php';
 require_once __DIR__ . '/match-chat-router.php';

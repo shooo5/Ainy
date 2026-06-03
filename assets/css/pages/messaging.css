@@ -2451,6 +2451,7 @@ body.page-communication-main.web-app-integrated-ui {
     padding-top: 6px;
 }
 
+/* タイムライン左ドット（装飾のみ・未読とは連動しない） */
 .page-communication-main .timeline-card__dot {
     width: 10px;
     height: 10px;
@@ -2986,11 +2987,33 @@ body.page-communication-main.web-app-integrated-ui {
     .chat-side {
         display: none;
         width: 100%;
-        margin-top: var(--spacing-base);
+        margin-top: 0;
     }
 
     .chat-side.is-mobile-open {
         display: block;
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 100;
+        width: min(100%, 22rem);
+        max-width: 100%;
+        margin: 0;
+        overflow-y: auto;
+        box-shadow: var(--shadow-xl);
+    }
+
+    .chat-side-backdrop:not([hidden]) {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        background: rgba(0, 0, 0, 0.45);
+    }
+
+    body.chat-side-mobile-open {
+        overflow: hidden;
     }
 
     .chat-mobile-info-toggle {

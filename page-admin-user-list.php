@@ -321,8 +321,13 @@ if (isset($_POST['bulk_action'], $_POST['user_ids'], $_POST['bulk_role'])) {
     $success_count = 0;
     foreach ($user_ids as $user_id) {
         if ($user_id !== $current_user_id) {
-            update_user_meta($user_id, 'aidunite_role', $bulk_role);
-            $success_count++;
+            if (function_exists('aidunite_user_write_role_meta')) {
+                if (aidunite_user_write_role_meta($user_id, $bulk_role) !== '') {
+                    $success_count++;
+                }
+            } elseif (update_user_meta($user_id, 'aidunite_role', $bulk_role)) {
+                $success_count++;
+            }
         }
     }
 

@@ -67,8 +67,11 @@ function aidunite_mark_notification_as_read($request) {
       continue;
     }
 
-    // 既読状態を更新
-    $result = update_post_meta($notification_id, 'is_read', true);
+    if (function_exists('aidunite_notification_write_is_read')) {
+        $result = aidunite_notification_write_is_read($notification_id, true);
+    } else {
+        $result = update_post_meta($notification_id, 'is_read', true);
+    }
 
     if ($result !== false) {
       $success_count++;

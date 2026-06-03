@@ -75,7 +75,7 @@ function send_match_request_notification($match_request_id, $target_schedule_id,
 /**
  * 申請受信通知を送信（統合版）
  */
-function send_match_request_received_notification($request_id, $target_team_id, $from_team_id) {
+function send_match_request_received_notification($request_id, $target_team_id, $from_team_id, array $context = []) {
     if (function_exists('aidunite_onboarding_bot_maybe_suppress_notification')
         && aidunite_onboarding_bot_maybe_suppress_notification((int) $request_id)) {
         return false;
@@ -94,7 +94,18 @@ function send_match_request_received_notification($request_id, $target_team_id, 
         $from_team_name = "チームID: {$from_team_id}";
     }
 
-    $to_schedule_id = get_post_meta($request_id, 'to_schedule_id', true);
+    $to_schedule_id = (int) get_post_meta($request_id, 'to_schedule_id', true);
+    $applicant_schedule_id = (int) get_post_meta($request_id, 'my_schedule_id', true);
+    $is_reapply = !empty($context['reapply']);
+
+    $recipient_link = '';
+    if ($to_schedule_id > 0 && $applicant_schedule_id > 0) {
+        $recipient_link = home_url(
+            '/match-detail/?my_schedule_id=' . $to_schedule_id
+            . '&schedule_id=' . $applicant_schedule_id
+            . '&match_request_id=' . (int) $request_id
+        );
+    }
 
     // 各リーダーに通知を送信
     $success_count = 0;
@@ -102,15 +113,20 @@ function send_match_request_received_notification($request_id, $target_team_id, 
         $notification_data = [
             'user_id' => $leader_id,
             'type' => 'match_request_received',
-            'title' => '新しいマッチ申請が届きました',
-            'message' => "{$from_team_name}からマッチ申請が届きました。",
+            'title' => $is_reapply
+                ? '【承認待ち】再度マッチ申請が届きました'
+                : '【承認待ち】新しいマッチ申請が届きました',
+            'message' => $is_reapply
+                ? "{$from_team_name} から再度マッチ申請がありました。\n\n内容を確認し、承認または拒否を行ってください。"
+                : "{$from_team_name} からマッチ申請が届きました。\n\n内容を確認し、承認または拒否を行ってください。",
             'priority' => 'high',
             'channels' => ['email', 'push'],
+            'link_url' => $recipient_link,
             'meta' => [
                 'request_id' => $request_id,
                 'from_team_id' => $from_team_id,
-                'to_schedule_id' => $to_schedule_id
-            ]
+                'to_schedule_id' => $to_schedule_id,
+            ],
         ];
 
         // 通知を作成
@@ -160,6 +176,15 @@ function send_match_approval_notification($request_id) {
         // 各代表者に通知を送信
         $success_count = 0;
         foreach ($team_leaders as $leader_id) {
+            $applicant_schedule_id = (int) get_post_meta($request_id, 'my_schedule_id', true);
+            $detail_link = ($to_schedule_id > 0 && $applicant_schedule_id > 0)
+                ? home_url(
+                    '/match-detail/?my_schedule_id=' . $applicant_schedule_id
+                    . '&schedule_id=' . $to_schedule_id
+                    . '&match_request_id=' . (int) $request_id
+                )
+                : home_url('/match-detail/?id=' . (int) $request_id);
+
             $notification_data = [
                 'user_id' => $leader_id,
                 'type' => 'match_established',
@@ -167,7 +192,8 @@ function send_match_approval_notification($request_id) {
                 'message' => '申請した練習試合が承認され、マッチが成立しました！' . "\n\n" .
                             '会場: ' . $schedule_place . "\n" .
                             '対戦相手: ' . $to_team_name . "\n\n" .
-                            '詳細はマイページからご確認ください。',
+                            'マッチ詳細から確定内容とチャットをご確認ください。',
+                'link_url' => $detail_link,
                 'data' => [
                     'match_request_id' => $request_id,
                     'from_team_id' => $from_team_id,
@@ -324,40 +350,77 @@ function send_match_rejection_notification($request_id) {
 
 /**
  * マッチキャンセル通知を送信（統合版）
+ *
+ * @param int $request_id
+ * @param int $actor_team_id キャンセル操作を行ったチーム（0 のとき canceled_by_team_id / from を参照）
+ * @return bool
  */
-function send_match_cancellation_notification($request_id) {
-    $from_team_id = get_post_meta($request_id, 'from_team_id', true);
-    $to_schedule_id = get_post_meta($request_id, 'to_schedule_id', true);
-    $to_team_id = get_post_meta($to_schedule_id, 'team_id', true);
+function send_match_cancellation_notification($request_id, $actor_team_id = 0) {
+    $request_id = (int) $request_id;
+    $from_team_id = (int) get_post_meta($request_id, 'from_team_id', true);
+    $to_schedule_id = (int) get_post_meta($request_id, 'to_schedule_id', true);
+    $to_team_id = (int) get_post_meta($to_schedule_id, 'team_id', true);
 
-    if (!$from_team_id || !$to_team_id) {
+    if ($from_team_id <= 0 || $to_team_id <= 0) {
         return false;
     }
 
+    $actor_team_id = (int) $actor_team_id;
+    if ($actor_team_id <= 0) {
+        $actor_team_id = (int) get_post_meta($request_id, 'canceled_by_team_id', true);
+    }
+    if ($actor_team_id <= 0) {
+        $actor_team_id = $from_team_id;
+    }
+
     $from_team_name = get_the_title($from_team_id);
+    $to_team_name = get_the_title($to_team_id);
     $schedule_date = get_post_meta($to_schedule_id, 'schedule_date', true);
 
-    // 申請先チームのリーダーを取得
-    $team_leaders = get_team_leaders($to_team_id);
+    $teams = [
+        $from_team_id => $from_team_name,
+        $to_team_id   => $to_team_name,
+    ];
 
     $success_count = 0;
     try {
-        if (!empty($team_leaders)) {
-            foreach ($team_leaders as $leader_id) {
+        foreach ($teams as $team_id => $team_name) {
+            $team_id = (int) $team_id;
+            $leaders = function_exists('get_team_leaders') ? get_team_leaders($team_id) : [];
+            if (empty($leaders)) {
+                continue;
+            }
+            $is_actor = ($team_id === $actor_team_id);
+            foreach ($leaders as $leader_id) {
+                $leader_id = (int) $leader_id;
+                if ($leader_id <= 0) {
+                    continue;
+                }
+                if ($is_actor) {
+                    $title = '【試合】試合をキャンセルしました';
+                    $message = 'あなたのチームが試合をキャンセルしました。' . "\n\n"
+                        . '相手: ' . ($team_id === $from_team_id ? $to_team_name : $from_team_name) . "\n"
+                        . '日付: ' . $schedule_date;
+                } else {
+                    $actor_name = ($actor_team_id === $from_team_id) ? $from_team_name : $to_team_name;
+                    $title = '【試合】' . $actor_name . 'の試合キャンセルがありました';
+                    $message = $actor_name . 'チームの試合キャンセルがありました。' . "\n\n"
+                        . '日付: ' . $schedule_date . "\n\n"
+                        . '※この通知はキャンセル時点の内容です。現在の申請状況はマッチ詳細でご確認ください。';
+                }
+
                 $notification_data = [
                     'user_id' => $leader_id,
-                    'type' => 'match_canceled',
-                    'title' => '【マッチ結果】申請がキャンセルされました',
-                    'message' => '申請された練習試合がキャンセルされました' . "\n\n" .
-                                '申請チーム: ' . $from_team_name . "\n\n" .
-                                '内容をご確認ください。',
-                    'data' => [
+                    'type'    => 'match_canceled',
+                    'title'   => $title,
+                    'message' => $message,
+                    'data'    => [
                         'match_request_id' => $request_id,
-                        'from_team_id' => $from_team_id,
-                        'to_team_id' => $to_team_id,
-                        'schedule_id' => $to_schedule_id,
-                        'schedule_date' => $schedule_date
-                    ]
+                        'from_team_id'     => $from_team_id,
+                        'to_team_id'       => $to_team_id,
+                        'schedule_id'      => $to_schedule_id,
+                        'schedule_date'    => $schedule_date,
+                    ],
                 ];
 
                 $result = aidunite_create_notification($notification_data);
@@ -365,11 +428,10 @@ function send_match_cancellation_notification($request_id) {
                     $success_count++;
                 }
             }
-
-            error_log("📨 マッチキャンセル通知送信完了：成功={$success_count}/" . count($team_leaders) . " team_id={$to_team_id}");
-            return $success_count > 0;
         }
 
+        error_log("📨 マッチキャンセル通知送信完了：成功={$success_count} request_id={$request_id} actor_team={$actor_team_id}");
+        return $success_count > 0;
     } catch (Exception $e) {
         error_log("❌ マッチキャンセル通知送信エラー：" . $e->getMessage());
         return false;
@@ -870,7 +932,7 @@ function send_match_participant_withdrawn_notification($request_id, $actor_team_
             $result = aidunite_notification_send($leader_id, 'match_participant_withdrawn', [
                 'title'      => $title,
                 'message'    => $body,
-                'related_id' => $recruit_sid,
+                'related_id' => $request_id,
                 'link_url'   => $link_url,
             ]);
             if (!empty($result['success'])) {
@@ -910,7 +972,7 @@ function aidunite_notify_match_request_canceled($request_id, $actor_team_id) {
     }
 
     if (function_exists('send_match_cancellation_notification')) {
-        return send_match_cancellation_notification($request_id);
+        return send_match_cancellation_notification($request_id, $actor_team_id);
     }
 
     return false;

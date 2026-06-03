@@ -10,6 +10,8 @@ if (!defined('ABSPATH')) {
 
 $theme_dir = get_stylesheet_directory();
 
+require_once $theme_dir . '/functions/match/match-request-persist.php';
+require_once $theme_dir . '/functions/match/match-board-persist.php';
 require_once $theme_dir . '/functions/match/match-request-functions.php';
 require_once $theme_dir . '/functions/rest-match-request.php';
 require_once $theme_dir . '/functions/match/rest-match-board-request.php';

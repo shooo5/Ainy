@@ -49,12 +49,13 @@ class AidUniteScheduleRegistration {
                 $schedule_id = self::createSchedule($data);
 
                 // マッチボード作成（必要に応じて）
-                if ($data['intent'] === 'recruit') {
-                    $board_id = self::createMatchBoard($schedule_id, $data);
-
-
-                    // 高マッチ通知を送信
-                    self::sendHighMatchNotifications($schedule_id, $data);
+                if ($data['intent'] === 'recruit' && function_exists('aidunite_schedule_finalize_new_recruit')) {
+                    $team_id_hook = (int) get_post_meta((int) $schedule_id, 'team_id', true);
+                    $board_id = aidunite_schedule_finalize_new_recruit(
+                        (int) $schedule_id,
+                        (int) $data['user_id'],
+                        $team_id_hook
+                    );
                 }
 
                 $wpdb->query('COMMIT');
@@ -245,87 +246,13 @@ class AidUniteScheduleRegistration {
      * バリデーション
      */
     private static function validateScheduleData($data) {
-        $errors = [];
-
-        // 必須項目チェック
-        $required_fields = ['date', 'start_time', 'end_time', 'type'];
-        $required_errors = AidUniteValidator::required($data, $required_fields);
-        $errors = array_merge($errors, $required_errors);
-
-        // 日付妥当性チェック
-        if (!AidUniteValidator::validateDate($data['date'])) {
-            $errors[] = '無効な日付形式です';
-        }
-
-        // 時間妥当性チェック
-        if (!AidUniteValidator::validateTime($data['start_time'])) {
-            $errors[] = '無効な開始時間です';
-        }
-
-        if (!AidUniteValidator::validateTime($data['end_time'])) {
-            $errors[] = '無効な終了時間です';
-        }
-
-        // 時間順序チェック
-        if (!AidUniteValidator::validateTimeOrder($data['start_time'], $data['end_time'])) {
-            $errors[] = '終了時間は開始時間より後にしてください';
-        }
-
-        // マッチ希望時の追加バリデーション
-        if ($data['intent'] === 'recruit') {
-            if (empty($data['venue_condition'])) {
-                $errors[] = '試合を募集の登録では会場条件が必須です';
-            }
-
-            if (empty($data['gender_condition'])) {
-                $errors[] = '試合を募集の登録では性別条件が必須です';
-            }
-
-            // 性別条件に応じた募集数の計算
-            $total_recruit_count = 0;
-            if ($data['gender_condition'] === 'male') {
-                $total_recruit_count = $data['male_teams'];
-            } elseif ($data['gender_condition'] === 'female') {
-                $total_recruit_count = $data['female_teams'];
-            }
-
-            // アウェイは募集数入力UIが無い経路があるため、片性別のときは最小1を補完
-            if (($data['venue_condition'] ?? '') === 'away' && $total_recruit_count < 1) {
-                if ($data['gender_condition'] === 'male') {
-                    $total_recruit_count = 1;
-                } elseif ($data['gender_condition'] === 'female') {
-                    $total_recruit_count = 1;
-                }
-            }
-
-            if ($total_recruit_count < 1) {
-                $errors[] = '募集チーム数は1以上である必要があります';
-            }
-
-            // 会場は home/away/both(either) を許可（複数募集でもホーム固定しない）
-        }
-
-        // チームID存在チェック
-        $user_id = $data['user_id'];
-        $team_id = function_exists('aidunite_resolve_user_team_id_for_schedule_ops')
-            ? (int) aidunite_resolve_user_team_id_for_schedule_ops((int) $user_id)
-            : (int) get_user_meta($user_id, 'team_id', true);
-        if (!$team_id) {
-            $errors[] = 'チームに所属していません';
-        }
-
-        if (($data['intent'] ?? '') === 'recruit' && $team_id && !empty($data['gender_condition'])) {
-            if (function_exists('aidunite_validate_recruit_gender_for_team')) {
-                $gender_err = aidunite_validate_recruit_gender_for_team((int) $team_id, $data['gender_condition']);
-                if (is_wp_error($gender_err)) {
-                    $errors[] = $gender_err->get_error_message();
-                }
-            }
+        if (function_exists('aidunite_schedule_validate_registration_data')) {
+            return aidunite_schedule_validate_registration_data($data);
         }
 
         return [
-            'valid' => empty($errors),
-            'errors' => $errors
+            'valid' => false,
+            'errors' => ['バリデーションが利用できません'],
         ];
     }
 
@@ -390,65 +317,6 @@ class AidUniteScheduleRegistration {
         return (int) $post_id;
     }
 
-    /**
-     * マッチボード作成
-     */
-    private static function createMatchBoard($schedule_id, $data) {
-        $user_id = $data['user_id'];
-
-        $board_id = wp_insert_post([
-            'post_type' => 'match_board',
-            'post_title' => '自動作成-' . $schedule_id,
-            'post_status' => 'draft',
-            'post_author' => $user_id,
-            'meta_input' => [
-                'team_id' => function_exists('aidunite_resolve_schedule_owner_team_id')
-                    ? aidunite_resolve_schedule_owner_team_id((int) $schedule_id)
-                    : (int) get_post_meta((int) $schedule_id, 'team_id', true),
-                'schedule_id' => $schedule_id
-            ]
-        ]);
-
-        if (is_wp_error($board_id)) {
-            throw new Exception('マッチボードの作成に失敗しました: ' . $board_id->get_error_message());
-        }
-
-        return $board_id;
-    }
-
-    /**
-     * 高マッチ通知を送信
-     */
-    private static function sendHighMatchNotifications($schedule_id, $data) {
-        try {
-            // チームIDを取得
-            $team_id = get_post_meta($schedule_id, 'team_id', true);
-            if (!$team_id) {
-                error_log("❌ 高マッチ通知失敗：チームIDが取得できません schedule_id={$schedule_id}");
-                return false;
-            }
-
-            // 高マッチ通知を送信
-            $result = send_high_match_notifications($schedule_id, $team_id);
-
-            AidUniteErrorHandler::info('高マッチ通知送信', [
-                'schedule_id' => $schedule_id,
-                'team_id' => $team_id,
-
-                'result' => $result
-            ]);
-
-            return $result;
-
-        } catch (Exception $e) {
-
-            AidUniteErrorHandler::handleException($e, [
-                'action' => 'send_high_match_notifications',
-                'schedule_id' => $schedule_id
-            ]);
-            return false;
-        }
-    }
 }
 
 /**

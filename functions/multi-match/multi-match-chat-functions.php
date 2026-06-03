@@ -58,7 +58,11 @@ function aidunite_post_message_to_multi_match_chat($chat_id, $team_id, $message_
         update_post_meta($message_id, 'chat_id', $chat_id);
         update_post_meta($message_id, 'team_id', $team_id);
         update_post_meta($message_id, 'message_content', $message_content);
-        update_post_meta($message_id, 'message_type', $message_type);
+        if (function_exists('aidunite_chat_write_mm_message_type_meta')) {
+            aidunite_chat_write_mm_message_type_meta($message_id, $message_type);
+        } else {
+            update_post_meta($message_id, 'message_type', $message_type);
+        }
         update_post_meta($message_id, 'is_system_message', '0');
         update_post_meta($message_id, 'posted_date', current_time('mysql'));
 
@@ -86,7 +90,11 @@ function aidunite_post_system_message_to_chat($chat_id, $message_content) {
         update_post_meta($message_id, 'chat_id', $chat_id);
         update_post_meta($message_id, 'team_id', 0);
         update_post_meta($message_id, 'message_content', $message_content);
-        update_post_meta($message_id, 'message_type', 'system');
+        if (function_exists('aidunite_chat_write_mm_message_type_meta')) {
+            aidunite_chat_write_mm_message_type_meta($message_id, 'system');
+        } else {
+            update_post_meta($message_id, 'message_type', 'system');
+        }
         update_post_meta($message_id, 'is_system_message', '1');
         update_post_meta($message_id, 'posted_date', current_time('mysql'));
 

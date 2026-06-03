@@ -523,8 +523,11 @@ function aidunite_set_user_type($user_id, $user_type) {
         return false;
     }
 
+    if (function_exists('aidunite_user_write_role_meta')) {
+        return aidunite_user_write_role_meta($user_id, $user_type) !== '';
+    }
+
     update_user_meta($user_id, 'aidunite_role', $user_type);
-    // 後方互換性のため user_type も更新
     update_user_meta($user_id, 'user_type', $user_type);
 
     return true;

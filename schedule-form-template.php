@@ -159,55 +159,73 @@ document.getElementById('schedule-form').addEventListener('submit', function(e) 
   html += '</ul>';
   document.getElementById('result').innerHTML = html;
 
-  fetch('/wp-json/aidunite/v1/register-schedules', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-WP-Nonce': wpApiSettings.nonce
-    },
-    body: JSON.stringify(datesToRegister.map(date => ({
-      date: date.toISOString().split('T')[0],
-      start_time: startTime,
-      end_time: endTime,
-      place: place,
-      note: note,
-      // Phase 3: 統一メタキーを使用（schedule_gender, schedule_place）
-      schedule_gender: genderCondition,
-      schedule_place: placeCondition,
-      type: scheduleType,
-      matching: matchFlag, // 統一されたキー名を使用
-      gender_condition: genderCondition,
-      place_condition: placeCondition,
-      // 後方互換性のため、旧キーも設定（Phase 4で削除予定）
-      matching_gender_condition: genderCondition,
-      schedule_place_option: placeCondition
-    })))
-  })
-  .then(response => response.json())
-  .then(data => {
-    const successCount = data.filter(r => r.success).length;
-    document.getElementById('result').innerHTML += `<p>✅ ${successCount}件のスケジュールを登録しました！</p>`;
+  const [startHour, startMinute] = startTime.split(':');
+  const [endHour, endMinute] = endTime.split(':');
+  const apiUrl = '/wp-json/aidunite/v1/register-schedule-v2';
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-WP-Nonce': wpApiSettings.nonce
+  };
 
-    // 登録完了後、2秒後にスケジュール一覧ページにリダイレクト
-    let countdown = 2;
-    const countdownElement = document.createElement('p');
-    countdownElement.innerHTML = `<p>⏰ ${countdown}秒後にスケジュール一覧ページに移動します...</p>`;
-    document.getElementById('result').appendChild(countdownElement);
+  (async () => {
+    let successCount = 0;
+    let lastError = '';
 
-    const timer = setInterval(() => {
-      countdown--;
-      countdownElement.innerHTML = `<p>⏰ ${countdown}秒後にスケジュール一覧ページに移動します...</p>`;
+    for (const date of datesToRegister) {
+      const payload = {
+        start_date: date.toISOString().split('T')[0],
+        start_hour: startHour,
+        start_minute: startMinute,
+        end_hour: endHour,
+        end_minute: endMinute,
+        schedule_type: scheduleType,
+        intent: matchFlag ? 'recruit' : 'confirmed',
+        venue_condition: placeCondition,
+        venue_name: place,
+        gender_condition: genderCondition,
+        note: note,
+        male_teams: matchFlag && genderCondition === 'male' ? 1 : 0,
+        female_teams: matchFlag && genderCondition === 'female' ? 1 : 0
+      };
 
-      if (countdown <= 0) {
-        clearInterval(timer);
-        // 確実にリダイレクトするために、window.location.replaceを使用
-        window.location.replace('/my-schedule');
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (data && data.success) {
+          successCount++;
+        } else {
+          lastError = (data && data.message) ? data.message : '登録に失敗しました';
+        }
+      } catch (err) {
+        console.error(err);
+        lastError = '通信エラーが発生しました';
+        break;
       }
-    }, 1000);
-  })
-  .catch(err => {
-    console.error(err);
-    document.getElementById('result').innerHTML += `<p>❌ エラーが発生しました。</p>`;
-  });
+    }
+
+    if (successCount > 0) {
+      document.getElementById('result').innerHTML += `<p>✅ ${successCount}件のスケジュールを登録しました！</p>`;
+
+      let countdown = 2;
+      const countdownElement = document.createElement('p');
+      countdownElement.innerHTML = `<p>⏰ ${countdown}秒後にスケジュール一覧ページに移動します...</p>`;
+      document.getElementById('result').appendChild(countdownElement);
+
+      const timer = setInterval(() => {
+        countdown--;
+        countdownElement.innerHTML = `<p>⏰ ${countdown}秒後にスケジュール一覧ページに移動します...</p>`;
+        if (countdown <= 0) {
+          clearInterval(timer);
+          window.location.replace('/my-schedule');
+        }
+      }, 1000);
+    } else {
+      document.getElementById('result').innerHTML += `<p>❌ ${lastError || 'エラーが発生しました。'}</p>`;
+    }
+  })();
 });
 </script>

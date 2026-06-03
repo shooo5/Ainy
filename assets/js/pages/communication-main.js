@@ -51,6 +51,13 @@
                 && (item.room_status || 'active') !== 'completed';
         }
 
+        /** タイムライン表示用未読数（完了済みチャットは 0） */
+        function getTimelineDisplayUnread(item) {
+            if (!item) return 0;
+            if (item.item_type === 'chat' && (item.room_status || 'active') === 'completed') return 0;
+            return item.unread_count || 0;
+        }
+
         function isActionRequired(item) {
             if (isTimelineChatHidden(item)) return false;
             if (item.item_type === 'chat' && (item.room_status || 'active') === 'completed') return false;
@@ -479,15 +486,17 @@
                 const isCountMode = opts.mode === 'count';
                 if (num > 0) {
                     el.textContent = isCountMode ? (num > 99 ? '99+' : String(num)) : formatUnreadBadge(num);
-                    el.setAttribute('aria-label', (isCountMode ? '' : '未読') + num + '件');
+                    el.setAttribute('aria-label', isCountMode ? (name + ' ' + num + '件') : ('未読' + num + '件'));
                     el.setAttribute('aria-hidden', 'true');
-                    el.classList.add('has-unread');
+                    el.classList.toggle('has-unread', !isCountMode);
+                    el.classList.toggle('has-count', isCountMode);
                     if (btn) btn.setAttribute('aria-label', name + ' ' + (isCountMode ? num + '件' : '未読' + num + '件'));
                 } else {
                     el.textContent = '';
                     el.removeAttribute('aria-label');
                     el.setAttribute('aria-hidden', 'true');
                     el.classList.remove('has-unread');
+                    el.classList.remove('has-count');
                     if (btn) btn.setAttribute('aria-label', name);
                 }
             };
@@ -529,7 +538,7 @@
             return (items || []).map(function(item) {
                 const raw = String(item.content || '').replace(/\\n/g, '\n');
                 return getTimelineItemKey(item) + ':' +
-                    String(item.unread_count || 0) + ':' +
+                    String(getTimelineDisplayUnread(item)) + ':' +
                     (isActionRequired(item) ? '1' : '0') + ':' +
                     raw.slice(0, 80);
             }).join('|');
@@ -558,8 +567,9 @@
 
         function patchTimelineCardElement(card, item) {
             const actionRequired = isActionRequired(item);
+            const displayUnread = getTimelineDisplayUnread(item);
             card.classList.toggle('timeline-item--action-required', actionRequired);
-            card.setAttribute('data-unread-count', String(item.unread_count || 0));
+            card.setAttribute('data-unread-count', String(displayUnread));
             card.setAttribute('data-action-required', actionRequired ? '1' : '0');
 
             const badges = card.querySelector('.timeline-badges');
@@ -575,7 +585,7 @@
             const headerRight = card.querySelector('.timeline-header-right');
             if (headerRight) {
                 let unreadEl = headerRight.querySelector('.unread-count-badge');
-                const unread = item.unread_count || 0;
+                const unread = displayUnread;
                 if (unread > 0) {
                     if (!unreadEl) {
                         headerRight.insertAdjacentHTML('afterbegin', '<span class="unread-count-badge timeline-card__unread">' + unread + '</span>');
@@ -926,14 +936,15 @@
             const gameTitle = escapeHtml(item.title || item.room_name || 'タイトルなし');
             const opponentLabel = escapeHtml(getOpponentTeamLabel(item) || (isBoard ? '—' : '—'));
             const shortTime = new Date(item.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+            const displayUnread = getTimelineDisplayUnread(item);
 
-            return '<article class="' + cardClasses.join(' ') + ' timeline-card" data-timeline-key="' + escapeHtml(getTimelineItemKey(item)) + '" data-item-type="' + item.item_type + '" data-item-index="' + index + '" data-message-id="' + (messageId || '') + '" data-room-id="' + (roomId || '') + '" data-unread-count="' + unreadCount + '" data-action-required="' + (actionRequired ? '1' : '0') + '">' +
+            return '<article class="' + cardClasses.join(' ') + ' timeline-card" data-timeline-key="' + escapeHtml(getTimelineItemKey(item)) + '" data-item-type="' + item.item_type + '" data-item-index="' + index + '" data-message-id="' + (messageId || '') + '" data-room-id="' + (roomId || '') + '" data-unread-count="' + displayUnread + '" data-action-required="' + (actionRequired ? '1' : '0') + '">' +
                 '<div class="timeline-card__rail" aria-hidden="true"><span class="timeline-card__dot"></span></div>' +
                 '<div class="timeline-card__body">' +
                 '<div class="timeline-item-header"><div class="timeline-badges">' + badges +
                 (actionRequired ? '<span class="action-required-badge">要対応</span>' : '') +
                 '</div><div class="timeline-header-right">' +
-                (unreadCount > 0 ? '<span class="unread-count-badge timeline-card__unread">' + unreadCount + '</span>' : '') +
+                (displayUnread > 0 ? '<span class="unread-count-badge timeline-card__unread">' + displayUnread + '</span>' : '') +
                 '<time class="timeline-time" datetime="' + escapeHtml(item.created_at || '') + '">' + shortTime + '</time></div></div>' +
                 '<h3 class="timeline-item-title timeline-card__game-title">' + gameTitle + '</h3>' +
                 (opponentLabel && opponentLabel !== '—' ? '<p class="timeline-card__opponent">相手: ' + opponentLabel + '</p>' : '') +
@@ -998,6 +1009,23 @@
                 scheduleTimelinePolling(IDLE_POLL_MS);
             }
         });
+
+        window.addEventListener('pageshow', function() {
+            scheduleTimelinePolling(0);
+        });
+
+        window.addEventListener('focus', function() {
+            if (!document.hidden) {
+                scheduleTimelinePolling(0);
+            }
+        });
+
+        try {
+            if (sessionStorage.getItem('aidunite_timeline_force_refresh')) {
+                sessionStorage.removeItem('aidunite_timeline_force_refresh');
+                scheduleTimelinePolling(0);
+            }
+        } catch (e) { /* ignore */ }
 
         window.addEventListener('beforeunload', function() {
             if (timelinePollTimer) {

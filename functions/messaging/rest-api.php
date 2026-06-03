@@ -477,6 +477,10 @@ function aidunite_get_chat_messages($request) {
 
     $messages = aidunite_get_chat_messages_data($room_id_int, $page, $per_page);
 
+    if (function_exists('aidunite_sync_chat_read_status_to_latest')) {
+        aidunite_sync_chat_read_status_to_latest($room_id_int, $user_id);
+    }
+
     // プライバシー保護: 取得結果に異なるroom_idのメッセージが含まれていないか最終確認
     if (isset($messages['messages']) && is_array($messages['messages'])) {
         $wrong_room_messages = array_filter($messages['messages'], function($msg) use ($room_id_int) {
@@ -597,14 +601,27 @@ function aidunite_mark_chat_read($request) {
         return new WP_REST_Response(['error' => 'セキュリティチェックに失敗しました'], 403);
     }
 
-    $result = aidunite_update_read_status($chat_id, get_current_user_id(), $message_id);
+    $user_id = get_current_user_id();
+    $room_id_int = (int) $chat_id;
+    if ($room_id_int > 0 && !aidunite_check_chat_permission($room_id_int, $user_id)) {
+        return new WP_REST_Response(['error' => 'アクセス権限がありません'], 403);
+    }
+
+    if ($message_id <= 0 && function_exists('aidunite_sync_chat_read_status_to_latest')) {
+        $result = aidunite_sync_chat_read_status_to_latest($room_id_int, $user_id);
+        if (!is_wp_error($result) && function_exists('aidunite_get_chat_room_latest_message_id')) {
+            $message_id = aidunite_get_chat_room_latest_message_id($room_id_int);
+        }
+    } else {
+        $result = aidunite_update_read_status($room_id_int, $user_id, $message_id);
+    }
 
     if (is_wp_error($result)) {
         return new WP_REST_Response(['error' => $result->get_error_message()], 400);
     }
 
     // SSE で配信
-    do_action('aidunite_read_status_updated', $chat_id, get_current_user_id(), $message_id);
+    do_action('aidunite_read_status_updated', $room_id_int, $user_id, $message_id);
 
     return new WP_REST_Response(['message' => '既読状態を更新しました'], 200);
 }

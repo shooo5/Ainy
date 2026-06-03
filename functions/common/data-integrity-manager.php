@@ -635,8 +635,13 @@ class AidUniteDataIntegrityManager {
         $fixed_count = 0;
 
         foreach ($users_without_role as $user_id) {
-            update_user_meta($user_id, 'aidunite_role', 'player');
-            $fixed_count++;
+            if (function_exists('aidunite_user_write_role_meta')) {
+                if (aidunite_user_write_role_meta((int) $user_id, 'player') !== '') {
+                    $fixed_count++;
+                }
+            } elseif (update_user_meta((int) $user_id, 'aidunite_role', 'player')) {
+                $fixed_count++;
+            }
         }
 
         return ['fixed_count' => $fixed_count];
@@ -673,18 +678,29 @@ class AidUniteDataIntegrityManager {
      * 掲示板 match_board_status をゲーム MR から再同期
      */
     private static function repairMatchBoardStatusDrift() {
+        if (function_exists('aidunite_match_board_repair_all_statuses')) {
+            $result = aidunite_match_board_repair_all_statuses(false);
+
+            return [
+                'fixed_count'   => (int) ($result['fixed_count'] ?? 0),
+                'skipped_count' => (int) ($result['skipped_count'] ?? 0),
+                'total'         => (int) ($result['total'] ?? 0),
+            ];
+        }
         if (!function_exists('aidunite_sync_match_board_status_from_game')) {
             return ['fixed_count' => 0, 'skipped' => 'sync_unavailable'];
         }
         $boards = get_posts([
-            'post_type' => 'match_board',
-            'post_status' => 'any',
+            'post_type'      => 'match_board',
+            'post_status'    => 'any',
             'posts_per_page' => -1,
-            'fields' => 'ids',
+            'fields'         => 'ids',
         ]);
         $fixed = 0;
         foreach ($boards ?: [] as $board_id) {
-            $recruit_id = (int) wp_get_post_parent_id((int) $board_id);
+            $recruit_id = function_exists('aidunite_match_board_resolve_recruit_schedule_id')
+                ? (int) aidunite_match_board_resolve_recruit_schedule_id((int) $board_id)
+                : (int) wp_get_post_parent_id((int) $board_id);
             if ($recruit_id <= 0 || get_post_type($recruit_id) !== 'schedule') {
                 continue;
             }
@@ -694,6 +710,7 @@ class AidUniteDataIntegrityManager {
                 $fixed++;
             }
         }
+
         return ['fixed_count' => $fixed];
     }
 }

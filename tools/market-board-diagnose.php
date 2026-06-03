@@ -20,8 +20,11 @@ if (!is_user_logged_in() && php_sapi_name() !== 'cli') {
 
 $team_id     = isset($_GET['team_id']) ? (int) $_GET['team_id'] : 5661;
 $schedule_id = isset($_GET['schedule_id']) ? (int) $_GET['schedule_id'] : 5702;
-$date_from   = isset($_GET['date_from']) ? sanitize_text_field(wp_unslash($_GET['date_from'])) : date('Y-m-d', strtotime('-60 days'));
-$date_to     = isset($_GET['date_to']) ? sanitize_text_field(wp_unslash($_GET['date_to'])) : date('Y-m-d', strtotime('+120 days'));
+$default_range = function_exists('aidunite_market_board_default_date_range')
+    ? aidunite_market_board_default_date_range()
+    : ['from' => date('Y-m-d', strtotime('+1 day')), 'to' => date('Y-m-d', strtotime('+120 days'))];
+$date_from   = isset($_GET['date_from']) ? sanitize_text_field(wp_unslash($_GET['date_from'])) : $default_range['from'];
+$date_to     = isset($_GET['date_to']) ? sanitize_text_field(wp_unslash($_GET['date_to'])) : $default_range['to'];
 
 if (function_exists('aidunite_match_board_ensure_dependencies')) {
     aidunite_match_board_ensure_dependencies();

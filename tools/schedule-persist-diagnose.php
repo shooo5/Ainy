@@ -94,6 +94,30 @@ if ($intent === 'recruit') {
 $lines[] = '--- persist path ---';
 $lines[] = 'schedule-persist.php=' . (function_exists('aidunite_schedule_write_post_meta') ? 'loaded' : 'MISSING');
 $lines[] = 'normalize_form_input=' . (function_exists('aidunite_schedule_normalize_form_input') ? 'loaded' : 'MISSING');
+$lines[] = 'persist-read=' . (function_exists('aidunite_schedule_get_canonical_meta') ? 'loaded' : 'MISSING');
+
+if (function_exists('aidunite_schedule_get_canonical_meta')) {
+    $canonical = aidunite_schedule_get_canonical_meta($schedule_id);
+    $lines[] = '--- canonical read ---';
+    $lines[] = 'canonical_intent=' . ($canonical['intent'] ?? '');
+    $lines[] = 'canonical_gender=' . ($canonical['gender_condition'] ?? '');
+    $lines[] = 'canonical_place=' . ($canonical['schedule_place'] ?? '');
+    $lines[] = 'match_board_id=' . (int) ($canonical['match_board_id'] ?? 0);
+    $lines[] = 'match_board_status=' . ($canonical['match_board_status'] ?? '');
+}
+
+if (function_exists('aidunite_schedule_get_linked_match_request_ids')) {
+    $mr_ids = aidunite_schedule_get_linked_match_request_ids($schedule_id);
+    $lines[] = 'linked_match_request_ids=' . (empty($mr_ids) ? '(none)' : implode(',', $mr_ids));
+}
+
+$lines[] = '--- Phase 4 legacy ---';
+$lines[] = 'legacy_meta_writes_enabled=' . (function_exists('aidunite_schedule_legacy_meta_writes_enabled')
+    && aidunite_schedule_legacy_meta_writes_enabled() ? 'yes' : 'no');
+if (function_exists('aidunite_schedule_get_redundant_legacy_meta_keys')) {
+    $redundant = aidunite_schedule_get_redundant_legacy_meta_keys($schedule_id);
+    $lines[] = 'redundant_legacy_keys=' . (empty($redundant) ? '(none)' : implode(',', $redundant));
+}
 
 header('Content-Type: text/plain; charset=utf-8');
 echo implode("\n", $lines) . "\n";

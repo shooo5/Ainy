@@ -84,38 +84,18 @@ function aidunite_register_team($user_id, $team_data, $options = []) {
         return false;
     }
 
-    // チームメタデータを保存
-    $meta_fields = [
-        'team_name',
-        'team_name_kana',
-        'team_description',
-        'team_achievements',
-        'sport_type',
-        'team_category',
-        'team_type',
-        'team_gender_option',
-        'region',
-        'team_place',
-        'team_logo',
-        'registrant_name',
-        'contact_mail',
-        'contact_phone'
-    ];
-
-    foreach ($meta_fields as $field) {
-        if (isset($team_data[$field])) {
-            $value = sanitize_text_field($team_data[$field]);
-            if ($field === 'team_gender_option' && function_exists('aidunite_normalize_team_gender_option')) {
-                $value = aidunite_normalize_team_gender_option($value);
-                $ban_both = apply_filters('aidunite_mvp_ban_new_team_gender_both', true);
-                if ($ban_both && ($value === '' || in_array($value, ['both', 'mixed'], true))) {
-                    continue;
-                }
-                if ($value === '' && !$ban_both) {
-                    $value = 'both';
-                }
+    if (function_exists('aidunite_team_persist_register_meta')) {
+        aidunite_team_persist_register_meta($team_id, $team_data);
+    } else {
+        foreach (['team_name', 'team_name_kana', 'team_description', 'team_achievements', 'sport_type', 'team_category', 'team_type', 'team_gender_option', 'region', 'team_place', 'team_logo', 'registrant_name', 'contact_mail', 'contact_phone'] as $field) {
+            if (isset($team_data[$field])) {
+                update_post_meta($team_id, $field, sanitize_text_field((string) $team_data[$field]));
             }
-            update_post_meta($team_id, $field, $value);
+        }
+        if (function_exists('aidunite_team_write_status_meta')) {
+            aidunite_team_write_status_meta($team_id, 'pending');
+        } else {
+            update_post_meta($team_id, 'team_status', 'pending');
         }
     }
 
@@ -124,9 +104,6 @@ function aidunite_register_team($user_id, $team_data, $options = []) {
     if ($invite_code) {
         update_post_meta($team_id, 'invite_code', $invite_code);
     }
-
-    // チーム管理画面のステータス表示用（承認待ち）
-    update_post_meta($team_id, 'team_status', 'pending');
 
     // 承認までは所属扱いにしない（マルチチーム整合）: pending のみ。team_id / managed_team_ids は付与しない。
     if (!empty($options['set_pending_team_id'])) {

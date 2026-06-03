@@ -321,8 +321,11 @@ if (!function_exists('aidunite_normalize_schedule_place_meta_value')) {
             $norm = 'either';
         }
         if (in_array($norm, ['home', 'away', 'either'], true)) {
-            update_post_meta($schedule_id, 'schedule_place', $norm);
-            update_post_meta($schedule_id, 'schedule_place_option', $norm);
+            if (function_exists('aidunite_schedule_write_place_meta')) {
+                aidunite_schedule_write_place_meta($schedule_id, $norm);
+            } else {
+                update_post_meta($schedule_id, 'schedule_place', $norm);
+            }
         }
 
         return $norm;

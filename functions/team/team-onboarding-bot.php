@@ -146,7 +146,11 @@ function aidunite_onboarding_bot_get_or_create_team() {
 
     $team_id = (int) $team_id;
     update_post_meta($team_id, 'team_name', '練習相手チーム');
-    update_post_meta($team_id, 'team_status', 'active');
+    if (function_exists('aidunite_team_write_status_meta')) {
+        aidunite_team_write_status_meta($team_id, 'active');
+    } else {
+        update_post_meta($team_id, 'team_status', 'active');
+    }
     update_post_meta($team_id, AIDUNITE_ONBOARDING_BOT_META, '1');
     update_post_meta($team_id, 'team_gender_option', 'male');
     update_post_meta($team_id, 'team_leader_id', $user_id);
@@ -162,8 +166,12 @@ function aidunite_onboarding_bot_get_or_create_team() {
         aidunite_user_attach_approved_team_membership($user_id, $team_id);
     } else {
         update_user_meta($user_id, 'team_id', $team_id);
-        update_user_meta($user_id, 'aidunite_role', 'team_leader');
-        update_user_meta($user_id, 'user_type', 'team_leader');
+        if (function_exists('aidunite_user_write_role_meta')) {
+            aidunite_user_write_role_meta($user_id, 'team_leader');
+        } else {
+            update_user_meta($user_id, 'aidunite_role', 'team_leader');
+            update_user_meta($user_id, 'user_type', 'team_leader');
+        }
     }
 
     return $team_id;
@@ -202,8 +210,12 @@ function aidunite_onboarding_bot_get_or_create_user() {
         return 0;
     }
 
-    update_user_meta($user_id, 'aidunite_role', 'team_leader');
-    update_user_meta($user_id, 'user_type', 'team_leader');
+    if (function_exists('aidunite_user_write_role_meta')) {
+        aidunite_user_write_role_meta($user_id, 'team_leader');
+    } else {
+        update_user_meta($user_id, 'aidunite_role', 'team_leader');
+        update_user_meta($user_id, 'user_type', 'team_leader');
+    }
     update_option(AIDUNITE_OPTION_ONBOARDING_BOT_USER_ID, (int) $user_id);
 
     return (int) $user_id;
@@ -328,10 +340,16 @@ function aidunite_onboarding_bot_create_schedule($bot_team_id, $user_recruit_sch
     update_post_meta($schedule_id, 'schedule_end_date', $date);
     update_post_meta($schedule_id, 'schedule_start_time', $start);
     update_post_meta($schedule_id, 'schedule_end_time', $end);
-    update_post_meta($schedule_id, 'schedule_place', $bot_place);
-    update_post_meta($schedule_id, 'schedule_place_option', $bot_place);
-    update_post_meta($schedule_id, 'schedule_gender', $gender);
-    update_post_meta($schedule_id, 'matching_gender_condition', $gender);
+    if (function_exists('aidunite_schedule_write_place_meta')) {
+        aidunite_schedule_write_place_meta($schedule_id, $bot_place);
+    } else {
+        update_post_meta($schedule_id, 'schedule_place', $bot_place);
+    }
+    if (function_exists('aidunite_schedule_write_gender_meta')) {
+        aidunite_schedule_write_gender_meta($schedule_id, $gender);
+    } else {
+        update_post_meta($schedule_id, 'schedule_gender', $gender);
+    }
     update_post_meta($schedule_id, 'intent', 'recruit');
     update_post_meta($schedule_id, 'schedule_type', 'practice_match');
     update_post_meta($schedule_id, 'matching', '1');
