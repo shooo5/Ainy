@@ -1,0 +1,54 @@
+# Cursor用除外設定ファイル
+# 本体コード以外のファイルを除外してパフォーマンス向上
+
+# テスト関連
+  # tests/  # 一時的にコメントアウト（テスト環境セットアップのため）
+*.test.php
+# Jestテストファイルは読み込む（新しい構造）
+!tests/js/unit/common/*.test.js
+!tests/js/**/*.test.js
+!tests/js/**/*.spec.js
+ # run-tests.*
+# phpunit*  # 一時的にコメントアウト（phpunit.xmlが必要なため）
+# codeception.yml と acceptance.suite.yml は除外を解除（最新仕様対応のため）
+
+# バックアップ・一時ファイル
+backups/
+screenshots/
+*.bak
+*.tmp
+*.log
+.phpunit.result.cache
+
+# 依存関係
+vendor/
+node_modules/
+chromedriver/
+
+# 設定・ドキュメント
+# *.md  # MDファイルをCursor AIで処理するため除外を解除
+# *.yml の除外を解除（最新仕様対応のため、設定ファイルを読み込む）
+# !codeception.yml  # 除外解除により不要
+# !tests/acceptance.suite.yml  # 除外解除により不要
+# package.jsonは読み込む（Jest設定確認のため）
+# *.json を削除し、必要なJSONファイルのみ個別に除外
+chrome-versions.json
+chrome-stable.json
+ # composer.json  # 一時的にコメントアウト（Codeception 5.0アップグレードのため）
+ # composer.lock
+!.vscode/  # Cursor設定ディレクトリは許可
+!.vscode/**  # Cursor設定ファイルは許可
+
+# 実行ファイル・スクリプト
+*.bat
+*.ps1 
+.sh
+setup-powershell.ps1
+
+# プレビュー・テンプレート
+preview-*.html
+*.html
+
+# その他
+sw.js
+style.css

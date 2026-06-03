@@ -1,0 +1,41 @@
+ドメイン	意味	payload key	型	必須	許可値	normalize先	保存エンティティ	保存meta_key	導出	UI使用箇所	API endpoint	正本service	備考
+共通	利用者種別	role	string	required	general|team_leader|parent|player|supporter|administrator	user.role_*	usermeta	aidunite_role	No				match/publicは削除対象
+共通	会員登録状態	registration_status	string	required	pending|accepted	user.registration_*	usermeta	registration_status	No				activeは読取互換
+共通	アカウント状態	account_status	string	optional	active|suspended	user.account_*	usermeta	user_status	No				旧DB非0値はsuspendedへ正規化
+共通	プロフィール性別	profile_gender	string	optional	male|female|other|prefer_not_to_say	user.profile_gender_*	usermeta	user_gender	No				募集性別とは別辞書
+共通	会員登録経路	registration_source	string	optional	member_register	user.route_member_register	usermeta	registration_source	No				Forminator旧値は削除対象
+共通	通知設定種別	notification_type	string	optional	notification.*	user.notification_settings	usermeta	notification_settings	No				JSON内キーtypeを使用
+チーム	公開状態	publish_status	string	required	pending|publish	team.publish_status_*	posts	post_status	No				WPのpost_status
+チーム	運用状態	team_status	string	required	pending|active	team.status_*	postmeta	team_status	No				publish_statusとは別管理
+チーム	チーム種別	gender	string	required	male|female	team.gender_*	postmeta	team_gender_option	No				both新規禁止
+チーム	団体種別	org_type	string	required	school|club|corporate|community|other	team.org_*	postmeta	team_type	No				DB日本語値は読取で正規化
+チーム	活動都道府県	activity_prefecture	string	required	都道府県名	team.region_prefecture	postmeta	activity_prefecture	No					
+チーム	活動エリア種別	activity_area_type	string	optional	ward|city	team.region_tokyo_ward/city	postmeta	activity_area_type	No				東京都時のみ
+チーム	活動エリア	activity_area	string	optional	自治体名	team.region_tokyo_ward/city	postmeta	activity_area	No				東京都時のみ
+チーム	初回ガイド段階	activation_stage	string	optional	recruit_pending|recruit_published|first_application|first_established	team.activation_*	postmeta	aidunite_activation_stage	No					
+スケジュール	予定の目的	intent	string	required	confirmed|recruit|tentative|tournament	schedule.intent_*	postmeta	intent	No					
+スケジュール	募集フラグ	is_match_requested	number	optional	0|1	schedule.flag_recruit_on/off	postmeta	is_match_requested	Yes				intent=recruitなら1
+スケジュール	会場条件	place_type	string	required	home|away|either	schedule.place_*	postmeta	schedule_place	No				bothはeitherへ正規化
+スケジュール	募集性別	gender	string	required	male|female	schedule.recruit_gender_*	postmeta	matching_gender_condition	No				both新規禁止
+スケジュール	男子募集枠	male_slots	number	optional	整数	schedule.slot_male	postmeta	male_slots	No					
+スケジュール	女子募集枠	female_slots	number	optional	整数	schedule.slot_female	postmeta	female_slots	No					
+スケジュール	出欠状態	attendance_status	string	optional	present|absent|late|leave_early|no_response	schedule.attendance_*	postmeta	attendance_data	No				JSON内キーstatus
+試合申請	申請状態	status	string	required	not_applied|pending|established|rejected|canceled	match.status_*	postmeta	status	No				acceptedは削除対象
+試合申請	申請時会場	selected_place	string	required	home|away|either	match.place_*	postmeta	selected_place	No				空はlegacy扱い
+試合申請	申請時性別	selected_gender	string	required	male|female	match.gender_*	postmeta	selected_gender	No					
+試合申請	キャンセル理由	cancel_reason	string	optional	mirror_established|superseded_established	match.reason_*	postmeta	canceled_reason	No				status=canceled時のみ
+試合申請	再確認要否	requires_reconfirm	number	optional	0|1	match.flag_requires_reconfirm	postmeta	requires_reconfirm	No					
+試合申請	承認前評価	outcome_code	string	optional	keep_pending|reconfirm_required|proposal_possible|slots_full|gender_slots_full|gender_conflict|venue_conflict|invalid_closed	match.outcome_*	postmeta	mr_outcome_code	No				statusとは別軸
+試合申請	承認者種別	approver_type	string	optional	guest_invite	match.approver_guest_invite	postmeta	approver_type	No					
+募集中の試合	掲示板状態	board_status	string	required	open|pending|established	match_board.board_status_*	postmeta	match_board_status	Yes				MR集計から導出可
+通知	通知種別	type	string	required	match_request|match_established|match_rejected|match_request_superseded|team_approval_request|team_approval_completed|payment_completed|payment_reminder|attendance_registered	notification.*	postmeta	type	No					
+通知	既読	is_read	boolean	required	true|false	notification.flag_is_read	postmeta	is_read	No				大文字TRUE/FALSE入力は小文字化
+決済	課金モード	payment_mode	string	required	board|business|personal	team.payment_*	postmeta	payment_mode	No				schoolはbusinessへ正規化
+決済	プラン	selected_plan_id	string	required	plan_standard|plan_premium	team.plan_*	postmeta	selected_plan_id	No					
+決済	トライアル開始日	trial_start_date	string	optional	YYYY-MM-DD	team.meta_trial_start_date	postmeta	trial_start_date	No					
+決済	Stripe購読ID	stripe_subscription_id	string	optional	Stripe Subscription ID	team.meta_stripe_subscription_id	postmeta	stripe_subscription_id	No					
+チャット	ルーム種別	room_type	string	required	team|match|message_thread|system|group|direct	chat.room_*	postmeta	room_type	No					
+チャット	ルーム状態	room_status	string	required	active|completed|archived	chat.status_*	postmeta	status	No					
+チャット	メッセージ種別	message_type	string	required	text|image|file|evaluation_request	chat.message_*	postmeta	message_type	No					
+analytics	ページイベント	event_type	string	required	view|click|submit|complete|leave	analytics.event_*	DB	analytics_page_event.event_type	No					
+analytics	ファネルステップ	funnel_step_id	string	required	team_created|recruit_published|application|approval|established|reuse	analytics.funnel_*	コード	funnel step_id	Yes				イベントから導出可

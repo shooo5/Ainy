@@ -1,0 +1,53 @@
+シート,領域,意味,正式値候補,legacy/旧値/揺れ値,現在保存されている可能性,今後の方針候補,事業側判断必要,影響範囲
+ユーザー,user.role_display,Ainy上の利用者種別,"general, team_leader, parent, player, supporter, match, public, administrator","user_type（旧meta）、WP role（subscriber/author）",高（aidunite_role usermeta）,aidunite_roleを正本。user_typeは読取フォールバックのみ,Yes（supporter/match/publicの定義）,"UI, 権限, マイページ, 決済, 通知"
+ユーザー,user.registration_status,会員本登録の完了,"pending, accepted",active（レガシー互換ログイン可）,高,新規はpending→acceptedのみ。activeは読取でaccepted扱い,Yes（active廃止表記）,"ログイン, 登録メール"
+ユーザー,user.account_validity,アカウント有効,"0（有効）, 非空（無効）",空=有効,中（user_status）,真偽化またはactive/suspended文字列化を検討,Yes（無効化フロー）,ログイン
+ユーザー,user.profile_gender,プロフィール性別（人）,"male, female, other, prefer_not_to_say",未入力,中（user_gender・会員登録時は未保存）,練習試合の募集性別とは別辞書（混同禁止）,Yes（表示・必須化）,"プロフィール, 一覧"
+ユーザー,user.member_route,登録経路,member_register,Forminator 271,高,Forminator廃止 or 同一メタセットに統一,Yes（レガシー会員移行）,"サポート, メール"
+チーム,team.post_status,WP公開状態,"pending, publish",—,高,申請=pending、承認=publish維持,No,"承認, 掲示板, 検索"
+チーム,team.team_status,運用ステータス,"pending, active",—,高,post_statusと役割分担を仕様で固定,Yes（却下時の値）,"マイページ, 管理"
+チーム,team.gender_attribute,チーム種別（男子/女子）,"male, female","both, mixed, 空（男女同時申請・JS hidden）",高（team_gender_option）,新規both禁止（MVP）。読取はnormalize,Yes（男女別2件申請の定義）,"募集, マッチ, 登録UI"
+チーム,team.organization_type,学校/クラブ,"学校, クラブ",—,高（team_type）,内部コードschool/clubへ寄せるかは任意,No,"決済プラン, 料金"
+チーム,team.activity_region,活動地域（詳細）,activity_prefecture + activity_area_type + activity_area,8ブロックregionのみ時代,高,読取はactivity系正本。regionは集計用派生,Yes（マッチ条件に入れるか）,"フィルター, 将来マッチ"
+チーム,team.region_block,旧8ブロック,北海道〜沖縄等,都道府県と混在,高,activity_prefectureから再計算のみ保存,Yes（8ブロック廃止）,管理フィルター
+チーム,team.activation_stage,初回オンボーディング段階,"recruit_pending, recruit_published, first_application, first_established",—,中（team post meta）,段階IDをKPIと1:1固定,Yes（ミッションUI文言）,"マイページ, analytics funnel"
+チーム,team.payment_mode,支払い形態,"board, school, personal",未設定,中,チーム作成後に必ず1つ,Yes（教育委員会契約）,"決済, 制限"
+チーム,team_application.status,参加申請,WP pending/publish + meta application_type,—,低,チーム作成申請（team CPT）と用語分離,No,通知
+スケジュール,schedule.intent,予定の目的,"confirmed, recruit, tentative","matching=1のみでrecruit推定, certainty=tentative",高,intent正本。matchingは派生,Yes（tournament intent分離）,"カレンダー, フィルター, 掲示板, analytics"
+スケジュール,schedule.intent.tournament,大会用,tournament,—,中,練習試合辞書と別行で管理,Yes（大会とrecruit共存）,"tournament, schedule"
+スケジュール,schedule.certainty,確度（補助）,"firm, tentative",intentと二重,高,intent優先。新規はcertainty削減方向,No,"表示, 仮→確定"
+スケジュール,schedule.recruit_flag,マッチ募集ON,"1, 0",is_match_requested重複,高,intent=recruitから導出し単一化,No,"自動マッチ, 掲示板"
+スケジュール,schedule.venue_condition,会場希望,"home, away, either","both, 日本語ラベル, schedule_place_option重複",高,保存前にboth→either必須（全経路）,Yes（どちらでも可表示）,"マッチ, place_lock, UI"
+スケジュール,schedule.recruit_gender,募集性別,"male, female","both, 男子・女子・混合, matching_gender_condition",高,MVP male/femaleのみ新規。bothは読取除外,Yes（男女別枠再導入）,"マッチ, 枠, 掲示板"
+スケジュール,schedule.slots,募集枠,"male_slots, female_slots（整数）","male_teams, capacity, male_capacity重複",高,枠の正本キー1組に集約,Yes（チーム数か枠か）,"成立, 満了"
+スケジュール,schedule.match_status,試合準備度（旧）,実装依存,"planned, matched, confirmed（StatusUtils）",低,intent/recruitモデルと統合検討,Yes（廃止）,カレンダー表示
+スケジュール,attendance.record,出欠,JSON in attendance_data,—,中,スキーマ化（出席/欠席/遅刻）,Yes（状態の種類）,"出欠UI, 通知"
+マッチ申請,mr.status,申請ライフサイクル,"not_applied, pending, accepted, established, rejected, canceled","publish（WP post）, 日本語, request_status重複, draft（自動マッチ）",高,meta status正本 + normalize。publish→pending,Yes（acceptedと承認済み表示）,"全マッチUI, 通知, analytics"
+マッチ申請,mr.established,試合確定,established,accepted表示と混同,高,確定はestablishedのみ,Yes（試合確定文言）,"掲示板, チャット, 枠"
+マッチ申請,mr.selected_place,申請時会場,"home, away, either","both, JSでhomeデフォルト",高,サーバーでnormalize。UIは未選択可,Yes（either未選択デフォルト）,"成立, place_lock"
+マッチ申請,mr.selected_gender,申請時性別,"male, female",both,高,canonicalはmale/female,No,"成立, 枠"
+マッチ申請,mr.cancel_reason_code,システムキャンセル理由,"mirror_established, superseded_established",aidunite_cancel_reason / canceled_reason / cancel_reason 3系統,中,コード1本 + 表示文言1本,Yes（ユーザー向け文言）,"通知, 一覧"
+マッチ申請,mr.reconfirm,再確認待ち,requires_reconfirm=1 + reconfirm_reason,—,中,表示はview_state共通化,Yes（再確認業務ルール）,"承認UI, 通知"
+マッチ申請,mr.outcome_code,承認前評価（6A）,"keep_pending, reconfirm_required, proposal_possible, slots_full, gender_slots_full, gender_conflict, invalid_closed",—,中,一覧・通知はoutcome辞書固定,Yes（ラベル文言）,"match-detail, 通知"
+マッチ申請,mr.auto_match,自動生成MR,"is_auto_match=1, type=auto, status=draft",—,中,自動MRを一覧に出すか,Yes（draft扱い）,"掲示板, analytics"
+マッチ申請,mr.guest_invite,ゲスト招待,"to_schedule_id=9999, approver_type=guest_invite",—,低,プレースホルダ定数化,Yes（ゲスト試合継続）,招待フロー
+掲示板,board.aggregate_status,募集ゲーム単位の見え方,"open, pending, accepted, established",AidUniteStatusの別体系,高（match_board_status）,ゲーム集計ステータスを正本（MRから算出）,Yes（accepted表示）,掲示板UI
+掲示板,board.link,紐付け,"schedule_id, team_id",post_parent方式,高,キー名固定,No,同期処理
+マッチFB,feedback.satisfaction,満足度等,match-apply-evaluation.md準拠,POST動的キー,中,許可キーリストをサーバー固定,Yes（質問追加）,"試合後UI, analytics"
+通知,notification.type,通知種別（テンプレID）,"match_request, match_accepted, match_rejected, match_request_superseded, team_approval_request, team_approval_completed, payment_*, attendance_* 等",team_approved vs team_approval / type vs notification_type meta,高,notification.mdとconfigを正本し揺れ廃止,Yes（OFF可能種別）,"メール, LINE, push, 一覧"
+通知,notification.read,既読,is_read false/true,—,高,boolean統一,No,badge
+通知,notification.settings,ユーザー設定,notification_settings配列,—,中,キーはtypeと同型,Yes（デフォルトON/OFF）,配信
+通知,notification.badge,未読数,集計（CPT+テーブル）,—,高（算出）,算出元を1定義,No,ヘッダUI
+大会,tournament.status,大会状態,"draft, recruiting, confirmed, finished",仕様open/closed表記ゆれ,高,実装に合わせ仕様改訂,Yes（公開タイミング）,大会UI
+マルチマッチ,multi_match.match,試合枠,"team1_id, team2_id, match_status=scheduled 等",—,中,練習試合MR辞書と分離,No,MM画面
+マルチマッチ,mm_chat.message_type,MMチャット,"text, system 等",—,中,CPT meta固定,No,MMのみ
+決済,payment.mode,チーム課金モード,"board, school, personal",—,中,team meta正本,Yes（契約形態追加）,"制限, UI"
+決済,payment.plan_id,プラン,"plan_standard, plan_premium 等",—,中,config正本,Yes（プラン名）,Stripe
+決済,trial.start,トライアル開始,ISO日付 trial_start_date,—,中,チーム単位,Yes（無料期間）,"制限, マイページ"
+決済,stripe.subscription,継続課金,stripe_subscription_id（user meta）,—,中,user/teamどちらが正か明文化,Yes（Connect vs 通常）,webhook
+チャット,chat.room_type,ルーム種別,"team, match, message_thread, system, group, direct",—,高（ENUM）,ENUM変更はマイグレーション,Yes（マッチ先行）,チャットUI
+チャット,chat.room_status,ルーム状態,"active, completed, archived",—,高,完了化をMRキャンセルと同期,No,match-state-sync
+チャット,chat.message_type,メッセージ種別,"text, image, file, system, evaluation_request 等",—,高,種別追加は辞書更新必須,No,試合後
+analytics,analytics.event_type,ページイベント,"view, click, submit, complete, leave",—,高（DB）,固定5種,Yes（新イベント）,ダッシュボード
+analytics,funnel.step,チームファネル,"team_created, recruit_published, application, approval, established, reuse",—,高（算出）,canonical MR statusのみ参照,Yes（KPI定義）,経営レポート
+analytics,funnel.mr_status_for_metric,集計用MR,establishedのみ,"試合確定, acceptedを成立に含めるか",高,analytics用normalizeを1関数化,Yes（成立の定義）,KPI

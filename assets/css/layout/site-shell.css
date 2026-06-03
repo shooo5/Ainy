@@ -1,0 +1,16 @@
+/**
+ * サイトシェル（#page / #page-wrapper / #main / .full-container）
+ * header.php で開き footer.php で閉じるラッパーが伸縮できるようにする。
+ * style.css の旧 html,body{height:100%} と併用してもドキュメントが下まで伸びる。
+ */
+
+#page,
+#page-wrapper,
+#main.site-main,
+.full-container {
+  display: block;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+}

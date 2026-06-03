@@ -1,0 +1,152 @@
+/**
+ * 管理者データ一覧テーブル共通（Ainy UI 統一定義）
+ * - タイポ: var(--font-sans-jp), var(--font-size-sm)
+ * - セル種別: .admin-cell--text | date | time | gender | venue | id | datetime
+ */
+
+.admin-schedule-table,
+.admin-user-table,
+.admin-payment-table,
+.page-match-requests-table,
+.admin-mfl-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: var(--font-sans-jp);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.admin-schedule-table th,
+.admin-schedule-table td,
+.admin-user-table th,
+.admin-user-table td,
+.admin-payment-table th,
+.admin-payment-table td,
+.page-match-requests-table th,
+.page-match-requests-table td,
+.admin-mfl-table th,
+.admin-mfl-table td {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
+  border: 1px solid var(--border-color);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  vertical-align: middle;
+}
+
+.admin-schedule-table thead th,
+.admin-user-table thead th,
+.admin-payment-table thead th,
+.page-match-requests-table thead th,
+.admin-mfl-table thead th {
+  background: var(--bg-secondary);
+  font-weight: 600;
+}
+
+.admin-schedule-table a,
+.admin-user-table a,
+.admin-payment-table a,
+.page-match-requests-table a,
+.admin-mfl-table a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.admin-schedule-table a:hover,
+.admin-user-table a:hover,
+.admin-payment-table a:hover,
+.page-match-requests-table a:hover,
+.admin-mfl-table a:hover,
+.admin-schedule-table a:focus-visible,
+.admin-user-table a:focus-visible,
+.admin-payment-table a:focus-visible,
+.page-match-requests-table a:focus-visible,
+.admin-mfl-table a:focus-visible {
+  text-decoration: underline;
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.col-checkbox {
+  white-space: nowrap;
+  width: 2.75rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.col-no {
+  white-space: nowrap;
+  width: 3rem;
+  text-align: right;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-schedule-table thead .col-no,
+.admin-user-table thead .col-no,
+.admin-payment-table thead .col-no,
+.page-match-requests-table thead .col-no {
+  text-align: center;
+}
+
+/* セル種別（文字・日付・時間・性別・会場） */
+.admin-cell__value,
+.admin-cell__empty {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+.admin-cell__empty {
+  color: var(--text-muted);
+}
+
+.admin-cell--text .admin-cell__value {
+  word-break: break-word;
+}
+
+.admin-cell--date .admin-cell__value,
+.admin-cell--datetime .admin-cell__value {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.admin-cell--time .admin-cell__value {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.admin-cell--gender .admin-cell__value {
+  white-space: nowrap;
+}
+
+.admin-cell--venue .admin-cell__value {
+  word-break: break-word;
+  min-width: 6rem;
+}
+
+.admin-cell--id .admin-cell__value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ステータスバッジ（一覧内・種別セル以外） */
+.admin-schedule-table .status-badge,
+.admin-user-table .status-badge,
+.page-match-requests-table .status-badge {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-small);
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.page-match-requests-table .button {
+  margin: 0 var(--spacing-xs);
+}

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  H-3: Critical 用カバレッジ設定
+  認証・権限・状態遷移・二重送信に関わるファイルのみを coverage include に含める。
+  この設定で coverage-text オプションを付けて実行すると、その範囲でのカバレッジ率（90〜100% 目標）が意味のある数字になる。
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.5/phpunit.xsd"
+         bootstrap="tests/bootstrap-simple.php"
+         colors="true"
+         verbose="true"
+         stopOnFailure="false">
+
+    <testsuites>
+        <testsuite name="unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="simple-integration">
+            <directory>tests/SimpleIntegration</directory>
+        </testsuite>
+        <testsuite name="integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
+    </testsuites>
+
+    <coverage>
+        <include>
+            <!-- 認証 -->
+            <file>functions/common/auth-middleware.php</file>
+            <!-- マッチ承認・拒否（権限・状態遷移・二重送信） -->
+            <file>functions/rest-match-request.php</file>
+            <!-- プロフィール更新権限 -->
+            <file>functions/user/profile-functions.php</file>
+            <!-- スケジュール登録・更新・削除（権限） -->
+            <file>functions/schedule/schedule-registration.php</file>
+            <file>functions/schedule/schedule-functions.php</file>
+            <!-- 支払い（権限・異常系・二重送信） -->
+            <directory suffix=".php">functions/payment</directory>
+            <!-- チャット・メッセージ権限 -->
+            <file>functions/messaging/chat-functions.php</file>
+            <file>functions/messaging/rest-api.php</file>
+            <file>functions/messaging/sse-functions.php</file>
+        </include>
+        <exclude>
+            <directory>tests/</directory>
+            <directory>vendor/</directory>
+            <directory>backups/</directory>
+        </exclude>
+    </coverage>
+
+    <php>
+        <env name="AIDUNITE_TEST_MODE" value="true"/>
+    </php>
+</phpunit>

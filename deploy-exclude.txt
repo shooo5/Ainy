@@ -1,0 +1,37 @@
+# 本番アップロード時に除外するパス（rsync --exclude-from 用）
+# 使い方: rsync -avz --exclude-from=deploy-exclude.txt aidunite-original/ user@server:path/themes/aidunite-original/
+
+tests/
+node_modules/
+.git/
+.vscode/
+docs/
+*.xml
+jest.config.js
+package.json
+package-lock.json
+get-coverage.js
+workflows/
+scripts/
+tmp/
+.cursorignore
+.cursorrules
+deploy-exclude.txt
+chromedriver.exe
+.phpunit.result.cache
+codeception.yml
+acceptance.suite.yml
+unit.suite.yml
+bin/
+vendor/
+.gitignore
+MatchScheduleE2ETest.ps1.backup
+js/link-checker.js
+js/link-check-results.csv
+js/link-check-results.json
+js/simple-test.js
+js/ui-test-automation.js
+js/package.json
+js/package-lock.json
+create-communication-pages.php
+backups/

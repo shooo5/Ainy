@@ -1,0 +1,51 @@
+/**
+ * 試合後振り返り：運営モジュール（mf-event-card は match-feedback-experience.css）
+ */
+.mf-modules-section {
+  margin-top: var(--spacing-lg, 1.5rem);
+  padding-top: var(--spacing-lg, 1.5rem);
+  border-top: 1px solid var(--border-color, #dee2e6);
+}
+
+.mf-modules-section__title {
+  margin: 0 0 var(--spacing-base, 1rem);
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: 700;
+  color: var(--text-primary, #212529);
+}
+
+.post-match-modules.mf-modules-block {
+  margin-top: 0;
+}
+
+.match-feedback-flow-preview__modules .mf-event-card {
+  margin-bottom: var(--spacing-sm, 0.75rem);
+}
+
+.post-match-module__title--placeholder {
+  color: var(--text-secondary, #6c757d);
+  font-weight: 500;
+  font-style: italic;
+}
+
+.post-match-feedback-thanks {
+  text-align: center;
+}
+
+.post-match-feedback-thanks__actions {
+  justify-content: center;
+}
+
+.post-match-feedback-thanks__actions .btn {
+  min-height: 44px;
+}
+
+@media (max-width: 768px) {
+  .post-match-feedback-thanks__actions {
+    flex-direction: column;
+  }
+
+  .post-match-feedback-thanks__actions .btn {
+    width: 100%;
+  }
+}

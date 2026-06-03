@@ -1,0 +1,247 @@
+/**
+ * ツールチップ共通スタイル
+ * 全ページで統一されたツールチップのスタイルを定義
+ */
+
+/* ========================================
+   基本ツールチップスタイル
+   ======================================== */
+
+/* ツールチップトリガー（ネイティブHTML用） */
+.tooltip-trigger {
+    position: relative;
+    cursor: help;
+    display: inline-block;
+}
+
+/* カスタムツールチップ（data-tooltip属性使用） - 基本スタイル（立体感強化） */
+.tooltip-trigger[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.95);
+    color: #ffffff;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.4;
+    white-space: nowrap;
+    max-width: 300px;
+    word-wrap: break-word;
+    white-space: normal;
+    z-index: 10000;
+    pointer-events: none;
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.4),
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        0 8px 16px rgba(0, 0, 0, 0.2),
+        0 0 20px rgba(0, 0, 0, 0.15),
+        inset 0 1px 2px rgba(255, 255, 255, 0.15),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* ベストマッチと高マッチのツールチップ：フェードインアニメーション付き（マッチ度バッジ以外） */
+
+/* ツールチップの矢印 - 基本スタイル（立体感強化） */
+.tooltip-trigger[data-tooltip]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.95);
+    z-index: 10001;
+    pointer-events: none;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+/* ベストマッチと高マッチのツールチップ矢印：フェードインアニメーション付き */
+.match-score-badge.best-match.tooltip-trigger[data-tooltip]:hover::before,
+.match-score-badge.high-match.tooltip-trigger[data-tooltip]:hover::before,
+.match-level.best-match.tooltip-trigger[data-tooltip]:hover::before,
+.match-level.high-match.tooltip-trigger[data-tooltip]:hover::before {
+    animation: tooltipFadeIn 0.2s ease-out;
+}
+
+/* ツールチップのフェードインアニメーション */
+@keyframes tooltipFadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* マッチ度バッジ用のフェードインアニメーション（下から表示） */
+.match-level.tooltip-trigger[data-tooltip]:hover::after,
+.match-score-badge.tooltip-trigger[data-tooltip]:hover::after {
+    animation: tooltipFadeInBottom 0.2s ease-out;
+}
+
+@keyframes tooltipFadeInBottom {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* ツールチップの位置調整（右寄せ） */
+.tooltip-trigger.tooltip-right[data-tooltip]:hover::after {
+    left: auto;
+    right: 0;
+    transform: none;
+}
+
+.tooltip-trigger.tooltip-right[data-tooltip]:hover::before {
+    left: auto;
+    right: 12px;
+    transform: none;
+}
+
+/* ツールチップの位置調整（左寄せ） */
+.tooltip-trigger.tooltip-left[data-tooltip]:hover::after {
+    left: 0;
+    right: auto;
+    transform: none;
+}
+
+.tooltip-trigger.tooltip-left[data-tooltip]:hover::before {
+    left: 12px;
+    right: auto;
+    transform: none;
+}
+
+/* ツールチップの位置調整（下） */
+.tooltip-trigger.tooltip-bottom[data-tooltip]:hover::after {
+    bottom: auto;
+    top: calc(100% + 8px);
+}
+
+.tooltip-trigger.tooltip-bottom[data-tooltip]:hover::before {
+    bottom: auto;
+    top: calc(100% + 2px);
+    border-top-color: transparent;
+    border-bottom-color: rgba(0, 0, 0, 0.9);
+}
+
+/* ========================================
+   特定要素用のツールチップスタイル
+   ======================================== */
+
+/* マッチ度バッジ用 - 中央下から表示（横表示） */
+.match-level.tooltip-trigger[data-tooltip]:hover::after,
+.match-score-badge.tooltip-trigger[data-tooltip]:hover::after {
+    bottom: auto;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    max-width: none;
+    word-wrap: normal;
+    padding: 8px 16px;
+}
+
+.match-level.tooltip-trigger[data-tooltip]:hover::before,
+.match-score-badge.tooltip-trigger[data-tooltip]:hover::before {
+    bottom: auto;
+    top: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border-top-color: transparent;
+    border-bottom-color: rgba(0, 0, 0, 0.95);
+}
+
+.match-level.tooltip-trigger,
+.match-score-badge.tooltip-trigger {
+    cursor: help;
+}
+
+/* ステータスバッジ用 - 中央下から表示（横表示、マッチ度バッジと同様） */
+.progress-badge.tooltip-trigger[data-tooltip]:hover::after,
+.badge.tooltip-trigger[data-tooltip]:hover::after,
+.badge-status.tooltip-trigger[data-tooltip]:hover::after,
+.badge-approved.tooltip-trigger[data-tooltip]:hover::after,
+.badge-rejected.tooltip-trigger[data-tooltip]:hover::after,
+.badge-canceled.tooltip-trigger[data-tooltip]:hover::after,
+.progress-badge.applying.tooltip-trigger[data-tooltip]:hover::after,
+.progress-badge.accepted.tooltip-trigger[data-tooltip]:hover::after,
+.progress-badge.received.tooltip-trigger[data-tooltip]:hover::after,
+.progress-badge.rejected.tooltip-trigger[data-tooltip]:hover::after {
+    bottom: auto;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    max-width: none;
+    word-wrap: normal;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.95);
+    color: #ffffff;
+}
+
+/* ステータスバッジ用の矢印 - 中央下から表示（下向き） */
+.progress-badge.tooltip-trigger[data-tooltip]:hover::before,
+.badge.tooltip-trigger[data-tooltip]:hover::before,
+.badge-status.tooltip-trigger[data-tooltip]:hover::before,
+.badge-approved.tooltip-trigger[data-tooltip]:hover::before,
+.badge-established.tooltip-trigger[data-tooltip]:hover::before,
+.badge-rejected.tooltip-trigger[data-tooltip]:hover::before,
+.badge-canceled.tooltip-trigger[data-tooltip]:hover::before,
+.progress-badge.applying.tooltip-trigger[data-tooltip]:hover::before,
+.progress-badge.accepted.tooltip-trigger[data-tooltip]:hover::before,
+.progress-badge.received.tooltip-trigger[data-tooltip]:hover::before,
+.progress-badge.rejected.tooltip-trigger[data-tooltip]:hover::before {
+    bottom: auto;
+    top: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border-top-color: transparent;
+    border-bottom-color: rgba(0, 0, 0, 0.95);
+}
+
+.progress-badge.tooltip-trigger,
+.badge.tooltip-trigger {
+    cursor: help;
+}
+
+/* ========================================
+   レスポンシブ対応
+   ======================================== */
+
+@media (max-width: 768px) {
+    /* モバイルではツールチップを非表示（タッチ操作では使えないため） */
+    .tooltip-trigger[data-tooltip]:hover::after,
+    .tooltip-trigger[data-tooltip]:hover::before {
+        display: none;
+    }
+
+    /* モバイルではネイティブツールチップを使用 */
+    .tooltip-trigger[title] {
+        cursor: help;
+    }
+}
+
+/* ========================================
+   アクセシビリティ対応
+   ======================================== */
+
+/* キーボード操作時のフォーカス表示 */
+.tooltip-trigger:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* スクリーンリーダー用 */
+/* aria-labelが設定されている場合は優先 */

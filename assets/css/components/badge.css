@@ -1,0 +1,722 @@
+/**
+ * バッジ共通スタイル
+ * 申請ステータスバッジ、募集状況バッジ、マッチ度バッジの統一スタイル
+ */
+
+/* ========================================
+   基本バッジスタイル
+   ======================================== */
+
+.badge {
+    display: inline-block;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-medium);
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.4;
+    height: auto;
+    min-height: 24px;
+    box-sizing: border-box;
+}
+
+/* ========================================
+   申請ステータスバッジ
+   ======================================== */
+
+.badge.badge-status,
+.badge-status {
+    background: var(--info-color);
+    color: var(--text-light);
+    border: none;
+}
+
+.badge.badge-approved,
+.badge-approved {
+    background: var(--success-color);
+    color: var(--text-light);
+    border: none;
+}
+
+.badge.badge-established,
+.badge-established {
+    background: var(--success-color);
+    color: var(--text-light);
+    border: none;
+}
+
+.badge.badge-rejected,
+.badge-rejected {
+    background: var(--danger-color);
+    color: var(--text-light);
+    border: none;
+}
+
+.badge.badge-canceled,
+.badge-canceled {
+    background: var(--text-muted);
+    color: var(--text-light);
+    border: none;
+}
+
+.badge.badge-unapplied,
+.badge-unapplied {
+    background: var(--text-muted);
+    color: var(--text-light);
+    border: none;
+    opacity: 0.7;
+}
+
+/* 特定性を上げて干渉を防ぐ */
+.page-match-board-own .badge.badge-canceled,
+.page-match-board-own .badge-canceled,
+.page-match-detail .badge.badge-canceled,
+.page-match-detail .badge-canceled {
+    background: #9e9e9e;
+    color: #fff;
+    border: none;
+}
+
+.badge-status.received {
+    background: var(--warning-color);
+    color: var(--text-primary);
+}
+
+/* ========================================
+   募集状況バッジ
+   ======================================== */
+
+.badge-recruiting {
+    background: var(--info-color);
+    color: var(--text-light);
+    border: none;
+    border-radius: var(--radius-medium);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    display: inline-block;
+    height: auto;
+    min-height: 24px;
+    box-sizing: border-box;
+}
+
+.badge-recruitment-completed {
+    background: var(--text-muted);
+    color: var(--text-light);
+    border: none;
+    border-radius: var(--radius-medium);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    display: inline-block;
+    height: auto;
+    min-height: 24px;
+    box-sizing: border-box;
+}
+
+/* ========================================
+   マッチ度バッジ基本スタイル
+   ======================================== */
+
+.match-score-badge,
+.match-level {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.4;
+    display: inline-block;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    overflow: visible;
+    height: auto;
+    min-height: 24px;
+    box-sizing: border-box;
+}
+
+/* Material Symbols（thumb_up等） */
+.material-symbols-outlined {
+    font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24;
+}
+
+/* ========================================
+   ベストマッチ：強いパルス + グローアニメーション + 波打つテキスト + キラキラエフェクト + 立体感
+   ======================================== */
+
+.match-score-badge.best-match,
+.match-level.best-match {
+    background: linear-gradient(135deg, #d4af37, #ffd700, #ffed4e, #ffd700);
+    background-size: 200% 200%;
+    color: #e8e8e8;
+    font-weight: 700;
+    box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        0 8px 16px rgba(0, 0, 0, 0.2),
+        0 0 20px rgba(212, 175, 55, 0.6),
+        0 0 40px rgba(255, 215, 0, 0.4),
+        inset 0 2px 4px rgba(255, 255, 255, 0.3),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+    animation: pulseGold 2s ease-in-out infinite, shimmerGold 3s ease-in-out infinite;
+    position: relative;
+    text-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.5),
+        0 1px 2px rgba(0, 0, 0, 0.3),
+        0 0 8px rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+/* キラキラエフェクト（光沢） */
+.match-score-badge.best-match::before,
+.match-level.best-match::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: shimmer 2s infinite;
+    border-radius: 12px;
+    pointer-events: none;
+}
+
+/* ベストマッチのテキストに波打つアニメーション */
+.match-score-badge.best-match > span,
+.match-level.best-match > span {
+    display: inline-block;
+    animation: waveText 1.5s ease-in-out infinite;
+    position: relative;
+}
+
+.match-score-badge.best-match > span:nth-child(1),
+.match-level.best-match > span:nth-child(1) { animation-delay: 0s; }
+.match-score-badge.best-match > span:nth-child(2),
+.match-level.best-match > span:nth-child(2) { animation-delay: 0.1s; }
+.match-score-badge.best-match > span:nth-child(3),
+.match-level.best-match > span:nth-child(3) { animation-delay: 0.2s; }
+.match-score-badge.best-match > span:nth-child(4),
+.match-level.best-match > span:nth-child(4) { animation-delay: 0.3s; }
+.match-score-badge.best-match > span:nth-child(5),
+.match-level.best-match > span:nth-child(5) { animation-delay: 0.4s; }
+.match-score-badge.best-match > span:nth-child(6),
+.match-level.best-match > span:nth-child(6) { animation-delay: 0.5s; }
+.match-score-badge.best-match > span:nth-child(7),
+.match-level.best-match > span:nth-child(7) { animation-delay: 0.6s; }
+
+/* ========================================
+   高マッチ：弱いパルスアニメーション + 波打つテキスト + キラキラエフェクト + 立体感（ベストマッチより弱め）
+   ======================================== */
+
+.match-score-badge.high-match,
+.match-level.high-match {
+    background: linear-gradient(135deg, #059669, #10b981, #34d399, #10b981);
+    background-size: 200% 200%;
+    color: #f0fdf4;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.4;
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.2),
+        0 4px 8px rgba(0, 0, 0, 0.15),
+        0 0 10px rgba(16, 185, 129, 0.3),
+        0 0 20px rgba(16, 185, 129, 0.2),
+        inset 0 1px 2px rgba(255, 255, 255, 0.2),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.1);
+    animation: pulseGreen 3s ease-in-out infinite, shimmerGreen 4s ease-in-out infinite;
+    position: relative;
+    text-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.3),
+        0 0 4px rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    display: inline-block;
+}
+
+/* 高マッチのキラキラエフェクト（弱め） */
+.match-score-badge.high-match::before,
+.match-level.high-match::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shimmerGreenLight 3s infinite;
+    border-radius: 12px;
+    pointer-events: none;
+}
+
+/* 高マッチのテキストに波打つアニメーション（弱め） */
+.match-score-badge.high-match > span,
+.match-level.high-match > span {
+    display: inline-block;
+    animation: waveTextGreen 2s ease-in-out infinite;
+    position: relative;
+}
+
+.match-score-badge.high-match > span:nth-child(1),
+.match-level.high-match > span:nth-child(1) { animation-delay: 0s; }
+.match-score-badge.high-match > span:nth-child(2),
+.match-level.high-match > span:nth-child(2) { animation-delay: 0.15s; }
+.match-score-badge.high-match > span:nth-child(3),
+.match-level.high-match > span:nth-child(3) { animation-delay: 0.3s; }
+.match-score-badge.high-match > span:nth-child(4),
+.match-level.high-match > span:nth-child(4) { animation-delay: 0.45s; }
+.match-score-badge.high-match > span:nth-child(5),
+.match-level.high-match > span:nth-child(5) { animation-delay: 0.6s; }
+
+/* ========================================
+   中マッチ：微細なパルス
+   ======================================== */
+
+.match-score-badge.medium-match,
+.match-level.medium-match {
+    background: #ffcc00;
+    color: #ffffff;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.4;
+    animation: pulseYellow 4s ease-in-out infinite;
+}
+
+/* ========================================
+   低マッチ：静止（アニメーションなし）
+   ======================================== */
+
+.match-score-badge.low-match,
+.match-level.low-match {
+    background: #ff7043;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+/* ========================================
+   条件不一致：静止（アニメーションなし）
+   ======================================== */
+
+.match-score-badge.no-match,
+.match-level.no-match {
+    background: #9e9e9e;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+/* ========================================
+   マッチ度バッジアニメーション（@keyframes）
+   ======================================== */
+
+@keyframes shimmer {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+@keyframes shimmerGold {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+@keyframes waveText {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+}
+
+@keyframes pulseGold {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow:
+            0 4px 8px rgba(0, 0, 0, 0.3),
+            0 8px 16px rgba(0, 0, 0, 0.2),
+            0 0 20px rgba(212, 175, 55, 0.6),
+            0 0 40px rgba(255, 215, 0, 0.4),
+            inset 0 2px 4px rgba(255, 255, 255, 0.3),
+            inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+    }
+    50% {
+        transform: scale(1.02);
+        box-shadow:
+            0 6px 12px rgba(0, 0, 0, 0.4),
+            0 12px 24px rgba(0, 0, 0, 0.3),
+            0 0 30px rgba(212, 175, 55, 0.8),
+            0 0 60px rgba(255, 215, 0, 0.6),
+            inset 0 2px 4px rgba(255, 255, 255, 0.4),
+            inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+    }
+}
+
+@keyframes shimmerGreenLight {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+@keyframes shimmerGreen {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+@keyframes pulseGreen {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow:
+            0 2px 4px rgba(0, 0, 0, 0.2),
+            0 4px 8px rgba(0, 0, 0, 0.15),
+            0 0 10px rgba(16, 185, 129, 0.3),
+            0 0 20px rgba(16, 185, 129, 0.2),
+            inset 0 1px 2px rgba(255, 255, 255, 0.2),
+            inset 0 -1px 2px rgba(0, 0, 0, 0.1);
+    }
+    50% {
+        transform: scale(1.01);
+        box-shadow:
+            0 3px 6px rgba(0, 0, 0, 0.25),
+            0 6px 12px rgba(0, 0, 0, 0.2),
+            0 0 15px rgba(16, 185, 129, 0.4),
+            0 0 30px rgba(16, 185, 129, 0.3),
+            inset 0 1px 2px rgba(255, 255, 255, 0.3),
+            inset 0 -1px 2px rgba(0, 0, 0, 0.15);
+    }
+}
+
+@keyframes waveTextGreen {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+@keyframes pulseYellow {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.005);
+    }
+}
+
+@keyframes pulseGoldHover {
+    0%, 100% {
+        box-shadow:
+            0 8px 16px rgba(0, 0, 0, 0.4),
+            0 16px 32px rgba(0, 0, 0, 0.3),
+            0 0 40px rgba(212, 175, 55, 1),
+            0 0 80px rgba(255, 215, 0, 0.8),
+            inset 0 2px 4px rgba(255, 255, 255, 0.5),
+            inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+    }
+    50% {
+        box-shadow:
+            0 10px 20px rgba(0, 0, 0, 0.5),
+            0 20px 40px rgba(0, 0, 0, 0.4),
+            0 0 50px rgba(212, 175, 55, 1),
+            0 0 100px rgba(255, 215, 0, 1),
+            inset 0 2px 4px rgba(255, 255, 255, 0.6),
+            inset 0 -2px 4px rgba(0, 0, 0, 0.4);
+    }
+}
+
+/* ========================================
+   ホバー時のリッチアニメーション
+   ======================================== */
+
+.match-score-badge:hover,
+.match-level:hover {
+    transform: scale(1.08) translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.match-score-badge.best-match:hover,
+.match-level.best-match:hover {
+    transform: scale(1.1) translateY(-3px);
+    box-shadow:
+        0 8px 16px rgba(0, 0, 0, 0.4),
+        0 16px 32px rgba(0, 0, 0, 0.3),
+        0 0 40px rgba(212, 175, 55, 1),
+        0 0 80px rgba(255, 215, 0, 0.8),
+        inset 0 2px 4px rgba(255, 255, 255, 0.5),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+    animation: pulseGold 2s ease-in-out infinite, shimmerGold 3s ease-in-out infinite, pulseGoldHover 0.6s ease-in-out infinite;
+}
+
+.match-score-badge.high-match:hover,
+.match-level.high-match:hover {
+    transform: scale(1.08) translateY(-2px);
+    box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.25),
+        0 8px 16px rgba(0, 0, 0, 0.2),
+        0 0 20px rgba(16, 185, 129, 0.5),
+        0 0 40px rgba(16, 185, 129, 0.3),
+        inset 0 1px 2px rgba(255, 255, 255, 0.3),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.match-score-badge.medium-match:hover,
+.match-level.medium-match:hover {
+    box-shadow: 0 4px 15px rgba(255, 204, 0, 0.4);
+}
+
+.match-score-badge.low-match:hover,
+.match-level.low-match:hover {
+    box-shadow: 0 4px 15px rgba(255, 112, 67, 0.4);
+}
+
+/* ========================================
+   クラス名の互換性（badge-best-matchなど）
+   ======================================== */
+
+.match-score-badge.badge-best-match,
+.match-level.badge-best-match {
+    background: linear-gradient(135deg, #d4af37, #ffd700, #ffed4e, #ffd700);
+    background-size: 200% 200%;
+    color: #e8e8e8;
+    font-weight: 700;
+    box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        0 8px 16px rgba(0, 0, 0, 0.2),
+        0 0 20px rgba(212, 175, 55, 0.6),
+        0 0 40px rgba(255, 215, 0, 0.4),
+        inset 0 2px 4px rgba(255, 255, 255, 0.3),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+    animation: pulseGold 2s ease-in-out infinite, shimmerGold 3s ease-in-out infinite;
+    position: relative;
+    text-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.5),
+        0 1px 2px rgba(0, 0, 0, 0.3),
+        0 0 8px rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.match-score-badge.badge-high-match,
+.match-level.badge-high-match {
+    background: linear-gradient(135deg, #059669, #10b981, #34d399, #10b981);
+    background-size: 200% 200%;
+    color: #f0fdf4;
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.2),
+        0 4px 8px rgba(0, 0, 0, 0.15),
+        0 0 10px rgba(16, 185, 129, 0.3),
+        0 0 20px rgba(16, 185, 129, 0.2),
+        inset 0 1px 2px rgba(255, 255, 255, 0.2),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.1);
+    animation: pulseGreen 3s ease-in-out infinite, shimmerGreen 4s ease-in-out infinite;
+    position: relative;
+    text-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.3),
+        0 0 4px rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.match-score-badge.badge-medium-match,
+.match-level.badge-medium-match {
+    background: #ffcc00;
+    color: #ffffff;
+    animation: pulseYellow 4s ease-in-out infinite;
+}
+
+.match-score-badge.badge-low-match,
+.match-level.badge-low-match {
+    background: #ff7043;
+    color: white;
+}
+
+/* ========================================
+   タイムライン用バッジ
+   ======================================== */
+
+/* メッセージ種類バッジ */
+.item-type-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.4;
+    min-height: 24px;
+    box-sizing: border-box;
+    margin-right: 6px;
+}
+
+.item-type-badge.board {
+    background: #2196f3;
+    color: #fff;
+}
+
+.item-type-badge.chat {
+    background: #10b981;
+    color: #fff;
+}
+
+.item-type-badge.chat.match {
+    background: #ff9800;
+    color: #fff;
+}
+
+.item-type-badge.chat.system {
+    background: #9e9e9e;
+    color: #fff;
+}
+
+.item-type-badge.chat.direct {
+    background: #667eea;
+    color: #fff;
+}
+
+.item-type-badge.chat.team {
+    background: #4caf50;
+    color: #fff;
+}
+
+.item-type-badge.chat.message_thread {
+    background: #ff7043;
+    color: #fff;
+}
+
+.item-type-badge.chat.group {
+    background: #e91e63;
+    color: #fff;
+}
+
+/* 優先度バッジ */
+.priority-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.4;
+    min-height: 24px;
+    box-sizing: border-box;
+    margin-right: 6px;
+}
+
+.priority-badge.urgent {
+    background: #f44336;
+    color: #fff;
+}
+
+.priority-badge.important {
+    background: #ff9800;
+    color: #fff;
+}
+
+/* カテゴリバッジ */
+.category-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.4;
+    min-height: 24px;
+    box-sizing: border-box;
+    margin-right: 6px;
+    background: #6c757d;
+    color: #fff;
+}
+
+/* ========================================
+   未読・カウントバッジ（統一）
+   添付イメージ：角丸四角・白数字
+   ======================================== */
+
+/**
+ * カウントバッジ（ベース）
+ * 角丸四角で数値を表示するバッジの共通スタイル
+ */
+.count-badge {
+    display: inline-block;
+    min-width: 1.4em;
+    padding: 2px 6px;
+    border-radius: var(--radius-medium);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+/**
+ * 未読用バッジ（オレンジ背景・白文字・角丸四角）
+ * タブの未読数・タイムラインの「未読: N件」に使用
+ */
+.count-badge--unread {
+    background: #e67e22;
+    color: var(--text-light);
+}
+
+/**
+ * 通知バッジ（アイコン/タブ右上に重ねる用）
+ * 円形/角丸pill・白文字・最小サイズ確保・クリックは透過
+ */
+.count-badge--overlay {
+    background: var(--danger-color);
+    color: var(--text-light);
+    border-radius: 999px;
+    min-width: 1.5em;
+    min-height: 1.5em;
+    padding: 2px 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    pointer-events: none;
+}
+
+/**
+ * タブ未読バッジ（オレンジ・白文字で統一）
+ * .count-badge--unread.count-badge--overlay の組み合わせで使用
+ */
+.count-badge--unread.count-badge--overlay {
+    background: #e67e22;
+    color: var(--text-light);
+}
+
+/* タイムラインカード内の未読数バッジ（.count-badge--unread と同じ色・統一） */
+.unread-count-badge {
+    display: inline-block;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-medium);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.4;
+    min-height: 20px;
+    box-sizing: border-box;
+    background: #e67e22;
+    color: var(--text-light);
+}

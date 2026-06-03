@@ -1,0 +1,9 @@
+ID,意味,揺れ値,推奨canonical,既存normalize関数,統一状況,影響範囲
+N1,募集性別,"both, 男子, male","male | female",aidunite_normalize_gender_canonical,実装あり（MVP both除外）,"マッチ, 掲示板, 登録"
+N2,会場（両方可）,"both, どちらでも, either",either,aidunite_normalize_place_for_lock / normalize_place_value,経路によって未適用,"schedule保存, マッチ成立"
+N3,MR状態,"publish, 申請中, pending",pending等,aidunite_normalize_match_request_status,実装あり,"一覧, 詳細, analytics"
+N4,キャンセル理由コード,3種metaキー,単一 cancel_reason_code,未統一,未,"通知, 一覧"
+N5,通知type,team_approved / team_approval,team_approval_completed等,未統一,未,"メール, 設定, ログ"
+N6,活動地域,region 8ブロック vs 都道府県,activity_prefecture + 派生region,aidunite_team_activity_save_meta（部分）,部分,"フィルター, 将来マッチ"
+N7,申請place/genderミラー,selected_* vs preferred_*,selected_*正本（preferred廃止候補）,未,未,MR保存・表示
+N8,掲示板status,AidUniteStatus vs game集計,"open, pending, accepted, established",aidunite_compute_match_board_status_from_game,二体系共存,掲示板UI

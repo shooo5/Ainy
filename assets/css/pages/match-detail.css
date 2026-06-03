@@ -1,0 +1,1685 @@
+/* =========================================================
+   Match Detail: Page Layout (ゆな案・構成刷新)
+   ========================================================= */
+
+.page-match-detail,
+.team-dashboard-container.page-match-detail {
+  /* セクション左ボーダー：男子/女子（カレンダーと同トークン） */
+  --match-detail-section-border: var(--schedule-calendar-team-male-border, var(--ainy-navy-deep));
+}
+
+body[data-team-theme="girls"] .page-match-detail,
+body[data-team-theme="girls"] .team-dashboard-container.page-match-detail {
+  --match-detail-section-border: var(--schedule-calendar-team-female-border, #7c3aed);
+}
+
+body[data-team-theme="boys"] .page-match-detail,
+body[data-team-theme="boys"] .team-dashboard-container.page-match-detail {
+  --match-detail-section-border: var(--schedule-calendar-team-male-border, var(--ainy-navy-deep));
+}
+
+.page-match-detail .match-detail-page {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.page-match-detail main.match-detail.match-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "main"
+    "sidebar"
+    "flow";
+  gap: var(--spacing-lg);
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.page-match-detail .match-detail-main {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  min-width: 0;
+}
+
+.page-match-detail .match-detail-sidebar {
+  grid-area: sidebar;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  min-width: 0;
+}
+
+.page-match-detail .match-detail-flow-wrap {
+  grid-area: flow;
+}
+
+@media (min-width: 992px) {
+  .page-match-detail main.match-detail.match-detail-layout {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
+    grid-template-areas:
+      "main sidebar"
+      "flow flow";
+    align-items: start;
+  }
+
+  .page-match-detail .match-detail-sidebar {
+    position: sticky;
+    top: var(--spacing-lg);
+    align-self: start;
+  }
+}
+
+/* 共通 .card：詳細ページではホバー浮き上がりを抑止 */
+.page-match-detail .card:hover {
+  transform: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.page-match-detail .match-detail-section,
+.page-match-detail .match-detail-conditions-card,
+.page-match-detail .match-detail-apply-card,
+.page-match-detail .match-detail-flow-card {
+  margin-bottom: 0;
+}
+
+/* 結論バナー */
+.page-match-detail .match-detail-conclusion {
+  margin: 0;
+}
+
+.page-match-detail .match-result--banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-base);
+  margin: 0;
+  padding: var(--spacing-base) var(--spacing-md);
+  border-radius: var(--radius-medium);
+  line-height: 1.45;
+}
+
+.page-match-detail .match-result--banner .match-result__title {
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+}
+
+.page-match-detail .match-result--banner .match-result__desc {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  opacity: 1;
+}
+
+/* セクション：見出し（外）＋区切り線＋内容カード（内） */
+.page-match-detail .match-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.page-match-detail .match-detail-section__intro {
+  margin: 0;
+}
+
+.page-match-detail .match-detail-section__boundary {
+  margin: var(--spacing-sm) 0 var(--spacing-base);
+  border-top: 1px solid var(--border-light);
+}
+
+.page-match-detail .match-detail-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding-left: var(--spacing-sm);
+  border-left: 4px solid var(--match-detail-section-border);
+  background: transparent;
+  border-bottom: none;
+}
+
+.page-match-detail .match-detail-section-header__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.page-match-detail .match-detail-section-header__title-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.page-match-detail .match-detail-section-header__title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.page-match-detail .match-detail-section-header__icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-match-detail .match-detail-section-header__icon img {
+  display: block;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.page-match-detail .match-detail-section-header__lead {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.page-match-detail .match-detail-conditions-card__date {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* 予定の条件：比較UI */
+.page-match-detail .match-detail-conditions-compare {
+  border-radius: var(--radius-base);
+}
+
+.page-match-detail .match-detail-conditions-table {
+  --match-detail-conditions-label-col-width: 6rem;
+  --match-detail-conditions-cell-font: var(--font-size-sm);
+  --match-detail-conditions-cell-lh: 1.45;
+  --match-detail-conditions-cell-pad-y: var(--spacing-sm);
+  --match-detail-conditions-cell-pad-x: var(--spacing-base);
+  /* 見出しの色塊をセル内にインセット（時間行との干渉・見た目の oversized 化を防ぐ） */
+  --match-detail-conditions-head-inset: var(--spacing-xs);
+  /* 見出し行・時間行など全行で同一のセル高（1行テキスト＋上下パディング） */
+  --match-detail-conditions-row-min-h: calc(
+    var(--match-detail-conditions-cell-font) * var(--match-detail-conditions-cell-lh)
+    + 2 * var(--match-detail-conditions-cell-pad-y)
+  );
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-size: var(--match-detail-conditions-cell-font);
+}
+
+/* tr で行高を固定（td の min-height は表レイアウトで効かない場合がある） */
+.page-match-detail .match-detail-conditions-table thead tr,
+.page-match-detail .match-detail-conditions-table tbody tr {
+  height: var(--match-detail-conditions-row-min-h);
+}
+
+/* 全セル共通：フォント・パディング（見出し／時間／会場／性別で同一） */
+.page-match-detail .match-detail-conditions-table th,
+.page-match-detail .match-detail-conditions-table td {
+  box-sizing: border-box;
+  height: 100%;
+  padding: var(--match-detail-conditions-cell-pad-y) var(--match-detail-conditions-cell-pad-x);
+  font-size: var(--match-detail-conditions-cell-font);
+  line-height: var(--match-detail-conditions-cell-lh);
+  vertical-align: middle;
+  border: none;
+}
+
+.page-match-detail .match-detail-conditions-table thead th:first-child,
+.page-match-detail .match-detail-conditions-table tbody th[scope="row"] {
+  width: var(--match-detail-conditions-label-col-width);
+}
+
+.page-match-detail .match-detail-conditions-table thead .match-detail-conditions-table__col--other,
+.page-match-detail .match-detail-conditions-table thead .match-detail-conditions-table__col--mine,
+.page-match-detail .match-detail-conditions-table tbody .match-detail-conditions-table__col--other,
+.page-match-detail .match-detail-conditions-table tbody .match-detail-conditions-table__col--mine {
+  width: calc((100% - var(--match-detail-conditions-label-col-width)) / 2);
+}
+
+.page-match-detail .match-detail-conditions-table__row-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.page-match-detail .match-detail-conditions-table__row-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.page-match-detail .match-detail-conditions-table__row-icon img {
+  display: block;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.page-match-detail .match-detail-conditions-table__row-text {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+/* 列見出しとデータ列：同一の1行タイポ（太さ・行送り）で高さを揃える */
+.page-match-detail .match-detail-conditions-table thead .match-detail-conditions-table__col--other,
+.page-match-detail .match-detail-conditions-table thead .match-detail-conditions-table__col--mine,
+.page-match-detail .match-detail-conditions-table tbody .match-detail-conditions-table__col--other,
+.page-match-detail .match-detail-conditions-table tbody .match-detail-conditions-table__col--mine {
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.page-match-detail .match-detail-conditions-table thead th:first-child {
+  background: transparent;
+}
+
+/* 相手列｜自分列の縦区切り（見出しの2色がくっついて見えるのを防止） */
+.page-match-detail .match-detail-conditions-table .match-detail-conditions-table__col--other {
+  border-right: 1px solid var(--border-light);
+}
+
+/* 見出し行：セル全面ではなくインセットした角丸ラベル（4角とも丸・下は時間行と隙間） */
+.page-match-detail .match-detail-conditions-table thead .match-detail-conditions-table__col--other,
+.page-match-detail .match-detail-conditions-table thead .match-detail-conditions-table__col--mine {
+  position: relative;
+  z-index: 0;
+  background: transparent;
+  border-radius: 0;
+  isolation: isolate;
+}
+
+.page-match-detail .match-detail-conditions-table thead .match-detail-conditions-table__col--other {
+  color: var(--ainy-navy-deep, #061a2f);
+}
+
+.page-match-detail .match-detail-conditions-table thead .match-detail-conditions-table__col--other::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: var(--match-detail-conditions-head-inset);
+  right: calc(var(--match-detail-conditions-head-inset) / 2);
+  bottom: var(--match-detail-conditions-head-inset);
+  left: var(--match-detail-conditions-head-inset);
+  background: color-mix(in srgb, var(--ainy-navy-700, #0f3a68) 14%, var(--bg-primary));
+  border-radius: var(--radius-base);
+}
+
+.page-match-detail .match-detail-conditions-table thead .match-detail-conditions-table__col--mine {
+  color: var(--text-primary);
+}
+
+.page-match-detail .match-detail-conditions-table thead .match-detail-conditions-table__col--mine::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: var(--match-detail-conditions-head-inset);
+  right: var(--match-detail-conditions-head-inset);
+  bottom: var(--match-detail-conditions-head-inset);
+  left: calc(var(--match-detail-conditions-head-inset) / 2);
+  background: color-mix(in srgb, var(--text-secondary) 8%, var(--bg-secondary));
+  border-radius: var(--radius-base);
+}
+
+.page-match-detail .match-detail-conditions-table tbody th[scope="row"],
+.page-match-detail .match-detail-conditions-table tbody td {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.page-match-detail .match-detail-conditions-table tbody th[scope="row"] {
+  font-weight: 600;
+  text-align: left;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* データ行の区切り（時間の上には入れない＝見出し行との境界線なし） */
+.page-match-detail .match-detail-conditions-table tbody tr:not(:first-child) th,
+.page-match-detail .match-detail-conditions-table tbody tr:not(:first-child) td {
+  border-top: 1px solid var(--border-light);
+}
+
+/* 性別行（最終行）にも区切り線を出す */
+.page-match-detail .match-detail-conditions-table tbody tr:last-child th,
+.page-match-detail .match-detail-conditions-table tbody tr:last-child td {
+  border-bottom: 1px solid var(--border-light);
+}
+
+@media (max-width: 480px) {
+  .page-match-detail .match-detail-conditions-table {
+    --match-detail-conditions-cell-font: var(--font-size-xs);
+    --match-detail-conditions-cell-pad-y: var(--spacing-xs);
+    --match-detail-conditions-cell-pad-x: var(--spacing-sm);
+  }
+}
+
+/* 受信側：相手からの申請内容 */
+.page-match-detail .match-detail-received-apply-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.page-match-detail .match-detail-received-apply-item {
+  display: grid;
+  grid-template-columns: minmax(8rem, 10rem) minmax(0, 1fr);
+  gap: var(--spacing-sm);
+  align-items: center;
+  padding: var(--spacing-sm) 0;
+  border-bottom: none;
+}
+
+.page-match-detail .match-detail-received-apply-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.page-match-detail .match-detail-received-apply-item:first-child {
+  padding-top: 0;
+}
+
+.page-match-detail .match-detail-received-apply-item__head {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-height: 2rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-light) 78%, var(--text-secondary));
+  padding-bottom: var(--spacing-xs);
+}
+
+.page-match-detail .match-detail-received-apply-item__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.page-match-detail .match-detail-received-apply-item__icon img {
+  display: block;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.page-match-detail .match-detail-received-apply-item__label {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.page-match-detail .match-detail-received-apply-item__value {
+  grid-column: 2;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* 確定内容（申請側カード）のみ: 値を中央配置 */
+.page-match-detail .match-detail-section--apply .match-detail-received-apply-item__value {
+  justify-self: center;
+  text-align: center;
+  width: 100%;
+}
+
+.page-match-detail .match-detail-received-apply-card--boys {
+  border: 1px solid var(--ainy-navy-deep, #061a2f);
+  border-radius: var(--radius-base);
+  overflow: hidden;
+}
+
+.page-match-detail .match-detail-received-apply-card--boys .card-body {
+  background: color-mix(in srgb, var(--ainy-navy-deep, #061a2f) 6%, var(--bg-primary));
+  border: none;
+  border-radius: 0;
+}
+
+.page-match-detail .match-detail-received-apply-card--girls {
+  border: 1px solid var(--schedule-calendar-team-female-border, #7c3aed);
+  border-radius: var(--radius-base);
+  overflow: hidden;
+}
+
+.page-match-detail .match-detail-received-apply-card--girls .card-body {
+  background: color-mix(in srgb, var(--schedule-calendar-team-female-border, #7c3aed) 8%, var(--bg-primary));
+  border: none;
+  border-radius: 0;
+}
+
+.page-match-detail .match-detail-apply-card--boys {
+  border: 1px solid var(--ainy-navy-deep, #061a2f);
+  border-radius: var(--radius-base);
+  overflow: hidden;
+}
+
+.page-match-detail .match-detail-apply-card--boys .card-body {
+  background: color-mix(in srgb, var(--ainy-navy-deep, #061a2f) 6%, var(--bg-primary));
+  border: none;
+  border-radius: 0;
+}
+
+.page-match-detail .match-detail-apply-card--girls {
+  border: 1px solid var(--schedule-calendar-team-female-border, #7c3aed);
+  border-radius: var(--radius-base);
+  overflow: hidden;
+}
+
+.page-match-detail .match-detail-apply-card--girls .card-body {
+  background: color-mix(in srgb, var(--schedule-calendar-team-female-border, #7c3aed) 8%, var(--bg-primary));
+  border: none;
+  border-radius: 0;
+}
+
+.page-match-detail .match-detail-apply-items {
+  margin-bottom: 0;
+}
+
+.page-match-detail .match-detail-apply-card .match-apply-summary {
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+}
+
+/* 受信側・申請側とも、日時/会場/性別の3行を明確に区切る */
+.page-match-detail .match-detail-apply-items .match-detail-received-apply-item,
+.page-match-detail .match-detail-received-apply-items .match-detail-received-apply-item {
+  border-bottom: none;
+}
+
+/* 区切り線は値カラムのみに引く（ラベル側とは離す） */
+.page-match-detail .match-detail-apply-items .match-detail-received-apply-item__value,
+.page-match-detail .match-detail-received-apply-items .match-detail-received-apply-item__value {
+  border-bottom: 1px solid color-mix(in srgb, var(--border-light) 78%, var(--text-secondary));
+  padding-bottom: var(--spacing-xs);
+  min-height: 2rem;
+}
+
+
+/* 会場インフォ帯（マッチ詳細ページ内のみ — 他画面への干渉防止） */
+.page-match-detail .match-detail-venue-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-base) 0 0;
+  padding: var(--spacing-sm) var(--spacing-base);
+  border-radius: var(--radius-base);
+  box-sizing: border-box;
+}
+
+.page-match-detail .match-detail-venue-hint--boys {
+  background: color-mix(in srgb, var(--ainy-navy-deep, #061a2f) 8%, var(--bg-primary));
+  border: 1px solid var(--ainy-navy-deep, #061a2f);
+  color: var(--ainy-navy-deep, #061a2f);
+}
+
+.page-match-detail .match-detail-venue-hint--girls {
+  background: color-mix(in srgb, var(--schedule-calendar-team-female-border, #7c3aed) 10%, var(--bg-primary));
+  border: 1px solid var(--schedule-calendar-team-female-border, #7c3aed);
+  color: var(--schedule-calendar-team-female-border, #7c3aed);
+}
+
+.page-match-detail .match-detail-venue-hint__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.page-match-detail .match-detail-venue-hint__icon svg {
+  display: block;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: inherit;
+}
+
+.page-match-detail .match-detail-venue-hint__text {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.55;
+  font-weight: 600;
+  color: inherit;
+}
+
+.page-match-detail .match-detail-received-actions {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-light);
+  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-base);
+}
+
+/* 相手チームサイドバー */
+.page-match-detail .match-detail-sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-base);
+}
+
+.page-match-detail .match-detail-opponent-profile__head {
+  display: flex;
+  gap: var(--spacing-base);
+  align-items: center;
+}
+
+.page-match-detail .match-detail-opponent-profile__avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-medium);
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--border-light);
+}
+
+.page-match-detail .match-detail-opponent-profile__avatar--initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--primary-color) 14%, var(--bg-secondary));
+  color: var(--primary-color);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.page-match-detail .match-detail-opponent-profile__identity {
+  min-width: 0;
+}
+
+.page-match-detail .match-detail-opponent-profile__name {
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+  text-decoration: none;
+  line-height: 1.3;
+}
+
+a.match-detail-opponent-profile__name:hover {
+  color: var(--primary-color);
+}
+
+.page-match-detail .match-detail-opponent-profile__meta {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.page-match-detail .match-detail-opponent-profile__intro {
+  margin-top: var(--spacing-base);
+}
+
+.page-match-detail .match-detail-opponent-profile__intro-text {
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  line-height: 1.55;
+}
+
+.page-match-detail .match-detail-opponent-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.page-match-detail .match-detail-opponent-list li + li {
+  margin-top: var(--spacing-xs);
+}
+
+.page-match-detail .match-detail-opponent-stats__line {
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+}
+
+.page-match-detail .match-detail-opponent-stats__line--sub {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.page-match-detail .match-detail-opponent-stats__note {
+  margin: var(--spacing-sm) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.page-match-detail .match-detail-opponent-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.page-match-detail .match-detail-opponent-chip {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-base);
+  background: color-mix(in srgb, var(--primary-color) 10%, var(--bg-secondary));
+  color: var(--primary-color);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 28%, var(--border-light));
+}
+
+/* 申請内容カード */
+.page-match-detail .match-detail-apply-card .card-header .match-detail-apply-content-heading,
+.page-match-detail .match-detail-apply-card .card-header .match-detail-section-header__title {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: var(--font-size-lg);
+}
+
+.page-match-detail .match-detail-apply-card__rows {
+  margin: 0;
+}
+
+.page-match-detail .match-detail-apply-card__row {
+  display: grid;
+  grid-template-columns: minmax(5rem, 6.5rem) minmax(0, 1fr);
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) 0;
+  margin: 0;
+}
+
+.page-match-detail .match-detail-apply-card__row dt {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.page-match-detail .match-detail-apply-card__row dd {
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+}
+
+.page-match-detail .match-detail-apply-card .match-apply-summary {
+  margin-bottom: var(--spacing-base);
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.page-match-detail .match-detail-apply-card .match-actions {
+  margin-top: var(--spacing-base);
+  padding-top: var(--spacing-base);
+  border-top: 1px solid var(--border-light);
+}
+
+.page-match-detail .match-detail-apply-card .match-actions .btn {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* 申請の流れ */
+.page-match-detail .match-detail-flow-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-base);
+}
+
+.page-match-detail .match-detail-flow-steps__item {
+  display: flex;
+  gap: var(--spacing-base);
+  align-items: flex-start;
+}
+
+.page-match-detail .match-detail-flow-steps__num {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full, 50%);
+  background: color-mix(in srgb, var(--primary-color) 12%, var(--bg-secondary));
+  color: var(--primary-color);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.page-match-detail .match-detail-flow-steps__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.page-match-detail .match-detail-flow-steps__text strong {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
+
+.page-match-detail .match-detail-flow-steps__desc {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.page-match-detail .match-detail-flow-note {
+  margin: var(--spacing-base) 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+/* =========================================================
+   Match Detail: Base / Layout (legacy helpers)
+   ========================================================= */
+
+/* カード枠に薄めの黒枠 */
+.page-match-detail .dashboard-section {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+/* 相手のみモード：申請ブロックのフォームのみ（.match-action-area は .match-apply-section で共通化済み） */
+/* form の幅は .match-apply-section .match-action-area > div:last-child > form で共通指定済み */
+/* ピルは比較モード同様、match-action-area の外で main 幅いっぱいに配置 */
+.page-match-detail .match-other-only-apply-block form#applyFormOtherOnly {
+  margin: 0 0 var(--spacing-base);
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+
+.page-match-detail .match-other-only-apply-block .match-action-area {
+  margin-bottom: var(--spacing-base);
+}
+
+.page-match-detail .match-other-only-apply-block #applyButtonOtherOnly {
+  margin-top: 0;
+}
+
+/* 相手のみ：予定なしメッセージ（Design Tokens） */
+.page-match-detail .match-other-only-no-schedule-message {
+  margin-bottom: var(--spacing-base);
+  padding: var(--spacing-base);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-small);
+  border: 1px solid var(--border-light);
+}
+
+.page-match-detail .match-other-only-no-schedule-message p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+/* =========================================================
+   結論バナー（match-result--banner）
+   ========================================================= */
+.page-match-detail .match-result {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-base);
+  border-radius: var(--radius-base);
+  padding: var(--spacing-base) var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+.page-match-detail .match-result__icon {
+  flex-shrink: 0;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.page-match-detail .match-result__icon svg {
+  display: block;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: inherit;
+}
+.page-match-detail .match-result__content {
+  flex: 1;
+}
+.page-match-detail .match-result__title {
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+.page-match-detail .match-result__desc {
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  opacity: 0.95;
+}
+.page-match-detail .match-result__desc:last-child {
+  margin-bottom: 0;
+}
+.page-match-detail .match-result__desc--note {
+  font-size: 0.85em;
+  color: var(--text-secondary);
+}
+.page-match-detail .match-result--green {
+  background: #e6f7ec;
+  border: 1px solid var(--success-color);
+  color: var(--success-color);
+}
+.page-match-detail .match-result--yellow {
+  background: #fff4d6;
+  border: 1px solid var(--warning-color);
+  color: var(--warning-color);
+}
+.page-match-detail .match-result--no_preference {
+  background: #e8f0ff;
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+}
+.page-match-detail .match-result--established {
+  background: #e6f7ec;
+  border: 2px solid #2ecc71;
+  color: var(--success-color);
+}
+
+.page-match-detail .match-detail-proposal-hint {
+  margin: 0 0 var(--spacing-base);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid color-mix(in srgb, var(--warning-color, #ffc107) 55%, var(--border-light));
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--warning-color, #ffc107) 14%, var(--bg-primary));
+  color: var(--text-primary);
+}
+
+.page-match-detail .match-detail-proposal-hint__title {
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.page-match-detail .match-detail-proposal-hint__body {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+
+.page-match-detail .match-detail-proposal-hint__foot {
+  margin: var(--spacing-sm) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.page-match-detail .match-detail-conditions-card {
+  margin-bottom: var(--spacing-base);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-medium);
+  overflow: hidden;
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.page-match-detail .match-detail-select-card {
+  margin-bottom: var(--spacing-base);
+  padding: var(--spacing-md);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 18%, var(--border-light));
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--primary-color) 5%, var(--bg-primary));
+  box-sizing: border-box;
+}
+
+.page-match-detail .match-detail-select-card .match-select-ui {
+  margin-bottom: 0;
+}
+
+/* 相手のみモード等：レガシー申請サマリー（apply-card 内は下記で透明化） */
+.page-match-detail .match-detail-main > .match-apply-summary {
+  width: 100%;
+  max-width: none;
+  margin-bottom: var(--spacing-base);
+  padding: var(--spacing-sm) var(--spacing-base);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-small);
+  border: 1px solid var(--border-light);
+  box-sizing: border-box;
+}
+/* 申請内容：match-apply-summary の上に別定義で配置する見出し */
+.page-match-detail .match-detail-apply-content-heading {
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+/* 申請内容：match-apply-summary 直下に2行（1行目＝日時、2行目＝会場｜性別） */
+.page-match-detail .match-apply-summary > div:last-child {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+/* =========================================================
+   Shared Selection UI (Pills)
+   ========================================================= */
+.page-match-detail .match-select-ui {
+  margin-bottom: var(--spacing-base);
+}
+.page-match-detail .match-select-row {
+  margin-bottom: var(--spacing-sm);
+}
+.page-match-detail .match-select-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-xs);
+  color: var(--text-secondary);
+}
+.page-match-detail .match-select-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+.page-match-detail .match-pill {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-base);
+  background: var(--bg-primary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  min-height: 44px;
+}
+.page-match-detail .match-pill:hover {
+  border-color: var(--primary-color);
+}
+.page-match-detail .match-pill.selected {
+  background: var(--primary-color);
+  color: var(--text-light);
+  border-color: var(--primary-color);
+}
+.page-match-detail .match-pill:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.page-match-detail .match-pill:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.page-match-detail .match-detail-reconfirm-recruit {
+  margin: 0 0 var(--spacing-lg);
+  padding: 0;
+}
+
+.page-match-detail .match-detail-reconfirm-recruit--panel {
+  padding: var(--spacing-md);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 24%, var(--border-light));
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--primary-color) 6%, var(--bg-primary));
+  box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
+}
+
+.page-match-detail .match-detail-reconfirm-recruit--panel .match-detail-reconfirm-recruit__title {
+  margin-top: 0;
+}
+.page-match-detail .match-detail-reconfirm-recruit__title {
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.page-match-detail .match-detail-reconfirm-recruit__lead {
+  margin: 0 0 var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+.page-match-detail .match-detail-reconfirm-recruit__note {
+  margin: 0 0 var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+.page-match-detail .match-detail-reconfirm-recruit .match-detail-reconfirm-diff {
+  margin-top: var(--spacing-xs);
+}
+
+.page-match-detail .match-detail-reconfirm-recruit--panel .match-detail-reconfirm-diff {
+  margin-bottom: 0;
+}
+
+/* 再確認: 募集条件差分（箇条書きマーカーなし・変更前/後を対比） */
+.page-match-detail .match-detail-reconfirm-diff {
+  margin: var(--spacing-xs) 0 var(--spacing-base);
+  padding: var(--spacing-sm);
+  border: 1px solid var(--primary-color);
+  border-radius: var(--radius-small);
+  background: color-mix(in srgb, var(--primary-color) 7%, var(--bg-primary));
+  color: var(--text-primary);
+}
+.page-match-detail .match-detail-reconfirm-diff__row {
+  display: grid;
+  grid-template-columns: minmax(var(--spacing-lg), 7.5rem) 1fr;
+  gap: var(--spacing-sm) var(--spacing-base);
+  align-items: start;
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--primary-color) 22%, transparent);
+}
+.page-match-detail .match-detail-reconfirm-diff__row:first-child {
+  padding-top: 0;
+}
+.page-match-detail .match-detail-reconfirm-diff__row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+.page-match-detail .match-detail-reconfirm-diff__label {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+.page-match-detail .match-detail-reconfirm-diff__compare {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: var(--spacing-xs) var(--spacing-sm);
+  align-items: center;
+  min-width: 0;
+}
+.page-match-detail .match-detail-reconfirm-diff__cell {
+  min-width: 0;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-small);
+  border: 1px solid var(--border-light);
+  background: var(--bg-primary);
+}
+.page-match-detail .match-detail-reconfirm-diff__cell--before {
+  border-color: color-mix(in srgb, var(--text-secondary) 35%, var(--border-light));
+  opacity: 0.92;
+}
+.page-match-detail .match-detail-reconfirm-diff__cell--after {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
+}
+.page-match-detail .match-detail-reconfirm-diff__meta {
+  display: block;
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+.page-match-detail .match-detail-reconfirm-diff__value {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1.4;
+  word-break: break-word;
+}
+.page-match-detail .match-detail-reconfirm-diff__cell--after .match-detail-reconfirm-diff__meta {
+  color: var(--primary-color);
+}
+
+.page-match-detail .match-detail-reconfirm-diff__cell--before .match-detail-reconfirm-diff__meta {
+  color: var(--text-secondary);
+}
+
+.page-match-detail .match-detail-reconfirm-diff__cell--after .match-detail-reconfirm-diff__value {
+  color: var(--text-primary);
+}
+.page-match-detail .match-detail-reconfirm-diff__arrow {
+  justify-self: center;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--primary-color);
+  line-height: 1;
+}
+.page-match-detail .match-detail-reconfirm-diff--plain .match-detail-reconfirm-diff__plain-line {
+  padding: var(--spacing-xs) 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1.45;
+  border-bottom: 1px solid color-mix(in srgb, var(--primary-color) 18%, transparent);
+}
+.page-match-detail .match-detail-reconfirm-diff--plain .match-detail-reconfirm-diff__plain-line:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+@media (max-width: 480px) {
+  .page-match-detail .match-detail-reconfirm-diff__row {
+    grid-template-columns: 1fr;
+  }
+  .page-match-detail .match-detail-reconfirm-diff__compare {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+  .page-match-detail .match-detail-reconfirm-diff__arrow {
+    margin: var(--spacing-xs) 0;
+    transform: rotate(90deg);
+  }
+
+  .page-match-detail .match-detail-select-card .match-select-pills {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+    gap: var(--spacing-sm);
+    width: 100%;
+  }
+
+  .page-match-detail .match-detail-select-card .match-pill {
+    width: 100%;
+    justify-content: center;
+    min-height: 48px;
+  }
+
+  .page-match-detail .match-detail-reconfirm-recruit--panel {
+    padding: var(--spacing-sm);
+  }
+}
+
+.page-match-detail .match-actions:not(.match-detail-apply-card .match-actions):not(.match-detail-received-actions) {
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-light);
+  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-base);
+}
+
+.page-match-detail .match-detail-apply-card .match-actions {
+  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-base);
+}
+/* CTA 内ラベル：グローバル .btn と同じ水平・垂直センタリング・トークンを共有 */
+.page-match-detail .match-actions .btn,
+.page-match-detail .match-action-area .apply-button.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.25;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+.page-match-detail .match-actions .btn {
+  min-height: 44px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* =========================================================
+   Other-only Mode: Recruit Card / Team Intro
+   ========================================================= */
+/* 相手のみ：募集1列カード */
+.page-match-detail .match-other-only-recruit {
+  margin-bottom: var(--spacing-base);
+  max-width: 36rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+.page-match-detail .match-other-only-recruit-card.match-detail-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-small);
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+.page-match-detail .match-other-only-recruit-card .match-detail-card-row {
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+.page-match-detail .match-other-only-recruit-card .match-detail-card-label {
+  min-width: 6em;
+  flex-shrink: 0;
+}
+.page-match-detail .match-other-only-recruit-card .match-detail-card-value {
+  white-space: normal;
+  text-align: right;
+  flex: 1;
+  min-width: 0;
+}
+.page-match-detail .match-other-only-team-intro {
+  margin-top: var(--spacing-md);
+  text-align: center;
+}
+.page-match-detail .match-other-only-team-toggle {
+  margin: 0;
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-base);
+  cursor: pointer;
+  min-height: 44px;
+}
+.page-match-detail .match-other-only-team-toggle:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+.page-match-detail .match-other-only-team-toggle:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+.page-match-detail .match-other-only-team-detail {
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-base);
+  text-align: left;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-small);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.page-match-detail .match-other-only-team-desc {
+  margin: var(--spacing-sm) 0 0;
+}
+
+.page-match-detail .match-detail-card-header {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-secondary);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
+
+.page-match-detail .match-detail-card-body {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.page-match-detail .match-detail-card-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) 0;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+}
+
+.page-match-detail .match-detail-card-label {
+  flex-shrink: 0;
+  min-width: 2.5em;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.page-match-detail .match-detail-card-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 時間選択UI（文字サイズに合わせたコンパクト表示） */
+.page-match-detail .match-detail-time-select {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.page-match-detail .match-detail-time-select-input {
+  font-size: var(--font-size-sm);
+  padding: 2px 4px;
+  min-height: 24px;
+  min-width: 3.2em;
+  max-width: 4em;
+  width: auto;
+  box-sizing: content-box;
+}
+
+.page-match-detail .match-detail-time-select-sep {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+/* =========================================================
+   Action Area / Status Badge
+   ========================================================= */
+.match-card-status-badge {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  line-height: 1.25;
+  padding: 10px 20px;
+  border-radius: 8px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* ステータスバッジのスタイル */
+.match-card-status-badge.badge-unapplied {
+  background: rgba(108, 117, 125, 0.1);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+}
+
+.match-card-status-badge.badge-status.status-pending {
+  background: rgba(23, 162, 184, 0.1);
+  color: var(--info-color);
+  border: 1px solid var(--info-color);
+}
+
+.match-card-status-badge.badge-status.status-received {
+  background: rgba(255, 193, 7, 0.1);
+  color: var(--warning-color);
+  border: 1px solid var(--warning-color);
+}
+
+.match-card-status-badge.badge-status.status-accepted {
+  background: rgba(40, 167, 69, 0.1);
+  color: var(--success-color);
+  border: 1px solid var(--success-color);
+}
+
+.match-card-status-badge.badge-status.status-established {
+  background: rgba(40, 167, 69, 0.1);
+  color: var(--success-color);
+  border: 1px solid var(--success-color);
+  border-bottom: 2px solid color-mix(in srgb, var(--success-color, #198754) 80%, transparent);
+}
+
+.match-card-status-badge.badge-status.status-rejected {
+  background: rgba(220, 53, 69, 0.1);
+  color: var(--danger-color);
+  border: 1px solid var(--danger-color);
+}
+
+.match-card-status-badge.badge-status.status-canceled {
+  background: rgba(108, 117, 125, 0.1);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+}
+
+/* 申請・アクションエリア（2カラム：ステータス|アクション）比較・相手のみで共通（干渉防止） */
+.page-match-detail .match-apply-section .match-action-area {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  visibility: visible;
+  opacity: 1;
+  min-height: 50px;
+}
+
+/* 後方互換：match-apply-section 外で .match-action-area 単体が使われている場合 */
+.match-action-area {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  visibility: visible;
+  opacity: 1;
+  min-height: 50px;
+}
+
+/* ステータスバッジ（左カラム） */
+.match-action-area .badge.match-card-status-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  visibility: visible;
+  width: 100%;
+  min-height: 44px;
+}
+
+/* アクションボタンコンテナ（右カラム：比較は div>button、相手のみは div>form>button） */
+.match-action-area > div:last-child {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* 右カラム内の form は幅100%（相手のみ：ボタン横幅を比較と揃える） */
+.page-match-detail .match-apply-section .match-action-area > div:last-child > form {
+  width: 100%;
+  min-width: 0;
+}
+
+/* 申請・アクションボタンのスタイル（詳細度を上げて適用） */
+.match-action-area .apply-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  visibility: visible;
+}
+
+/* ステータス列と並ぶメッセージ（ボタンと同じ行高・配置トークン） */
+.page-match-detail .match-action-area .match-action-area-message {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--success-color);
+  text-align: left;
+}
+
+/* 単独表示ボタン（申請する・再申請する）比較・相手のみで同じ横幅 */
+.page-match-detail .match-apply-section .match-action-area .apply-button#applyButton,
+.page-match-detail .match-apply-section .match-action-area .apply-button#reapplyButton,
+.page-match-detail .match-apply-section .match-action-area .apply-button#applyButtonOtherOnly {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* 後方互換：match-apply-section 外の .match-action-area 用 */
+.match-action-area .apply-button#applyButton,
+.match-action-area .apply-button#reapplyButton,
+.match-action-area .apply-button#applyButtonOtherOnly {
+  width: 100%;
+}
+
+/* 複数表示ボタン（キャンセル、承認、拒否） */
+.match-action-area .apply-button#cancelButton,
+.match-action-area .apply-button#approveButton,
+.match-action-area .apply-button#rejectButton {
+  flex: 1;
+  min-width: 0;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .match-action-area {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-xs);
+  }
+
+  .match-action-area .btn,
+  .match-action-area .badge {
+    font-size: 0.85rem;
+    padding: 8px 12px;
+    min-height: 36px;
+  }
+
+  .page-match-detail .match-actions .btn,
+  .page-match-detail .match-action-area .apply-button.btn {
+    font-size: 0.85rem;
+    padding: 8px 12px;
+    min-height: 36px;
+  }
+
+  .page-match-detail .match-action-area .match-action-area-message {
+    min-height: 36px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .match-action-area {
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+
+  .match-action-area .btn,
+  .match-action-area .badge {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    min-height: 32px;
+  }
+
+  .page-match-detail .match-actions .btn,
+  .page-match-detail .match-action-area .apply-button.btn {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    min-height: 32px;
+  }
+
+  .page-match-detail .match-action-area .match-action-area-message {
+    min-height: 32px;
+    font-size: 0.75rem;
+  }
+}
+
+/* =========================================================
+   Fullscreen Loader / Completion Modal
+   ========================================================= */
+/* ローダーのみ最小限のスタイルを保持 */
+/* ローディングスピナー（スケジュール登録と同じ仕様） */
+.fullscreen-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.fullscreen-loader .spinner-container {
+  text-align: center;
+  background: white;
+  padding: 3rem;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.fullscreen-loader .spinner {
+  width: 80px;
+  height: 80px;
+  border: 8px solid #e5e7eb;
+  border-top: 8px solid #10b981;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1.5rem;
+}
+
+.fullscreen-loader .spinner-text {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 完了メッセージ（スケジュール登録と同じ仕様） */
+.completion-message {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.completion-card {
+  background: white;
+  padding: 3rem;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  max-width: 400px;
+  animation: slideIn 0.5s ease-out;
+}
+
+.completion-icon {
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+}
+
+.completion-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #10b981;
+  margin-bottom: 1rem;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================================
+   ステータス注記
+   ========================================================= */
+.page-match-detail .match-detail-status-note {
+  margin: var(--spacing-base) 0 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.55;
+  color: var(--text-secondary);
+}

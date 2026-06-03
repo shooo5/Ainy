@@ -1,0 +1,421 @@
+/**
+ * Ainy統一通知システムスタイル
+ *
+ * 3種類の通知タイプ（Inline/Banner/Snackbar）のスタイル
+ *
+ * @version 1.0.0
+ * @created 2026-01-13
+ */
+
+/* ============================================
+   Inline通知（フォームエラー用）
+   ============================================ */
+.aidunite-inline-error {
+    display: block;
+    color: #d32f2f;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background-color: #ffebee;
+    border-left: 3px solid #d32f2f;
+    border-radius: 4px;
+    animation: slideInInline 0.3s ease-out;
+}
+
+.aidunite-field-error {
+    border-color: var(--danger-color) !important;
+    background-color: rgba(220, 53, 69, 0.05) !important;
+}
+
+.aidunite-field-error:focus {
+    outline-color: var(--danger-color);
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.aidunite-field-error:focus-visible {
+    outline: 2px solid var(--danger-color);
+    outline-offset: 2px;
+}
+
+@keyframes slideInInline {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* アニメーション最適化：will-changeを削除（アニメーション終了後） */
+.aidunite-banner-show,
+.aidunite-snackbar-show {
+    will-change: auto;
+}
+
+/* ============================================
+   Banner通知（緊急・重要情報用）
+   ============================================ */
+.aidunite-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10000;
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-100%);
+    transition: transform 0.3s ease-out;
+    font-family: inherit;
+    /* アニメーション最適化 */
+    will-change: transform;
+    /* GPU加速 */
+    backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+.aidunite-banner-show {
+    transform: translateY(0);
+}
+
+.aidunite-banner-hide {
+    transform: translateY(-100%);
+}
+
+.aidunite-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.aidunite-banner-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.aidunite-banner-message {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5;
+    flex: 1;
+}
+
+.aidunite-banner-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    margin-left: 1rem;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    color: inherit;
+}
+
+.aidunite-banner-close:hover {
+    opacity: 1;
+}
+
+.aidunite-banner-close:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.aidunite-banner-close:focus {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+/* Bannerタイプ別スタイル */
+.aidunite-banner-error {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: var(--danger-color);
+    border-bottom: 3px solid var(--danger-color);
+}
+
+.aidunite-banner-warning {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: var(--warning-color);
+    border-bottom: 3px solid var(--warning-color);
+}
+
+.aidunite-banner-info {
+    background-color: rgba(23, 162, 184, 0.1);
+    color: var(--info-color);
+    border-bottom: 3px solid var(--info-color);
+}
+
+/* ============================================
+   Snackbar通知（通常の成功/失敗用）
+   ============================================ */
+.aidunite-snackbar {
+    position: fixed;
+    bottom: var(--spacing-lg);
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    z-index: 9999;
+    padding: calc(var(--spacing-sm) + var(--spacing-xs)) calc(var(--spacing-base) + var(--spacing-xs));
+    min-width: 300px;
+    max-width: 400px;
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing-sm) + var(--spacing-xs));
+    box-shadow: var(--shadow-md);
+    border-radius: var(--radius-base);
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+    opacity: 0;
+    /* アニメーション最適化 */
+    will-change: transform, opacity;
+    /* GPU加速 */
+    backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+.aidunite-snackbar-show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+.aidunite-snackbar-hide {
+    transform: translateX(-50%) translateY(100px);
+    opacity: 0;
+}
+
+.aidunite-snackbar-icon {
+    font-size: 1.125rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.aidunite-snackbar-message {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    flex: 1;
+    word-break: break-word;
+}
+
+/* Snackbarタイプ別スタイル */
+.aidunite-snackbar-success {
+    background-color: var(--success-color);
+    color: var(--text-light);
+}
+
+.aidunite-snackbar-error {
+    background-color: var(--danger-color);
+    color: var(--text-light);
+}
+
+.aidunite-snackbar-warning {
+    background-color: var(--warning-color);
+    color: var(--text-primary);
+}
+
+.aidunite-snackbar-info {
+    background-color: var(--info-color);
+    color: var(--text-light);
+}
+
+.aidunite-snackbar:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* ============================================
+   モバイル対応
+   ============================================ */
+@media (max-width: 768px) {
+    /* Banner（モバイル） */
+    .aidunite-banner {
+        padding: 0.875rem 1rem;
+        /* タッチ操作の最適化 */
+        touch-action: manipulation;
+    }
+
+    .aidunite-banner-message {
+        font-size: 0.9375rem;
+        line-height: 1.6;
+    }
+
+    .aidunite-banner-icon {
+        font-size: 1.125rem;
+        flex-shrink: 0;
+    }
+
+    /* タッチターゲットサイズの確保（最小44x44px） */
+    .aidunite-banner-close {
+        min-width: 44px;
+        min-height: 44px;
+        padding: 0.5rem;
+        font-size: 1.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Snackbar（モバイル） */
+    .aidunite-snackbar {
+        bottom: 0;
+        left: 0;
+        right: 0;
+        transform: translateX(0) translateY(100%);
+        max-width: 100%;
+        border-radius: 0;
+        border-top-left-radius: 16px;
+        border-top-right-radius: 16px;
+        min-width: auto;
+        padding: 1rem 1.25rem;
+        /* タッチ操作の最適化 */
+        touch-action: manipulation;
+        /* セーフエリア対応（ノッチ付きデバイス） */
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+
+    .aidunite-snackbar-show {
+        transform: translateX(0) translateY(0);
+    }
+
+    .aidunite-snackbar-hide {
+        transform: translateX(0) translateY(100%);
+    }
+
+    /* Inline（モバイル） */
+    .aidunite-inline-error {
+        font-size: 0.8125rem;
+        padding: 0.4375rem 0.625rem;
+        line-height: 1.5;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Banner（小さいモバイル） */
+    .aidunite-banner {
+        padding: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .aidunite-banner-content {
+        flex: 1 1 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    .aidunite-banner-message {
+        font-size: 0.875rem;
+        line-height: 1.6;
+    }
+
+    .aidunite-banner-close {
+        align-self: flex-start;
+        margin-left: auto;
+    }
+
+    /* Snackbar（小さいモバイル） */
+    .aidunite-snackbar {
+        padding: 0.875rem 1rem;
+        padding-bottom: max(0.875rem, env(safe-area-inset-bottom));
+    }
+
+    .aidunite-snackbar-message {
+        font-size: 0.875rem;
+        line-height: 1.6;
+    }
+
+    .aidunite-snackbar-icon {
+        font-size: 1rem;
+    }
+}
+
+/* 横画面対応 */
+@media (max-width: 768px) and (orientation: landscape) {
+    .aidunite-banner {
+        padding: 0.625rem 1rem;
+    }
+
+    .aidunite-banner-message {
+        font-size: 0.875rem;
+    }
+
+    .aidunite-snackbar {
+        padding: 0.75rem 1rem;
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    }
+}
+
+/* ============================================
+   アクセシビリティ対応
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+    .aidunite-banner,
+    .aidunite-snackbar,
+    .aidunite-inline-error {
+        animation: none !important;
+        transition: none !important;
+    }
+
+    .aidunite-banner-show,
+    .aidunite-snackbar-show {
+        transform: none !important;
+        opacity: 1 !important;
+    }
+
+    .aidunite-banner-hide,
+    .aidunite-snackbar-hide {
+        transform: none !important;
+        opacity: 0 !important;
+    }
+}
+
+/* スクリーンリーダー対応 */
+.aidunite-banner[role="alert"],
+.aidunite-snackbar[role="status"] {
+    /* 既にrole属性で対応済み */
+}
+
+/* フォーカス可視化 */
+.aidunite-banner-close:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+/* フィールドエラーのアクセシビリティ */
+.aidunite-field-error {
+    /* aria-invalid属性と連携 */
+}
+
+.aidunite-field-error[aria-invalid="true"] {
+    border-color: var(--danger-color) !important;
+    background-color: rgba(220, 53, 69, 0.05) !important;
+}
+
+/* 高コントラストモード対応 */
+@media (prefers-contrast: high) {
+    .aidunite-banner-error {
+        border-bottom-width: 4px;
+    }
+
+    .aidunite-banner-warning {
+        border-bottom-width: 4px;
+    }
+
+    .aidunite-banner-info {
+        border-bottom-width: 4px;
+    }
+
+    .aidunite-inline-error {
+        border-left-width: 4px;
+    }
+}
+
+/* ダークモード対応（将来の拡張用） */
+@media (prefers-color-scheme: dark) {
+    /* 必要に応じてダークモードスタイルを追加 */
+}

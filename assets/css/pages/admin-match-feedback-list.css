@@ -1,0 +1,271 @@
+/**
+ * 試合後アンケート一覧（データ管理）
+ */
+
+.page-admin-match-feedback-list-wrap {
+  width: 100%;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.admin-mfl-header {
+  margin-bottom: var(--spacing-lg);
+}
+
+.admin-mfl-lead {
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-base);
+  font-size: var(--font-size-sm);
+}
+
+.admin-mfl-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-base);
+}
+
+.admin-mfl-filters {
+  background: var(--bg-secondary);
+  padding: var(--spacing-lg);
+  margin: var(--spacing-lg) 0;
+  border-radius: var(--radius-base);
+}
+
+.admin-mfl-filters__title {
+  margin: 0 0 var(--spacing-base);
+  font-size: var(--font-size-base);
+}
+
+.admin-mfl-filters__form {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--spacing-base);
+  align-items: end;
+}
+
+.admin-mfl-filters__field--wide {
+  grid-column: 1 / -1;
+}
+
+.admin-mfl-filters__field label {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.admin-mfl-filters__input {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-small);
+  font-size: var(--font-size-sm);
+}
+
+.admin-mfl-filters__input:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.admin-mfl-filters__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  grid-column: 1 / -1;
+}
+
+.admin-mfl-filters__active {
+  margin: var(--spacing-base) 0 0;
+  padding: var(--spacing-sm);
+  background: rgba(23, 162, 184, 0.1);
+  border-radius: var(--radius-small);
+  font-size: var(--font-size-sm);
+}
+
+.admin-mfl-summary {
+  margin: 0 0 var(--spacing-base);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.admin-mfl-empty {
+  text-align: center;
+  padding: var(--spacing-xl);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-base);
+}
+
+/* テーブル（管理者一覧共通 + グループ区切り） */
+.admin-mfl-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: var(--font-sans-jp);
+  font-size: var(--font-size-sm);
+}
+
+.admin-mfl-table th,
+.admin-mfl-table td {
+  border: 1px solid var(--border-color);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  vertical-align: top;
+  word-break: break-word;
+}
+
+.admin-mfl-table thead th {
+  background: var(--bg-secondary);
+  font-weight: 600;
+}
+
+.admin-mfl-table .admin-mfl-group-row th {
+  font-size: var(--font-size-xs);
+  text-align: center;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.admin-mfl-col-group-start {
+  border-left: 2px solid var(--border-color);
+}
+
+.admin-mfl-row-main td {
+  background: var(--bg-primary);
+}
+
+.admin-mfl-table tbody tr.admin-mfl-details td {
+  border-top: none;
+  border-bottom: 3px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.admin-mfl-empty-cell {
+  color: var(--text-secondary);
+}
+
+.admin-mfl-cell-reasons {
+  min-width: 140px;
+}
+
+.admin-mfl-cell-excerpt {
+  max-width: 160px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.admin-mfl-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.admin-mfl-chip {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-small);
+  background: rgba(23, 162, 184, 0.12);
+  color: var(--primary-color);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.admin-mfl-rematch {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-small);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-mfl-rematch--yes {
+  background: rgba(40, 167, 69, 0.15);
+  color: var(--success-color);
+}
+
+.admin-mfl-rematch--no {
+  background: rgba(108, 117, 125, 0.15);
+  color: var(--text-secondary);
+}
+
+.admin-mfl-details__inner {
+  padding: var(--spacing-base);
+}
+
+.admin-mfl-details__sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-base);
+}
+
+.admin-mfl-details__section {
+  padding: var(--spacing-base);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-base);
+}
+
+.admin-mfl-details__heading {
+  margin: 0 0 var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.admin-mfl-details__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--spacing-base);
+  margin: 0;
+}
+
+.admin-mfl-details__grid > div {
+  margin: 0;
+}
+
+.admin-mfl-details__field--wide {
+  grid-column: 1 / -1;
+}
+
+.admin-mfl-details__grid dt {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-xs);
+}
+
+.admin-mfl-details__grid dd {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  white-space: pre-wrap;
+}
+
+.admin-mfl-pagination {
+  margin-top: var(--spacing-lg);
+  text-align: center;
+}
+
+.admin-mfl-details-toggle:focus-visible,
+.admin-mfl-details-close:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .admin-mfl-filters__form {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-mfl-table-wrap {
+    overflow-x: auto;
+  }
+}

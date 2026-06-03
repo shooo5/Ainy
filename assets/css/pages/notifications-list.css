@@ -1,0 +1,599 @@
+/**
+ * 通知一覧（page-notifications.php）
+ * モック準拠のカードUI。色・余白は Design Tokens を優先。
+ */
+
+.page-notifications.team-dashboard-container.ainy-notifications-page {
+  --ainy-notif-bg: var(--bg-secondary, #f7f8fc);
+  --ainy-notif-card: var(--bg-primary, #ffffff);
+  --ainy-notif-text: var(--text-primary, #111827);
+  --ainy-notif-muted: var(--text-secondary, #667085);
+  --ainy-notif-border: var(--border-color, #e5e7eb);
+  --ainy-notif-accent: var(--primary-color, #7c3aed);
+  --ainy-notif-badge: var(--danger-color, #dc3545);
+  --ainy-notif-toolbar-bg: var(--ainy-notif-card);
+  --ainy-notif-toolbar-text: var(--ainy-notif-text);
+  --ainy-notif-toolbar-border: var(--ainy-notif-border);
+  --ainy-notif-tab-active-bg: linear-gradient(135deg, rgba(106, 90, 249, 0.08), var(--ainy-notif-card));
+  --ainy-notif-tab-active-ring: rgba(106, 90, 249, 0.12);
+  /* ヘッダー・タブ・一覧で同じ左右余白（12〜16px） */
+  --ainy-notif-gutter: var(--spacing-base, 1rem);
+  --ainy-notif-row-min-h: 72px;
+  --ainy-notif-row-max-h: 88px;
+  --ainy-notif-icon-size: 36px;
+  --ainy-notif-row-gap: var(--spacing-base, 1rem);
+  --ainy-notif-unread-dot: #3b82f6;
+  width: 100%;
+  max-width: var(--ainy-webapp-shell-max-width, 1200px);
+  margin-left: auto;
+  margin-right: auto;
+  /* aidunite-style の .team-dashboard-container { padding: 2rem 24px } を上書き */
+  padding-top: 0;
+  padding-left: 0;
+  padding-right: 0;
+  padding-bottom: var(--spacing-lg, 2rem);
+  background: var(--ainy-notif-bg);
+  box-sizing: border-box;
+}
+
+@media (min-width: 769px) {
+  .page-notifications.team-dashboard-container.ainy-notifications-page {
+    margin-top: var(--spacing-base, 1rem);
+    border-radius: var(--radius-large, 16px);
+    overflow: hidden;
+    box-shadow: var(--shadow-lg, 0 20px 60px rgba(15, 23, 42, 0.12));
+  }
+}
+
+/* ツールバー */
+.ainy-notifications-toolbar {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  gap: var(--spacing-xs, 0.25rem);
+  min-height: 56px;
+  padding: var(--spacing-sm, 0.5rem) var(--ainy-notif-gutter);
+  background: var(--ainy-notif-toolbar-bg);
+  border-bottom: 1px solid var(--ainy-notif-toolbar-border);
+}
+
+.ainy-notifications-toolbar h1 {
+  margin: 0;
+  text-align: center;
+  font-size: var(--font-size-lg, 1.25rem);
+  font-weight: 700;
+  color: var(--ainy-notif-toolbar-text);
+}
+
+.ainy-notifications-toolbar__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--ainy-notif-toolbar-text);
+  font-size: 1.5rem;
+  line-height: 1;
+  text-decoration: none;
+  border-radius: var(--radius-base, 8px);
+  cursor: pointer;
+}
+
+.ainy-notifications-toolbar__btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+body:not([data-team-theme]) .ainy-notifications-toolbar__btn:hover {
+  background: var(--bg-secondary, #f3f4f6);
+}
+
+.ainy-notifications-toolbar__btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* フィルタタブ */
+.ainy-notifications-filter-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-xs, 0.25rem);
+  padding: var(--spacing-sm, 0.5rem) var(--ainy-notif-gutter);
+  background: var(--ainy-notif-card);
+  border-bottom: 1px solid var(--ainy-notif-border);
+}
+
+.ainy-notifications-filter-tabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs, 0.25rem);
+  min-height: 44px;
+  padding: var(--spacing-sm, 0.5rem) var(--spacing-xs, 0.25rem);
+  border: none;
+  border-radius: var(--radius-medium, 12px);
+  background: transparent;
+  color: var(--ainy-notif-text);
+  font-size: var(--font-size-sm, 0.9375rem);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ainy-notifications-filter-tabs button:hover {
+  background: var(--bg-secondary, #f8f9fc);
+}
+
+.ainy-notifications-filter-tabs button.active {
+  color: var(--ainy-notif-accent);
+  background: var(--ainy-notif-tab-active-bg);
+  box-shadow: inset 0 0 0 1px var(--ainy-notif-tab-active-ring);
+}
+
+.ainy-notifications-filter-tabs button:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* 未読タブのみ件数バッジ */
+.ainy-notifications-filter-tabs .ainy-notifications-tab-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  padding: 0 var(--spacing-xs, 0.25rem);
+  border-radius: 999px;
+  background: var(--ainy-notif-badge);
+  color: var(--text-light, #fff);
+  font-size: var(--font-size-xs, 0.8125rem);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ainy-notifications-filter-tabs .ainy-notifications-tab-count:empty,
+.ainy-notifications-filter-tabs .ainy-notifications-tab-count[data-count="0"] {
+  display: none;
+}
+
+/* メイン（ツールバー・タブと同じ左右ガター内でカードを100%） */
+.ainy-notifications-main {
+  width: 100%;
+  max-width: 100%;
+  padding: var(--spacing-sm, 0.5rem) var(--ainy-notif-gutter) var(--spacing-base, 1rem);
+  box-sizing: border-box;
+}
+
+.page-notifications.ainy-notifications-page ul.ainy-notifications-list {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  box-sizing: border-box;
+}
+
+.ainy-notifications-group {
+  width: 100%;
+  max-width: 100%;
+  margin-top: var(--spacing-base, 1rem);
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.ainy-notifications-group:first-child {
+  margin-top: var(--spacing-sm, 0.5rem);
+}
+
+.ainy-notifications-group h2 {
+  margin: 0;
+  padding: var(--spacing-sm, 0.5rem) 0 var(--spacing-base, 1rem);
+  font-size: var(--font-size-base, 1rem);
+  font-weight: 700;
+  color: var(--ainy-notif-text);
+  border-bottom: 1px solid var(--ainy-notif-border);
+}
+
+/* 通知1件：リスト行（高さ72〜88px・アイコン36px・余白12〜16px） */
+.page-notifications.ainy-notifications-page li.ainy-notification-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 10px var(--ainy-notif-icon-size) minmax(0, 1fr) 1.25rem;
+  align-items: center;
+  gap: var(--ainy-notif-row-gap);
+  width: 100%;
+  max-width: 100%;
+  min-height: var(--ainy-notif-row-min-h);
+  max-height: var(--ainy-notif-row-max-h);
+  box-sizing: border-box;
+  margin: 0;
+  padding: var(--spacing-base, 1rem) 0;
+  background: var(--ainy-notif-card);
+  border: none;
+  border-bottom: 1px solid var(--ainy-notif-border);
+  border-radius: 0;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  list-style: none;
+  overflow: hidden;
+}
+
+.page-notifications.ainy-notifications-page .ainy-notifications-list li.ainy-notification-card:last-child {
+  border-bottom: none;
+}
+
+.ainy-notification-card:hover {
+  background: var(--bg-secondary, #f8f9fc);
+}
+
+.ainy-notification-card:active {
+  background: var(--bg-secondary, #f3f4f6);
+}
+
+.ainy-notification-card:focus-visible {
+  outline: 2px solid var(--focus-ring-color, var(--primary-color));
+  outline-offset: -2px;
+}
+
+.ainy-notification-card.unread {
+  background: var(--ainy-notif-card);
+}
+
+.ainy-notification-card__body {
+  min-width: 0;
+}
+
+.ainy-notification-card.is-hidden {
+  display: none;
+}
+
+.ainy-notifications-page.filter-unread .ainy-notification-card.read {
+  display: none;
+}
+
+.ainy-notifications-page.filter-read .ainy-notification-card.unread {
+  display: none;
+}
+
+.ainy-notification-card__icon {
+  width: var(--ainy-notif-icon-size);
+  height: var(--ainy-notif-icon-size);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--text-on-dark, #fff);
+  font-size: 1.125rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.ainy-notification-card__icon--purple {
+  background: linear-gradient(135deg, var(--theme-secondary, #8b5cf6), var(--theme-accent-dark, #7c3aed));
+}
+
+.ainy-notification-card__icon--green {
+  background: linear-gradient(135deg, var(--success-color, #22c55e), #16a34a);
+}
+
+.ainy-notification-card__icon--orange {
+  background: linear-gradient(135deg, #fb923c, var(--warning-color, #f97316));
+}
+
+.ainy-notification-card__icon--blue {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.ainy-notification-card__icon--gray {
+  background: linear-gradient(135deg, #94a3b8, #64748b);
+}
+
+.ainy-notification-card__icon--red {
+  background: linear-gradient(135deg, #fb7185, var(--danger-color, #ef4444));
+}
+
+.ainy-notification-card__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-sm, 0.5rem);
+  min-width: 0;
+}
+
+.ainy-notification-card__meta h3 {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--font-size-sm, 0.9375rem);
+  line-height: 1.4;
+  font-weight: 700;
+  color: var(--ainy-notif-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ainy-notification-card__meta time {
+  flex-shrink: 0;
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--ainy-notif-muted);
+  white-space: nowrap;
+}
+
+.ainy-notification-card__body p {
+  margin: var(--spacing-xs, 0.25rem) 0 0;
+  font-size: var(--font-size-sm, 0.8125rem);
+  line-height: 1.45;
+  color: var(--ainy-notif-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: break-word;
+}
+
+/* 未読ドット（行左端） */
+.ainy-notification-card__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ainy-notif-unread-dot);
+  justify-self: center;
+  flex-shrink: 0;
+}
+
+.ainy-notification-card.unread .ainy-notification-card__dot {
+  visibility: visible;
+}
+
+.ainy-notification-card.read .ainy-notification-card__dot {
+  visibility: hidden;
+}
+
+.ainy-notification-card__arrow {
+  color: var(--ainy-notif-muted);
+  font-size: var(--font-size-lg, 1.25rem);
+  line-height: 1;
+  justify-self: end;
+}
+
+/* 一括操作（タブごとにCTAを切替） */
+.ainy-notifications-actions {
+  width: 100%;
+  max-width: 100%;
+  margin-top: var(--spacing-base, 1rem);
+  padding: 0 var(--ainy-notif-gutter) var(--spacing-lg, 2rem);
+  box-sizing: border-box;
+}
+
+.ainy-notifications-actions-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm, 0.5rem);
+}
+
+.ainy-notifications-actions-panel.is-hidden,
+.ainy-notifications-actions-panel[hidden] {
+  display: none;
+}
+
+.ainy-notifications-mark-read {
+  min-height: 44px;
+  padding: var(--spacing-sm, 0.5rem) var(--spacing-base, 1rem);
+  border: none;
+  background: transparent;
+  color: var(--ainy-notif-accent);
+  font-size: var(--font-size-base, 1rem);
+  font-weight: 800;
+  cursor: pointer;
+  border-radius: var(--radius-base, 8px);
+}
+
+.ainy-notifications-mark-read:hover {
+  background: rgba(124, 58, 237, 0.06);
+}
+
+.ainy-notifications-mark-read:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.ainy-notifications-delete-read {
+  min-height: 44px;
+}
+
+/* 空状態 */
+.ainy-notifications-empty {
+  text-align: center;
+  padding: var(--spacing-xl, 3rem) var(--spacing-base, 1rem);
+  color: var(--ainy-notif-muted);
+}
+
+.ainy-notifications-empty__icon {
+  font-size: 3rem;
+  margin-bottom: var(--spacing-base, 1rem);
+}
+
+.ainy-notifications-empty h3 {
+  margin: 0 0 var(--spacing-sm, 0.5rem);
+  color: var(--ainy-notif-text);
+  font-size: var(--font-size-lg, 1.25rem);
+}
+
+@media (max-width: 480px) {
+  .ainy-notifications-filter-tabs button {
+    font-size: var(--font-size-xs, 0.8125rem);
+    padding: var(--spacing-sm, 0.5rem) var(--spacing-xs, 0.125rem);
+  }
+
+  .page-notifications.ainy-notifications-page {
+    --ainy-notif-gutter: var(--spacing-base, 1rem);
+    --ainy-notif-row-gap: var(--spacing-sm, 0.75rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-notifications.ainy-notifications-page li.ainy-notification-card,
+  .ainy-notifications-filter-tabs button,
+  .ainy-notification-detail-modal,
+  .ainy-notification-detail-modal__dialog {
+    transition: none;
+  }
+}
+
+/* 通知詳細モーダル（link_url なしのシステム告知等） */
+body.ainy-notification-detail-modal-open {
+  overflow: hidden;
+}
+
+.ainy-notification-detail-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.ainy-notification-detail-modal.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.ainy-notification-detail-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.ainy-notification-detail-modal__dialog {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: min(640px, 100%);
+  max-height: min(85vh, 720px);
+  margin: 0;
+  background: var(--ainy-notif-card);
+  border-radius: var(--radius-large, 16px) var(--radius-large, 16px) 0 0;
+  box-shadow: var(--shadow-xl, 0 24px 48px rgba(15, 23, 42, 0.18));
+  transform: translateY(100%);
+  transition: transform 0.28s ease;
+  overflow: hidden;
+}
+
+.ainy-notification-detail-modal.is-open .ainy-notification-detail-modal__dialog {
+  transform: translateY(0);
+}
+
+.ainy-notification-detail-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-base, 1rem);
+  padding: var(--spacing-base, 1rem) var(--ainy-notif-gutter);
+  border-bottom: 1px solid var(--ainy-notif-border);
+  background: var(--bg-secondary, #f8f9fc);
+}
+
+.ainy-notification-detail-modal__heading {
+  min-width: 0;
+  flex: 1;
+}
+
+.ainy-notification-detail-modal__heading h2 {
+  margin: 0 0 var(--spacing-xs, 0.25rem);
+  font-size: var(--font-size-lg, 1.25rem);
+  font-weight: 700;
+  color: var(--ainy-notif-text);
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.ainy-notification-detail-modal__heading time {
+  display: block;
+  font-size: var(--font-size-sm, 0.9375rem);
+  color: var(--ainy-notif-muted);
+}
+
+.ainy-notification-detail-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-base, 8px);
+  background: transparent;
+  color: var(--ainy-notif-muted);
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ainy-notification-detail-modal__close:hover {
+  background: var(--bg-secondary, #eef2f7);
+  color: var(--ainy-notif-text);
+}
+
+.ainy-notification-detail-modal__close:focus-visible,
+.ainy-notification-detail-modal__done:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.ainy-notification-detail-modal__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--spacing-base, 1rem) var(--ainy-notif-gutter);
+  color: var(--ainy-notif-text);
+  font-size: var(--font-size-base, 1rem);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ainy-notification-detail-modal__footer {
+  display: flex;
+  justify-content: stretch;
+  padding: var(--spacing-base, 1rem) var(--ainy-notif-gutter);
+  border-top: 1px solid var(--ainy-notif-border);
+  background: var(--ainy-notif-card);
+}
+
+.ainy-notification-detail-modal__done {
+  width: 100%;
+  min-height: 48px;
+}
+
+@media (min-width: 769px) {
+  .ainy-notification-detail-modal {
+    align-items: center;
+    padding: var(--spacing-base, 1rem);
+  }
+
+  .ainy-notification-detail-modal__dialog {
+    border-radius: var(--radius-large, 16px);
+    max-height: min(80vh, 680px);
+    transform: translateY(16px) scale(0.98);
+  }
+
+  .ainy-notification-detail-modal.is-open .ainy-notification-detail-modal__dialog {
+    transform: translateY(0) scale(1);
+  }
+}

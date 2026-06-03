@@ -1,0 +1,122 @@
+/**
+ * 管理者一覧・チーム管理用チェックボックス
+ * aidunite-style.css の input { appearance: none } ではネイティブが見えないため、カスタム表示する。
+ */
+
+.aidunite-admin-checkbox {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.aidunite-admin-checkbox__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.aidunite-admin-checkbox__box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-small);
+  background: var(--bg-primary);
+  box-sizing: border-box;
+  pointer-events: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.aidunite-admin-checkbox__box::after {
+  content: '';
+  display: block;
+  width: 5px;
+  height: 10px;
+  border: solid var(--text-light);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  margin-top: -2px;
+  transition: transform 0.15s ease;
+}
+
+.aidunite-admin-checkbox__input:checked + .aidunite-admin-checkbox__box {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.aidunite-admin-checkbox__input:checked + .aidunite-admin-checkbox__box::after {
+  transform: rotate(45deg) scale(1);
+}
+
+.aidunite-admin-checkbox__input:focus-visible + .aidunite-admin-checkbox__box {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.aidunite-admin-checkbox__input:disabled + .aidunite-admin-checkbox__box {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* チームカード右上 */
+.team-card-select-label--corner.aidunite-admin-checkbox {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  z-index: 3;
+  min-width: 44px;
+  min-height: 44px;
+  padding: var(--spacing-xs);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-small);
+  box-shadow: var(--shadow-sm);
+}
+
+.team-card.is-selected {
+  border-color: var(--danger-color);
+  box-shadow: var(--shadow-md);
+  background: rgba(220, 53, 69, 0.04);
+}
+
+.team-card.is-selected .team-card-select-label--corner .aidunite-admin-checkbox__box {
+  border-color: var(--danger-color);
+}
+
+.team-card.is-selected .aidunite-admin-checkbox__input:checked + .aidunite-admin-checkbox__box {
+  background: var(--danger-color);
+  border-color: var(--danger-color);
+}
+
+/* ラベル＋説明文（一括選択など） */
+.aidunite-admin-checkbox--row {
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) 0;
+}
+
+.aidunite-admin-checkbox--row .aidunite-admin-checkbox__input {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  transform: translateY(-50%);
+}
+
+.aidunite-admin-checkbox--row .aidunite-admin-checkbox__label-text {
+  margin-left: calc(20px + var(--spacing-sm));
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  user-select: none;
+}

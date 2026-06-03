@@ -1,0 +1,658 @@
+﻿# マッチ系・スケジュール登録 E2Eテスト PowerShellスクリプト（CookieContainer直接使用版）
+#Requires -Version 5.1
+
+$script:BaseUrl = "http://aidunite-d.local"
+$script:TestResults = @()
+$script:TestStartTime = Get-Date
+$script:GlobalSession = $null
+
+$script:TestUsers = @{
+    "test_use" = @{
+        Email = "test_use@example.com"
+        Password = "TestPassword123!"
+        TeamId = 92
+        Role = "team_leader"
+    }
+    "test_team_leader" = @{
+        Email = "test_team_leader@example.com"
+        Password = "TestPassword123!"
+        TeamId = 689
+        Role = "team_leader"
+    }
+    "test_team_leader2" = @{
+        Email = "test_team_leader2@example.com"
+        Password = "TestPassword123!"
+        TeamId = 2387
+        Role = "team_leader"
+    }
+}
+
+function Write-TestLog {
+    param([string]$Message, [string]$Level = "INFO")
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $color = switch ($Level) {
+        "SUCCESS" { "Green" }
+        "ERROR" { "Red" }
+        "WARNING" { "Yellow" }
+        default { "White" }
+    }
+    Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $color
+}
+
+function Write-TestResult {
+    param([string]$TestCaseId, [string]$TestCaseName, [bool]$Passed, [string]$Message = "")
+    $result = @{
+        TestCaseId = $TestCaseId
+        TestCaseName = $TestCaseName
+        Passed = $Passed
+        Message = $Message
+        Timestamp = Get-Date
+    }
+    $script:TestResults += $result
+    $status = if ($Passed) { "✅ PASS" } else { "❌ FAIL" }
+    Write-TestLog "${TestCaseId}: ${TestCaseName} - $status" -Level $(if ($Passed) { "SUCCESS" } else { "ERROR" })
+    if ($Message) {
+        Write-TestLog "  → $Message" -Level "INFO"
+    }
+}
+
+function Test-UrlAccessible {
+    param([string]$Url, [Microsoft.PowerShell.Commands.WebRequestSession]$Session = $null)
+    try {
+        if ($Session) {
+            $response = Invoke-WebRequest -Uri $Url -Method Get -TimeoutSec 10 -UseBasicParsing -WebSession $Session -ErrorAction Stop
+        } else {
+            $response = Invoke-WebRequest -Uri $Url -Method Get -TimeoutSec 10 -UseBasicParsing -ErrorAction Stop
+        }
+        return $response.StatusCode -eq 200
+    } catch {
+        return $false
+    }
+}
+
+function Get-WordPressRestNonce {
+    param(
+        [string]$BaseUrl,
+        [Microsoft.PowerShell.Commands.WebRequestSession]$Session = $null,
+        [string]$PageUrl = ""
+    )
+    try {
+        if ([string]::IsNullOrEmpty($PageUrl)) {
+            $PageUrl = "$BaseUrl/mypage"
+        }
+        if ($Session) {
+            $page = Invoke-WebRequest -Uri $PageUrl -UseBasicParsing -WebSession $Session -ErrorAction Stop
+        } else {
+            $page = Invoke-WebRequest -Uri $PageUrl -UseBasicParsing -ErrorAction Stop
+        }
+        $noncePatterns = @(
+            'wpApiSettings\s*=\s*\{[^}]*?nonce["'']\s*:\s*["'']([^"'']+)["'']',
+            'var\s+wpApiSettings\s*=\s*\{[^}]*?nonce["'']\s*:\s*["'']([^"'']+)["'']'
+        )
+        foreach ($pattern in $noncePatterns) {
+            $nonceMatch = [regex]::Match($page.Content, $pattern)
+            if ($nonceMatch.Success -and $nonceMatch.Groups.Count -gt 1) {
+                $nonce = $nonceMatch.Groups[1].Value
+                if ($nonce.Length -ge 10) {
+                    Write-TestLog "REST API Nonce取得成功: $nonce" -Level "SUCCESS"
+                    return $nonce
+                }
+            }
+        }
+        Write-TestLog "REST API Nonceが見つかりません（ページ: $PageUrl）" -Level "WARNING"
+        return $null
+    } catch {
+        Write-TestLog "Nonce取得エラー: $_" -Level "ERROR"
+        return $null
+    }
+}
+
+function Invoke-Login {
+    param([string]$Email, [string]$Password)
+    try {
+        $loginUrl = "$script:BaseUrl/login"
+        Write-TestLog "ログインページにアクセス: $loginUrl" -Level "INFO"
+        $loginPage = Invoke-WebRequest -Uri $loginUrl -UseBasicParsing
+        $nonceMatch = [regex]::Match($loginPage.Content, 'name="aidunite_login_nonce"\s+value="([^"]+)"')
+        if (-not $nonceMatch.Success) {
+            Write-TestLog "ログインNonceが取得できませんでした" -Level "WARNING"
+            return $null
+        }
+        $nonce = $nonceMatch.Groups[1].Value
+        Write-TestLog "ログインNonce取得成功: $nonce" -Level "SUCCESS"
+        
+        $webSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+        $cookieContainer = New-Object System.Net.CookieContainer
+        
+        # HttpWebRequestを直接使用してログインPOST
+        Write-TestLog "ログインPOSTリクエスト送信（HttpWebRequest直接使用）..." -Level "INFO"
+        $request = [System.Net.HttpWebRequest]::Create($loginUrl)
+        $request.Method = "POST"
+        $request.AllowAutoRedirect = $false
+        $request.CookieContainer = $cookieContainer
+        $request.ContentType = "application/x-www-form-urlencoded"
+        
+        # URLエンコード（System.Web.HttpUtilityの代わりに手動で実装）
+        function UrlEncode([string]$value) {
+            $bytes = [System.Text.Encoding]::UTF8.GetBytes($value)
+            $encoded = ""
+            foreach ($byte in $bytes) {
+                if (($byte -ge 48 -and $byte -le 57) -or ($byte -ge 65 -and $byte -le 90) -or ($byte -ge 97 -and $byte -le 122) -or $byte -eq 45 -or $byte -eq 95 -or $byte -eq 46 -or $byte -eq 126) {
+                    $encoded += [char]$byte
+                } else {
+                    $encoded += "%" + $byte.ToString("X2")
+                }
+            }
+            return $encoded
+        }
+        
+        $body = "user_email=" + (UrlEncode $Email) + "&" +
+                "user_pass=" + (UrlEncode $Password) + "&" +
+                "aidunite_login_nonce=" + (UrlEncode $nonce) + "&" +
+                "aidunite_login_submit=" + (UrlEncode "ログイン")
+        
+        $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($body)
+        $request.ContentLength = $bodyBytes.Length
+        
+        $httpResponse = $null
+        try {
+            $requestStream = $request.GetRequestStream()
+            $requestStream.Write($bodyBytes, 0, $bodyBytes.Length)
+            $requestStream.Close()
+            
+            $httpResponse = $request.GetResponse() -as [System.Net.HttpWebResponse]
+            $statusCode = [int]$httpResponse.StatusCode
+            Write-TestLog "ログインPOST成功（ステータス: $statusCode）" -Level "SUCCESS"
+        } catch {
+            if ($_.Exception.Response) {
+                $httpResponse = $_.Exception.Response -as [System.Net.HttpWebResponse]
+                if ($httpResponse) {
+                    $statusCode = [int]$httpResponse.StatusCode
+                    Write-TestLog "ログインPOST成功（リダイレクト: $statusCode）" -Level "SUCCESS"
+                } else {
+                    Write-TestLog "ログインPOSTエラー: $_" -Level "ERROR"
+                    throw
+                }
+            } else {
+                Write-TestLog "ログインPOSTエラー: $_" -Level "ERROR"
+                throw
+            }
+        }
+        
+        if ($httpResponse) {
+            $statusCode = [int]$httpResponse.StatusCode
+            
+            # Set-Cookieヘッダーを取得（302レスポンスの場合）
+            if ($statusCode -eq 302 -or $statusCode -eq 301) {
+                Write-TestLog "リダイレクトレスポンスを検出（ステータス: $statusCode）" -Level "INFO"
+                
+                # CookieContainerからクッキーを取得（自動的に追加されている）
+                $baseUri = New-Object System.Uri($script:BaseUrl)
+                $cookies = $cookieContainer.GetCookies($baseUri)
+                Write-TestLog "CookieContainerから取得したクッキー数: $($cookies.Count)" -Level "INFO"
+                
+                # CookieContainerからWebSession.Cookiesに移行
+                foreach ($cookie in $cookies) {
+                    if ($cookie.Value) {
+                        $webSession.Cookies.Add($cookie)
+                        $displayValue = if ($cookie.Value.Length -gt 30) {
+                            $cookie.Value.Substring(0, 30) + "..."
+                        } else {
+                            $cookie.Value
+                        }
+                        Write-TestLog "  クッキーを追加: $($cookie.Name) = $displayValue" -Level "SUCCESS"
+                        Write-TestLog "    Domain: $($cookie.Domain), Path: $($cookie.Path)" -Level "INFO"
+                    }
+                }
+                
+                # Locationヘッダーを取得
+                $locationValues = $httpResponse.Headers.GetValues('Location')
+                if ($locationValues -and $locationValues.Length -gt 0) {
+                    $locationHeader = $locationValues[0]
+                    Write-TestLog "Locationヘッダー: $locationHeader" -Level "INFO"
+                    
+                    # リダイレクト先にアクセス（クッキーを確実に取得）
+                    Write-TestLog "リダイレクト先にアクセス: $locationHeader" -Level "INFO"
+                    try {
+                        $redirectResponse = Invoke-WebRequest -Uri $locationHeader -UseBasicParsing -WebSession $webSession -ErrorAction Stop
+                        Write-TestLog "リダイレクト後のページアクセス成功（ステータス: $($redirectResponse.StatusCode)）" -Level "SUCCESS"
+                    } catch {
+                        Write-TestLog "リダイレクト後のページアクセスエラー: $_" -Level "WARNING"
+                    }
+                } else {
+                    # Locationヘッダーがない場合は/mypageにアクセス
+                    Write-TestLog "Locationヘッダーがないため、/mypageにアクセス..." -Level "INFO"
+                    try {
+                        $redirectResponse = Invoke-WebRequest -Uri "$script:BaseUrl/mypage" -UseBasicParsing -WebSession $webSession -ErrorAction Stop
+                        Write-TestLog "リダイレクト後のページアクセス成功（ステータス: $($redirectResponse.StatusCode)）" -Level "SUCCESS"
+                    } catch {
+                        Write-TestLog "リダイレクト後のページアクセスエラー: $_" -Level "WARNING"
+                    }
+                }
+            }
+            
+            $httpResponse.Close()
+        }
+        
+        # クッキーの確認
+        if ($webSession.Cookies.Count -gt 0) {
+            Write-TestLog "ログイン成功（セッション確立）" -Level "SUCCESS"
+            Write-TestLog "セッションクッキー数: $($webSession.Cookies.Count)" -Level "INFO"
+            $hasAuthCookie = $false
+            foreach ($cookie in $webSession.Cookies) {
+                $cookieValue = if ($cookie.Value) { $cookie.Value } else { "(null)" }
+                $displayValue = if ($cookieValue -ne "(null)" -and $cookieValue.Length -gt 30) {
+                    $cookieValue.Substring(0, 30) + "..."
+                } else {
+                    $cookieValue
+                }
+                Write-TestLog "  クッキー: $($cookie.Name) = $displayValue" -Level "INFO"
+                Write-TestLog "    Domain: $($cookie.Domain), Path: $($cookie.Path)" -Level "INFO"
+                # WordPressの認証クッキーを確認
+                if ($cookie.Name -like "wordpress_logged_in_*" -or $cookie.Name -like "*logged_in*") {
+                    $hasAuthCookie = $true
+                    Write-TestLog "    → WordPress認証クッキーを検出" -Level "SUCCESS"
+                }
+            }
+            if (-not $hasAuthCookie) {
+                Write-TestLog "警告: WordPress認証クッキーが見つかりません" -Level "WARNING"
+            }
+            return $webSession
+        } else {
+            Write-TestLog "ログイン失敗（セッションクッキーなし）" -Level "WARNING"
+            return $null
+        }
+    } catch {
+        Write-TestLog "ログインエラー: $_" -Level "ERROR"
+        Write-TestLog "スタックトレース: $($_.ScriptStackTrace)" -Level "ERROR"
+        return $null
+    }
+}
+
+function Test-PageElement {
+    param([string]$Url, [string]$ExpectedText = "", [Microsoft.PowerShell.Commands.WebRequestSession]$Session = $null)
+    try {
+        if ($Session) {
+            $response = Invoke-WebRequest -Uri $Url -WebSession $Session -UseBasicParsing -ErrorAction Stop
+        } else {
+            $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -ErrorAction Stop
+        }
+        if ($ExpectedText) {
+            return $response.Content -match [regex]::Escape($ExpectedText)
+        }
+        return $true
+    } catch {
+        Write-TestLog "要素確認エラー: $_" -Level "ERROR"
+        return $false
+    }
+}
+
+function Test-TC001_ScheduleManagementPageDisplay {
+    Write-TestLog "TC-001: スケジュール管理ページの表示確認" -Level "INFO"
+    $user = $script:TestUsers["test_use"]
+    if (-not $script:GlobalSession) {
+        $script:GlobalSession = Invoke-Login -Email $user.Email -Password $user.Password
+        if (-not $script:GlobalSession) {
+            Write-TestResult "TC-001" "スケジュール管理ページの表示確認" $false "ログインに失敗しました"
+            return
+        }
+    }
+    $url = "$script:BaseUrl/schedule-management"
+    $accessible = Test-UrlAccessible -Url $url -Session $script:GlobalSession
+    if (-not $accessible) {
+        Write-TestResult "TC-001" "スケジュール管理ページの表示確認" $false "ページにアクセスできません"
+        return
+    }
+    $hasTitle = Test-PageElement -Url $url -ExpectedText "スケジュール管理" -Session $script:GlobalSession
+    $hasCalendar = Test-PageElement -Url $url -ExpectedText "calendar-container" -Session $script:GlobalSession
+    $hasNewButton = Test-PageElement -Url $url -ExpectedText "新規登録" -Session $script:GlobalSession
+    $passed = $hasTitle -and $hasCalendar -and $hasNewButton
+    Write-TestResult "TC-001" "スケジュール管理ページの表示確認" $passed
+}
+
+function Test-TC007_RecommendedMatchesTabDisplay {
+    Write-TestLog "TC-007: おススメ試合候補タブの表示確認" -Level "INFO"
+    $user = $script:TestUsers["test_use"]
+    if (-not $script:GlobalSession) {
+        $script:GlobalSession = Invoke-Login -Email $user.Email -Password $user.Password
+        if (-not $script:GlobalSession) {
+            Write-TestResult "TC-007" "おススメ試合候補タブの表示確認" $false "ログインに失敗しました"
+            return
+        }
+    }
+    $urls = @(
+        "$script:BaseUrl/match-board-own",
+        "$script:BaseUrl/match-board",
+        "$script:BaseUrl/match-requests"
+    )
+    $url = $null
+    foreach ($testUrl in $urls) {
+        if (Test-UrlAccessible -Url $testUrl -Session $script:GlobalSession) {
+            $url = $testUrl
+            Write-TestLog "アクセス可能なURLを発見: $url" -Level "SUCCESS"
+            break
+        }
+    }
+    if (-not $url) {
+        Write-TestResult "TC-007" "おススメ試合候補タブの表示確認" $false "マッチボードページにアクセスできません（404エラー）"
+        return
+    }
+    # 実際のページ構造に基づいた検索（page-match-board-own.phpを参照）
+    $hasTab = Test-PageElement -Url $url -ExpectedText "おススメ試合候補" -Session $script:GlobalSession
+    $hasContainer = Test-PageElement -Url $url -ExpectedText "match-candidates-container" -Session $script:GlobalSession
+    $hasMatchView = Test-PageElement -Url $url -ExpectedText "match-view" -Session $script:GlobalSession
+    $passed = ($hasTab -or $hasMatchView) -and $hasContainer
+    Write-TestResult "TC-007" "おススメ試合候補タブの表示確認" $passed
+}
+
+function Test-TC008_MatchCardDisplay_BestMatch {
+    Write-TestLog "TC-008: マッチカードの表示確認（ベストマッチ）" -Level "INFO"
+    $user = $script:TestUsers["test_use"]
+    if (-not $script:GlobalSession) {
+        $script:GlobalSession = Invoke-Login -Email $user.Email -Password $user.Password
+        if (-not $script:GlobalSession) {
+            Write-TestResult "TC-008" "マッチカードの表示確認（ベストマッチ）" $false "ログインに失敗しました"
+            return
+        }
+    }
+    $urls = @(
+        "$script:BaseUrl/match-board-own",
+        "$script:BaseUrl/match-board",
+        "$script:BaseUrl/match-requests"
+    )
+    $url = $null
+    foreach ($testUrl in $urls) {
+        if (Test-UrlAccessible -Url $testUrl -Session $script:GlobalSession) {
+            $url = $testUrl
+            break
+        }
+    }
+    if (-not $url) {
+        Write-TestResult "TC-008" "マッチカードの表示確認（ベストマッチ）" $false "マッチボードページにアクセスできません"
+        return
+    }
+    $hasBestMatch = Test-PageElement -Url $url -ExpectedText "ベストマッチ" -Session $script:GlobalSession
+    $hasMatchLabel = Test-PageElement -Url $url -ExpectedText "match-label" -Session $script:GlobalSession
+    $hasReasonChips = Test-PageElement -Url $url -ExpectedText "match-reason-chip" -Session $script:GlobalSession
+    $passed = $hasBestMatch -and $hasMatchLabel -and $hasReasonChips
+    Write-TestResult "TC-008" "マッチカードの表示確認（ベストマッチ）" $passed
+}
+
+function Test-TC013_AllMatchListingsTabDisplay {
+    Write-TestLog "TC-013: すべての対戦募集タブの表示確認" -Level "INFO"
+    $user = $script:TestUsers["test_use"]
+    if (-not $script:GlobalSession) {
+        $script:GlobalSession = Invoke-Login -Email $user.Email -Password $user.Password
+        if (-not $script:GlobalSession) {
+            Write-TestResult "TC-013" "すべての対戦募集タブの表示確認" $false "ログインに失敗しました"
+            return
+        }
+    }
+    $urls = @(
+        "$script:BaseUrl/match-board-own",
+        "$script:BaseUrl/match-board",
+        "$script:BaseUrl/match-requests"
+    )
+    $url = $null
+    foreach ($testUrl in $urls) {
+        if (Test-UrlAccessible -Url $testUrl -Session $script:GlobalSession) {
+            $url = $testUrl
+            break
+        }
+    }
+    if (-not $url) {
+        Write-TestResult "TC-013" "すべての対戦募集タブの表示確認" $false "マッチボードページにアクセスできません"
+        return
+    }
+    $hasTab = Test-PageElement -Url $url -ExpectedText "すべての対戦募集" -Session $script:GlobalSession
+    $hasSummaryBar = Test-PageElement -Url $url -ExpectedText "match-summary-bar" -Session $script:GlobalSession
+    $hasBoardView = Test-PageElement -Url $url -ExpectedText "board-view" -Session $script:GlobalSession
+    $passed = ($hasTab -or $hasBoardView) -and $hasSummaryBar
+    Write-TestResult "TC-013" "すべての対戦募集タブの表示確認" $passed
+}
+
+function Test-TC014_MatchCardDisplay_AllListings {
+    Write-TestLog "TC-014: すべての対戦募集タブでのマッチカード表示" -Level "INFO"
+    $user = $script:TestUsers["test_use"]
+    if (-not $script:GlobalSession) {
+        $script:GlobalSession = Invoke-Login -Email $user.Email -Password $user.Password
+        if (-not $script:GlobalSession) {
+            Write-TestResult "TC-014" "すべての対戦募集タブでのマッチカード表示" $false "ログインに失敗しました"
+            return
+        }
+    }
+    $urls = @(
+        "$script:BaseUrl/match-board-own",
+        "$script:BaseUrl/match-board",
+        "$script:BaseUrl/match-requests"
+    )
+    $url = $null
+    foreach ($testUrl in $urls) {
+        if (Test-UrlAccessible -Url $testUrl -Session $script:GlobalSession) {
+            $url = $testUrl
+            break
+        }
+    }
+    if (-not $url) {
+        Write-TestResult "TC-014" "すべての対戦募集タブでのマッチカード表示" $false "マッチボードページにアクセスできません"
+        return
+    }
+    $hasMatchCard = Test-PageElement -Url $url -ExpectedText "match-card-slider-item" -Session $script:GlobalSession
+    $hasMatchLabel = Test-PageElement -Url $url -ExpectedText "match-label" -Session $script:GlobalSession
+    $noTeamName = -not (Test-PageElement -Url $url -ExpectedText "match-card-team-name" -Session $script:GlobalSession)
+    $passed = $hasMatchCard -and $hasMatchLabel -and $noTeamName
+    Write-TestResult "TC-014" "すべての対戦募集タブでのマッチカード表示" $passed
+}
+
+function Test-TC017_TabSwitching {
+    Write-TestLog "TC-017: タブ切り替えの動作確認" -Level "INFO"
+    $user = $script:TestUsers["test_use"]
+    if (-not $script:GlobalSession) {
+        $script:GlobalSession = Invoke-Login -Email $user.Email -Password $user.Password
+        if (-not $script:GlobalSession) {
+            Write-TestResult "TC-017" "タブ切り替えの動作確認" $false "ログインに失敗しました"
+            return
+        }
+    }
+    $urls = @(
+        "$script:BaseUrl/match-board-own",
+        "$script:BaseUrl/match-board",
+        "$script:BaseUrl/match-requests"
+    )
+    $url = $null
+    foreach ($testUrl in $urls) {
+        if (Test-UrlAccessible -Url $testUrl -Session $script:GlobalSession) {
+            $url = $testUrl
+            break
+        }
+    }
+    if (-not $url) {
+        Write-TestResult "TC-017" "タブ切り替えの動作確認" $false "マッチボードページにアクセスできません"
+        return
+    }
+    $hasRecommendedTab = Test-PageElement -Url $url -ExpectedText "おススメ試合候補" -Session $script:GlobalSession
+    $hasAllListingsTab = Test-PageElement -Url $url -ExpectedText "すべての対戦募集" -Session $script:GlobalSession
+    $hasProgressTab = Test-PageElement -Url $url -ExpectedText "私の申請の進捗確認" -Session $script:GlobalSession
+    $hasRematchTab = Test-PageElement -Url $url -ExpectedText "おすすめ再試合" -Session $script:GlobalSession
+    $passed = $hasRecommendedTab -and $hasAllListingsTab -and $hasProgressTab -and $hasRematchTab
+    Write-TestResult "TC-017" "タブ切り替えの動作確認" $passed
+}
+
+function Test-ScheduleRegistrationAPI {
+    param([string]$Email, [string]$Password, [hashtable]$ScheduleData)
+    try {
+        if (-not $script:GlobalSession) {
+            $script:GlobalSession = Invoke-Login -Email $Email -Password $Password
+            if (-not $script:GlobalSession) {
+                Write-TestLog "ログイン失敗" -Level "ERROR"
+                return $false
+            }
+        }
+        $restNonce = Get-WordPressRestNonce -BaseUrl $script:BaseUrl -Session $script:GlobalSession -PageUrl "$script:BaseUrl/mypage"
+        if (-not $restNonce) {
+            Write-TestLog "REST API Nonce取得失敗" -Level "ERROR"
+            return $false
+        }
+        $apiUrl = "$script:BaseUrl/wp-json/aidunite/v1/register-schedule-v2"
+        $headers = @{
+            "Content-Type" = "application/json"
+            "X-WP-Nonce" = $restNonce
+        }
+        $body = $ScheduleData | ConvertTo-Json -Depth 10
+        Write-TestLog "API呼び出し前のセッションクッキー数: $($script:GlobalSession.Cookies.Count)" -Level "INFO"
+        # クッキーを手動で確認・設定
+        $cookieHeader = ""
+        foreach ($cookie in $script:GlobalSession.Cookies) {
+            if ($cookie.Value) {
+                if ($cookieHeader) {
+                    $cookieHeader += "; "
+                }
+                $cookieHeader += "$($cookie.Name)=$($cookie.Value)"
+            }
+        }
+        if ($cookieHeader) {
+            $headers["Cookie"] = $cookieHeader
+            Write-TestLog "Cookieヘッダーを設定: $($cookieHeader.Substring(0, [Math]::Min(100, $cookieHeader.Length)))..." -Level "INFO"
+        } else {
+            Write-TestLog "警告: Cookieヘッダーが設定できませんでした（クッキー値がnull）" -Level "WARNING"
+        }
+        $response = Invoke-RestMethod -Uri $apiUrl -Method Post -Headers $headers -Body $body -WebSession $script:GlobalSession -ErrorAction Stop
+        if ($response.success -eq $true) {
+            Write-TestLog "スケジュール登録成功: schedule_id=$($response.data.schedule_id)" -Level "SUCCESS"
+            return $true
+        } else {
+            Write-TestLog "スケジュール登録失敗: $($response.message)" -Level "ERROR"
+            return $false
+        }
+    } catch {
+        $errorMessage = $_.Exception.Message
+        if ($_.Exception.Response) {
+            try {
+                $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+                $responseBody = $reader.ReadToEnd()
+                $errorMessage += " - Response: $responseBody"
+            } catch {
+            }
+        }
+        Write-TestLog "API呼び出しエラー: $errorMessage" -Level "ERROR"
+        return $false
+    }
+}
+
+function Test-TC002_RegisterConfirmedSchedule {
+    Write-TestLog "TC-002: 確定スケジュールの登録" -Level "INFO"
+    $user = $script:TestUsers["test_use"]
+    $futureDate = (Get-Date).AddDays(7).ToString("yyyy-MM-dd")
+    $scheduleData = @{
+        date = $futureDate
+        start_time = "14:00"
+        end_time = "16:00"
+        type = "練習試合"
+        intent = "confirmed"
+        schedule_place = "home"
+        schedule_gender = "male"
+        note = "テスト用スケジュール"
+    }
+    $passed = Test-ScheduleRegistrationAPI -Email $user.Email -Password $user.Password -ScheduleData $scheduleData
+    Write-TestResult "TC-002" "確定スケジュールの登録" $passed
+}
+
+function Test-TC003_RegisterTentativeSchedule {
+    Write-TestLog "TC-003: 仮スケジュールの登録" -Level "INFO"
+    $user = $script:TestUsers["test_use"]
+    $futureDate = (Get-Date).AddDays(8).ToString("yyyy-MM-dd")
+    $scheduleData = @{
+        date = $futureDate
+        start_time = "10:00"
+        end_time = "12:00"
+        type = "練習"
+        intent = "tentative"
+        schedule_place = "away"
+        schedule_gender = "female"
+    }
+    $passed = Test-ScheduleRegistrationAPI -Email $user.Email -Password $user.Password -ScheduleData $scheduleData
+    Write-TestResult "TC-003" "仮スケジュールの登録" $passed
+}
+
+function Test-TC004_RegisterRecruitSchedule {
+    Write-TestLog "TC-004: マッチング希望スケジュールの登録（募集）" -Level "INFO"
+    $user = $script:TestUsers["test_use"]
+    $futureDate = (Get-Date).AddDays(9).ToString("yyyy-MM-dd")
+    $scheduleData = @{
+        date = $futureDate
+        start_time = "15:00"
+        end_time = "17:00"
+        type = "練習試合"
+        intent = "recruit"
+        schedule_place = "home"
+        schedule_gender = "male"
+        male_teams = 1
+        female_teams = 0
+        venue_name = "テスト会場"
+    }
+    $passed = Test-ScheduleRegistrationAPI -Email $user.Email -Password $user.Password -ScheduleData $scheduleData
+    Write-TestResult "TC-004" "マッチング希望スケジュールの登録（募集）" $passed
+}
+
+function Invoke-AllTests {
+    Write-TestLog "============================================" -Level "INFO"
+    Write-TestLog "マッチ系・スケジュール登録 E2Eテスト開始" -Level "INFO"
+    Write-TestLog "============================================" -Level "INFO"
+    Write-TestLog "ベースURL: $script:BaseUrl" -Level "INFO"
+    Write-TestLog "開始時刻: $script:TestStartTime" -Level "INFO"
+    Write-TestLog "" -Level "INFO"
+    $script:GlobalSession = $null
+    Write-TestLog "--- セクション1: スケジュール登録機能 ---" -Level "INFO"
+    Test-TC001_ScheduleManagementPageDisplay
+    Test-TC002_RegisterConfirmedSchedule
+    Test-TC003_RegisterTentativeSchedule
+    Test-TC004_RegisterRecruitSchedule
+    Write-TestLog "" -Level "INFO"
+    Write-TestLog "--- セクション2: マッチング機能（おススメ試合候補） ---" -Level "INFO"
+    Test-TC007_RecommendedMatchesTabDisplay
+    Test-TC008_MatchCardDisplay_BestMatch
+    Write-TestLog "" -Level "INFO"
+    Write-TestLog "--- セクション3: マッチング機能（すべての対戦募集） ---" -Level "INFO"
+    Test-TC013_AllMatchListingsTabDisplay
+    Test-TC014_MatchCardDisplay_AllListings
+    Write-TestLog "" -Level "INFO"
+    Write-TestLog "--- セクション4: タブ切り替えと統合テスト ---" -Level "INFO"
+    Test-TC017_TabSwitching
+    Write-TestLog "" -Level "INFO"
+    $endTime = Get-Date
+    $duration = $endTime - $script:TestStartTime
+    $totalTests = $script:TestResults.Count
+    $passedTests = ($script:TestResults | Where-Object { $_.Passed }).Count
+    $failedTests = $totalTests - $passedTests
+    Write-TestLog "============================================" -Level "INFO"
+    Write-TestLog "テスト結果サマリー" -Level "INFO"
+    Write-TestLog "============================================" -Level "INFO"
+    Write-TestLog "総テスト数: $totalTests" -Level "INFO"
+    Write-TestLog "成功: $passedTests" -Level "SUCCESS"
+    Write-TestLog "失敗: $failedTests" -Level $(if ($failedTests -gt 0) { "ERROR" } else { "INFO" })
+    Write-TestLog "実行時間: $($duration.TotalSeconds)秒" -Level "INFO"
+    Write-TestLog "" -Level "INFO"
+    if ($failedTests -gt 0) {
+        Write-TestLog "失敗したテストケース:" -Level "ERROR"
+        $script:TestResults | Where-Object { -not $_.Passed } | ForEach-Object {
+            Write-TestLog "  - $($_.TestCaseId): $($_.TestCaseName)" -Level "ERROR"
+            if ($_.Message) {
+                Write-TestLog "    → $($_.Message)" -Level "ERROR"
+            }
+        }
+    }
+    $csvPath = "TestResults_$(Get-Date -Format 'yyyyMMdd_HHmmss').csv"
+    $script:TestResults | Select-Object TestCaseId, TestCaseName, Passed, Message, Timestamp | Export-Csv -Path $csvPath -NoTypeInformation -Encoding utf8
+    Write-TestLog "テスト結果をCSVファイルに出力しました: $csvPath" -Level "INFO"
+    return $script:TestResults
+}
+
+if ($MyInvocation.InvocationName -ne '.') {
+    try {
+        Invoke-AllTests
+    } catch {
+        Write-TestLog "テスト実行中にエラーが発生しました: $_" -Level "ERROR"
+        Write-TestLog $_.ScriptStackTrace -Level "ERROR"
+        exit 1
+    }
+}

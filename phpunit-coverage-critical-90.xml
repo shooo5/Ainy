@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  母数 90% 用: テストで実際に実行している Critical ファイルのみを include に含める。
+  auth-middleware, profile-functions, chat-functions の 3 ファイルに限定し、
+  この範囲で 90% 以上を目指す。
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.5/phpunit.xsd"
+         bootstrap="tests/bootstrap-simple.php"
+         colors="true"
+         verbose="true"
+         stopOnFailure="false">
+
+    <testsuites>
+        <testsuite name="unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="simple-integration">
+            <directory>tests/SimpleIntegration</directory>
+        </testsuite>
+        <testsuite name="integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
+    </testsuites>
+
+    <coverage>
+        <include>
+            <file>functions/common/auth-middleware.php</file>
+            <file>functions/user/profile-functions.php</file>
+            <file>functions/messaging/chat-functions.php</file>
+        </include>
+        <exclude>
+            <directory>tests/</directory>
+            <directory>vendor/</directory>
+            <directory>backups/</directory>
+        </exclude>
+    </coverage>
+
+    <php>
+        <env name="AIDUNITE_TEST_MODE" value="true"/>
+    </php>
+</phpunit>

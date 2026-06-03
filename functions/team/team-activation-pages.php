@@ -1,0 +1,91 @@
+<?php
+/**
+ * アクティベーション: 旧 /first-match リダイレクト・ページゲート
+ *
+ * @package AidUnite
+ * @see docs/spec/account-onboarding.md §5A
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+/**
+ * 廃止した /first-match へのリクエストか
+ *
+ * @return bool
+ */
+function aidunite_is_legacy_first_match_request() {
+    if (is_page('first-match')) {
+        return true;
+    }
+
+    $pagename = get_query_var('pagename');
+    if ($pagename === 'first-match') {
+        return true;
+    }
+
+    if (function_exists('aidunite_get_request_path_slug')) {
+        return aidunite_get_request_path_slug() === 'first-match';
+    }
+
+    $path = trim((string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
+
+    return $path === 'first-match' || str_ends_with($path, '/first-match');
+}
+
+/**
+ * 旧 /first-match → スケジュール登録へ恒久リダイレクト
+ */
+function aidunite_activation_legacy_first_match_redirect() {
+    if (!aidunite_is_legacy_first_match_request()) {
+        return;
+    }
+
+    wp_safe_redirect(aidunite_get_activation_recruit_edit_url());
+    exit;
+}
+
+add_action('template_redirect', 'aidunite_activation_legacy_first_match_redirect', 5);
+
+/**
+ * ロックページへのアクセス制御
+ */
+function aidunite_activation_page_restrictions() {
+    if (!is_user_logged_in() || !is_page()) {
+        return;
+    }
+
+    if (!function_exists('aidunite_get_effective_user_role')) {
+        return;
+    }
+
+    list($role,) = aidunite_get_effective_user_role();
+    if ($role !== 'team_leader') {
+        return;
+    }
+
+    $post = get_queried_object();
+    if (!$post instanceof WP_Post) {
+        return;
+    }
+
+    $slug = (string) $post->post_name;
+    $team_id = function_exists('aidunite_get_current_team_id')
+        ? (int) aidunite_get_current_team_id()
+        : 0;
+
+    if ($slug === 'communication' && !aidunite_activation_is_chat_unlocked($team_id)) {
+        wp_safe_redirect(add_query_arg('activation_locked', 'chat', home_url('/mypage/')));
+        exit;
+    }
+
+    if (!aidunite_activation_is_page_locked($slug, $team_id)) {
+        return;
+    }
+
+    wp_safe_redirect(add_query_arg('activation_locked', $slug, home_url('/mypage/')));
+    exit;
+}
+
+add_action('template_redirect', 'aidunite_activation_page_restrictions', 12);

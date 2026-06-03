@@ -1,0 +1,246 @@
+/**
+ * AidUnite統一コンポーネントスタイル
+ * BEM記法でクラス命名を統一
+ *
+ * @version 1.0.0
+ * @created 2026-01-13
+ */
+
+/* ========================================
+   カードコンポーネント
+   ======================================== */
+.aidunite-card {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.aidunite-card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.aidunite-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.aidunite-card__title {
+    margin: 0;
+    font-size: var(--font-size-xl); /* 1.25rem = 20px */
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.aidunite-card__body {
+    margin-bottom: 15px;
+}
+
+.aidunite-card__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 15px;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* ========================================
+   ボタンコンポーネント（非推奨：.btnを使用してください）
+   ======================================== */
+/*
+ * 注意: このクラスは非推奨です。
+ * 新しいコードでは .btn クラスを使用してください。
+ * 後方互換性のため、.aidunite-button は .btn のエイリアスとして動作します。
+ */
+.aidunite-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 12px;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    font-family: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    white-space: nowrap;
+    user-select: none;
+    box-sizing: border-box;
+    min-height: 44px;
+}
+
+.aidunite-button--primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    box-shadow: 0 2px 8px rgba(106, 90, 249, 0.3);
+}
+
+.aidunite-button--primary:hover {
+    background: linear-gradient(135deg, var(--primary-dark), var(--secondary-dark));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(106, 90, 249, 0.4);
+}
+
+.aidunite-button--secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 2px solid var(--border-light);
+}
+
+.aidunite-button--secondary:hover {
+    background: var(--border-light);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.aidunite-button--danger {
+    background: linear-gradient(135deg, var(--danger-color), #e74c3c);
+    color: white;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+.aidunite-button--danger:hover {
+    background: linear-gradient(135deg, #c82333, #dc3545);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(220, 53, 69, 0.4);
+}
+
+.aidunite-button--success {
+    background: linear-gradient(135deg, var(--success-color), #20c997);
+    color: white;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.aidunite-button--success:hover {
+    background: linear-gradient(135deg, #218838, var(--success-color));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(40, 167, 69, 0.4);
+}
+
+.aidunite-button--warning {
+    background: linear-gradient(135deg, var(--warning-color), #fd7e14);
+    color: white;
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+}
+
+.aidunite-button--warning:hover {
+    background: linear-gradient(135deg, #e0a800, var(--warning-color));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(255, 193, 7, 0.4);
+}
+
+.aidunite-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* ========================================
+   バッジコンポーネント
+   ======================================== */
+.aidunite-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: var(--font-size-xs); /* 0.75rem = 12px */
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.aidunite-badge--primary {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.aidunite-badge--success {
+    background: #e8f5e9;
+    color: #388e3c;
+}
+
+.aidunite-badge--warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.aidunite-badge--danger {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.aidunite-badge--info {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+/* ========================================
+   アラートコンポーネント
+   ======================================== */
+.aidunite-alert {
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    border-left: 4px solid;
+}
+
+.aidunite-alert--success {
+    background: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+.aidunite-alert--error {
+    background: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+.aidunite-alert--warning {
+    background: #fff3cd;
+    border-color: #ffc107;
+    color: #856404;
+}
+
+.aidunite-alert--info {
+    background: #d1ecf1;
+    border-color: #17a2b8;
+    color: #0c5460;
+}
+
+.aidunite-alert__title {
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.aidunite-alert__message {
+    margin: 0;
+}
+
+/* ========================================
+   レスポンシブ対応
+   ======================================== */
+@media (max-width: 768px) {
+    .aidunite-card {
+        padding: 15px;
+    }
+
+    .aidunite-card__footer {
+        flex-direction: column;
+    }
+
+    .aidunite-button {
+        width: 100%;
+    }
+}

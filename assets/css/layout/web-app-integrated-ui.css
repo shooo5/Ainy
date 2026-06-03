@@ -1,0 +1,899 @@
+/**
+ * Webアプリ一体型上部UI（ヘッダー + ヒーロー + 白コンテンツ）
+ * マイページ v2 と同型。boys/girls は team-theme.css の --hero-gradient 等を参照。
+ */
+
+/* グローバル白ヘッダーを隠し、レイアウト余白をリセット */
+body.web-app-integrated-ui .ainy-header {
+  display: none;
+}
+
+body.web-app-integrated-ui #main.site-main,
+body.web-app-integrated-ui .full-container,
+body.web-app-integrated-ui .site-content {
+  margin-top: 0;
+  padding-top: 0;
+  min-height: 0;
+}
+
+body.web-app-integrated-ui #page,
+body.web-app-integrated-ui .full-container {
+  background: var(--bg-secondary, #f7f8fc);
+}
+
+/* ページシェル幅（本体・ヒーロー・ボトムナビで共通） */
+body.web-app-integrated-ui {
+  --ainy-webapp-shell-max-width: 1200px;
+}
+
+/* ページラッパー */
+.ainy-webapp-page,
+body.web-app-integrated-ui .team-dashboard-container.ainy-webapp-page {
+  width: 100%;
+  max-width: var(--ainy-webapp-shell-max-width, 1200px);
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 一体型ヒーロー（mypage-v2-hero と共有クラス） */
+.ainy-webapp-hero,
+.mypage-v2-hero {
+  background:
+    radial-gradient(circle at 80% 20%, var(--hero-glow), transparent 30%),
+    var(--hero-gradient);
+  color: var(--text-on-dark, #fff);
+  padding: max(var(--spacing-sm, 0.5rem), env(safe-area-inset-top, 0px)) var(--spacing-md, 1.5rem) var(--spacing-lg, 2rem);
+  border-bottom-left-radius: var(--radius-large, 26px);
+  border-bottom-right-radius: var(--radius-large, 26px);
+}
+
+.ainy-webapp-hero--sm {
+  padding-bottom: var(--spacing-md, 1.5rem);
+}
+
+.ainy-webapp-hero--lg {
+  padding-bottom: var(--spacing-xl, 3rem);
+}
+
+/* ヒーロー内ヘッダーバー */
+.ainy-webapp-hero-bar,
+.mypage-v2-hero-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm, 0.5rem);
+  max-width: 1200px;
+  margin: 0 auto var(--spacing-sm, 0.5rem);
+}
+
+.ainy-webapp-hero-logo,
+.mypage-v2-hero-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm, 0.75rem);
+  text-decoration: none;
+  color: var(--text-on-dark, #fff);
+  font-size: var(--font-size-lg, 1.5rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+
+.ainy-webapp-hero-logo-icon,
+.mypage-v2-hero-logo-icon {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--theme-accent), var(--theme-accent-dark));
+  border-radius: var(--radius-base, 8px);
+  font-weight: 800;
+  font-size: var(--font-size-base, 1.125rem);
+}
+
+.ainy-webapp-hero-logo:focus-visible,
+.mypage-v2-hero-logo:focus-visible {
+  outline: 2px solid var(--focus-ring-color, var(--theme-accent));
+  outline-offset: 2px;
+  border-radius: var(--radius-small, 6px);
+}
+
+.ainy-webapp-hero-actions,
+.mypage-v2-hero-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs, 0.375rem);
+  min-width: 0;
+}
+
+.ainy-webapp-hero-operating-team .ainy-operating-team,
+.mypage-v2-hero-operating-team .ainy-operating-team {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs, 0.25rem);
+}
+
+.ainy-webapp-hero-operating-team .ainy-operating-team__label,
+.mypage-v2-hero-operating-team .ainy-operating-team__label {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--font-size-xs, 0.75rem);
+  white-space: nowrap;
+}
+
+.ainy-webapp-hero-operating-team .ainy-operating-team__select,
+.mypage-v2-hero-operating-team .ainy-operating-team__select {
+  max-width: 8.5rem;
+  min-height: 36px;
+  padding: 0 var(--spacing-xs, 0.25rem);
+  border-radius: var(--radius-small, 8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-on-dark, #fff);
+  font-size: var(--font-size-xs, 0.75rem);
+}
+
+.ainy-webapp-hero-actions .ainy-webapp-hero-icon-link.ainy-header-icon-link,
+.ainy-webapp-hero-actions .mypage-v2-hero-icon-link.ainy-header-icon-link,
+.mypage-v2-hero-actions .mypage-v2-hero-icon-link.ainy-header-icon-link {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: none;
+}
+
+.ainy-webapp-hero-actions .ainy-webapp-hero-icon-link.ainy-header-icon-link:hover,
+.ainy-webapp-hero-actions .mypage-v2-hero-icon-link.ainy-header-icon-link:hover,
+.mypage-v2-hero-actions .mypage-v2-hero-icon-link.ainy-header-icon-link:hover {
+  background: rgba(255, 255, 255, 0.16);
+  transform: none;
+}
+
+.ainy-webapp-hero-actions .ainy-webapp-hero-icon-link.is-active,
+.ainy-webapp-hero-actions .mypage-v2-hero-icon-link.is-active,
+.mypage-v2-hero-actions .mypage-v2-hero-icon-link.is-active {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.ainy-webapp-hero-hamburger.ainy-hamburger,
+.mypage-v2-hero-hamburger.ainy-hamburger {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-base, 8px);
+  min-width: 44px;
+  min-height: 44px;
+  padding: var(--spacing-sm, 0.5rem);
+}
+
+.ainy-webapp-hero-hamburger .ainy-hamburger-icon span,
+.mypage-v2-hero-hamburger .ainy-hamburger-icon span {
+  background: var(--text-on-dark, #fff);
+}
+
+.ainy-webapp-hero-hamburger:hover,
+.mypage-v2-hero-hamburger:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.ainy-webapp-hero-hamburger:focus-visible,
+.mypage-v2-hero-hamburger:focus-visible {
+  outline: 2px solid var(--focus-ring-color, var(--theme-accent));
+  outline-offset: 2px;
+}
+
+/* タイトル行（← タイトル アクション） */
+.ainy-webapp-hero-main {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.ainy-webapp-hero-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm, 0.5rem);
+  min-height: 44px;
+}
+
+.ainy-webapp-hero-title-start {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs, 0.25rem);
+  min-width: 0;
+  flex: 1;
+}
+
+.ainy-webapp-hero-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-base, 8px);
+  background: transparent;
+  color: var(--text-on-dark, #fff);
+  font-size: 1.75rem;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ainy-webapp-hero-back:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ainy-webapp-hero-back:focus-visible {
+  outline: 2px solid var(--focus-ring-color, var(--theme-accent));
+  outline-offset: 2px;
+}
+
+.ainy-webapp-hero-title {
+  margin: 0;
+  font-size: var(--font-size-xl, 1.375rem);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text-on-dark, #fff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ainy-webapp-hero--sm .ainy-webapp-hero-title {
+  font-size: var(--font-size-lg, 1.25rem);
+}
+
+.ainy-webapp-hero--lg .ainy-webapp-hero-title {
+  font-size: var(--font-size-2xl, 1.5rem);
+}
+
+.ainy-webapp-hero-subtitle {
+  margin: var(--spacing-xs, 0.25rem) 0 0;
+  padding-left: calc(44px + var(--spacing-xs, 0.25rem));
+  font-size: var(--font-size-sm, 0.875rem);
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.ainy-webapp-hero--sm .ainy-webapp-hero-subtitle {
+  padding-left: calc(44px + var(--spacing-xs, 0.25rem));
+}
+
+.ainy-webapp-hero-title-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs, 0.25rem);
+  flex-shrink: 0;
+}
+
+.ainy-webapp-hero-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--spacing-sm, 0.5rem);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-base, 8px);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-on-dark, #fff);
+  font-size: var(--font-size-lg, 1.25rem);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.ainy-webapp-hero-action:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.ainy-webapp-hero-action:focus-visible {
+  outline: 2px solid var(--focus-ring-color, var(--theme-accent));
+  outline-offset: 2px;
+}
+
+.ainy-webapp-hero-body {
+  margin-top: var(--spacing-md, 1.5rem);
+}
+
+/* ヒーロー内チーム情報カード（チーム設定など） */
+.ainy-webapp-hero-team-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-base, 1rem);
+  padding: var(--spacing-base, 1rem);
+  border-radius: var(--radius-medium, 12px);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.ainy-webapp-hero-team-card__logo {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-medium, 12px);
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+.ainy-webapp-hero-team-card__logo--placeholder {
+  display: grid;
+  place-items: center;
+  font-size: 1.75rem;
+}
+
+.ainy-webapp-hero-team-card__name {
+  margin: 0;
+  font-size: var(--font-size-lg, 1.25rem);
+  font-weight: 700;
+  color: var(--text-on-dark, #fff);
+  word-break: break-word;
+}
+
+.ainy-webapp-hero-team-card__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ainy-webapp-hero-team-card__meta {
+  margin: var(--spacing-xs, 0.25rem) 0 0;
+  font-size: var(--font-size-sm, 0.875rem);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.ainy-webapp-hero-team-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs, 0.35rem);
+  margin-top: var(--spacing-sm, 0.5rem);
+}
+
+.ainy-webapp-hero-team-card__badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-small, 6px);
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: var(--text-on-dark, #fff);
+}
+
+.ainy-webapp-hero-team-card__badge--status {
+  background: rgba(255, 193, 7, 0.2);
+  border-color: rgba(255, 193, 7, 0.45);
+}
+
+.ainy-webapp-hero-team-actions {
+  margin-top: var(--spacing-sm, 0.75rem);
+}
+
+.ainy-webapp-hero-team-actions .team-settings-dash__summary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm, 0.5rem);
+}
+
+.ainy-webapp-hero-team-actions .team-settings-dash__btn {
+  min-height: 40px;
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.ainy-webapp-hero-team-actions .team-settings-dash__btn--primary {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: var(--text-on-dark, #fff);
+}
+
+.ainy-webapp-hero-team-actions .team-settings-dash__btn--secondary {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: var(--text-on-dark, #fff);
+}
+
+.ainy-webapp-hero-team-actions .team-settings-dash__summary-actions-divider {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.ainy-webapp-hero-team-actions .team-settings-dash__summary-actions-note {
+  margin: var(--spacing-xs, 0.35rem) 0 0;
+  font-size: var(--font-size-sm, 0.875rem);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* 白コンテンツ（ヒーロー下・上角丸で被せる） */
+.ainy-webapp-content,
+.mypage-v2-content {
+  margin-top: -14px;
+  background: var(--bg-primary, #fff);
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
+  padding: var(--spacing-base, 1rem) var(--spacing-md, 1.5rem) var(--spacing-lg, 2rem);
+  position: relative;
+  z-index: 1;
+}
+
+.ainy-webapp-content--flush {
+  padding-top: 0;
+}
+
+/* 通知一覧（シェル幅は他ページと同じ 1200px。旧 430/640px は廃止） */
+body.web-app-integrated-ui .page-notifications.ainy-notifications-page.ainy-webapp-page {
+  padding: 0;
+  background: var(--bg-secondary, #f7f8fc);
+}
+
+@media (min-width: 769px) {
+  body.web-app-integrated-ui .page-notifications.ainy-notifications-page.ainy-webapp-page {
+    margin-top: var(--spacing-base, 1rem);
+    border-radius: var(--radius-large, 16px);
+    overflow: hidden;
+    box-shadow: var(--shadow-lg, 0 20px 60px rgba(15, 23, 42, 0.12));
+  }
+}
+
+body.web-app-integrated-ui .ainy-webapp-page .ainy-notifications-filter-tabs {
+  margin: 0;
+  padding-left: var(--ainy-notif-gutter, var(--spacing-base, 1rem));
+  padding-right: var(--ainy-notif-gutter, var(--spacing-base, 1rem));
+}
+
+/* チーム設定 */
+body.web-app-integrated-ui .page-team-settings .team-settings-dash {
+  background: transparent;
+  padding: 0;
+  min-height: 0;
+}
+
+body.web-app-integrated-ui .page-team-settings .team-settings-dash__inner {
+  padding: 0;
+  max-width: none;
+}
+
+body.web-app-integrated-ui .page-team-settings .team-settings-dash__section#team-summary {
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+}
+
+body.web-app-integrated-ui .page-team-settings .team-settings-dash__section-title--in-head {
+  display: none;
+}
+
+body.web-app-integrated-ui .page-team-settings .team-settings-dash__summary-hero {
+  display: none;
+}
+
+body.web-app-integrated-ui .page-team-settings .team-settings-dash__summary-name-block {
+  display: none;
+}
+
+body.web-app-integrated-ui .page-team-settings .team-settings-dash__section#team-menu {
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+body.web-app-integrated-ui .page-team-settings .team-settings-dash__section--compact .team-settings-dash__public-block {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+body.web-app-integrated-ui .page-team-settings .team-settings-dash__section--compact {
+  margin-bottom: var(--spacing-base, 1rem);
+}
+
+body.web-app-integrated-ui .page-team-settings .team-settings-dash__section#team-form {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* スケジュール一覧 */
+body.web-app-integrated-ui.page-schedule-list .wrap.ainy-webapp-page {
+  max-width: var(--ainy-webapp-shell-max-width, 1200px);
+  margin: 0 auto;
+  padding: 0 var(--spacing-base, 1rem) var(--spacing-lg, 2rem);
+}
+
+body.web-app-integrated-ui .ainy-webapp-content--schedule-list {
+  padding-top: var(--spacing-md, 1.5rem);
+}
+
+/* マッチ掲示板：旧 dashboard-header を非表示（置換時） */
+body.web-app-integrated-ui .page-match-board-own .dashboard-header--replaced {
+  display: none;
+}
+
+/* ========================================
+   ボトムナビ：ページシェル幅に合わせる（全幅 fixed をやめる）
+   ======================================== */
+body.ainy-bottom-nav-unified {
+  --ainy-webapp-shell-max-width: 1200px;
+  --nav-app-box-shadow: 0 -8px 28px rgba(8, 24, 39, 0.35);
+}
+
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav {
+  left: 50%;
+  right: auto;
+  width: 100%;
+  max-width: var(--ainy-webapp-shell-max-width, 1200px);
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  border-top-left-radius: var(--radius-large, 22px);
+  border-top-right-radius: var(--radius-large, 22px);
+  justify-content: center;
+}
+
+/* 統一5リンクナビ（ダーク） */
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app {
+  display: block;
+  background: var(--nav-dark-gradient, linear-gradient(180deg, #1a3a5c 0%, #0f2840 100%));
+  border-top: none;
+  padding-top: var(--spacing-sm, 0.5rem);
+  padding-left: var(--spacing-sm, 0.75rem);
+  padding-right: var(--spacing-sm, 0.75rem);
+  padding-bottom: calc(var(--spacing-sm, 0.5rem) + env(safe-area-inset-bottom, 0px));
+  box-shadow: var(--nav-app-box-shadow, 0 -8px 28px rgba(8, 24, 39, 0.35));
+}
+
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-inner {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: center;
+  justify-items: center;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+}
+
+@media (min-width: 768px) {
+  body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-inner {
+    width: auto;
+    max-width: min(100%, 28rem);
+    grid-template-columns: repeat(5, minmax(3rem, 1fr));
+    column-gap: var(--spacing-xs, 0.25rem);
+  }
+}
+
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.55);
+  background: transparent;
+  min-width: 0;
+  padding: var(--spacing-xs, 0.25rem);
+  font-size: var(--font-size-xs, 0.6875rem);
+  font-weight: 600;
+  border-radius: var(--radius-small, 8px);
+  text-decoration: none;
+}
+
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-menu-trigger {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  width: 100%;
+}
+
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-bottom: 2px;
+}
+
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-icon--inline {
+  color: inherit;
+}
+
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-icon__svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-icon__img {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-icon__active {
+  display: none;
+}
+
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link:hover .ainy-bottom-nav-icon__default,
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link.active .ainy-bottom-nav-icon__default {
+  display: none;
+}
+
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link:hover .ainy-bottom-nav-icon__active,
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link.active .ainy-bottom-nav-icon__active {
+  display: block;
+}
+
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link svg {
+  width: 22px;
+  height: 22px;
+  margin-bottom: 2px;
+  opacity: 0.85;
+}
+
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link:hover,
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link.active {
+  color: var(--text-on-dark, #fff);
+  background: transparent;
+}
+
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  background: var(--primary-color, #60a5fa);
+  border-radius: var(--radius-full, 999px);
+}
+
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link.active {
+  position: relative;
+}
+
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link:hover svg,
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link.active svg {
+  opacity: 1;
+  transform: none;
+}
+
+/* 旧4リンクナビ（非 Web アプリページ向けフォールバック） */
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav:not(.ainy-bottom-nav--app) {
+  display: block;
+  padding-top: var(--spacing-sm, 0.5rem);
+  padding-left: 0;
+  padding-right: 0;
+  padding-bottom: calc(var(--spacing-sm, 0.5rem) + env(safe-area-inset-bottom, 0px));
+}
+
+body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav:not(.ainy-bottom-nav--app) .ainy-bottom-nav-inner {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding-left: var(--spacing-sm, 0.5rem);
+  padding-right: var(--spacing-sm, 0.5rem);
+  box-sizing: border-box;
+  justify-content: space-around;
+}
+
+@media (min-width: 768px) {
+  body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav:not(.ainy-bottom-nav--app) .ainy-bottom-nav-inner {
+    width: auto;
+    max-width: min(100%, 22rem);
+    justify-content: center;
+    gap: var(--spacing-lg, 2rem);
+  }
+
+  body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav:not(.ainy-bottom-nav--app) .ainy-bottom-nav-link {
+    min-width: 3.5rem;
+    flex: 0 0 auto;
+  }
+}
+
+/* ========================================
+   固定ページ共通トンマナ（ログイン済み Webアプリ）
+   ======================================== */
+
+body.web-app-integrated-ui {
+  padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  background: var(--bg-secondary, #f7f8fc);
+}
+
+body.web-app-integrated-ui .team-dashboard-container {
+  width: 100%;
+  max-width: var(--ainy-webapp-shell-max-width, 1200px);
+  margin-left: auto;
+  margin-right: auto;
+  padding-bottom: var(--spacing-lg, 2rem);
+  box-sizing: border-box;
+}
+
+body.web-app-integrated-ui .team-dashboard-container:not(.ainy-webapp-page):not(.page-mypage) {
+  padding-left: var(--spacing-base, 1rem);
+  padding-right: var(--spacing-base, 1rem);
+}
+
+body.web-app-integrated-ui .team-dashboard-container.ainy-webapp-page,
+body.web-app-integrated-ui .team-dashboard-container.page-mypage {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* レガシー単体ヘッダー（一体型ヒーローと二重になるため非表示） */
+body.web-app-integrated-ui .dashboard-header,
+body.web-app-integrated-ui .communication-header,
+body.web-app-integrated-ui .page-header,
+body.web-app-integrated-ui .favorite-teams-header,
+body.web-app-integrated-ui .invite-guardian-header,
+body.web-app-integrated-ui .profile-edit-header,
+body.web-app-integrated-ui .ainy-notification-settings__title,
+body.web-app-integrated-ui .ainy-notification-settings__nav-top,
+body.web-app-integrated-ui .team-dashboard-container:has(.ainy-webapp-hero) > .dashboard-header,
+body.web-app-integrated-ui .team-dashboard-container:has(.mypage-v2-hero) > .dashboard-header,
+body.web-app-integrated-ui .dashboard-header--replaced {
+  display: none;
+}
+
+/* ページ固有ラッパーの余白・背景リセット（一体型シェル内） */
+body.web-app-integrated-ui .page-match-detail,
+body.web-app-integrated-ui .page-schedule-edit,
+body.web-app-integrated-ui .page-match-requests-wrap,
+body.web-app-integrated-ui .page-team-management.team-management-page,
+body.web-app-integrated-ui .page-team-members,
+body.web-app-integrated-ui .page-team-payment-management,
+body.web-app-integrated-ui .page-match-analytics,
+body.web-app-integrated-ui .page-edit-player,
+body.web-app-integrated-ui .page-player-add,
+body.web-app-integrated-ui .page-profile-edit.profile-edit-wrapper,
+body.web-app-integrated-ui .page-mypage-favorite-teams,
+body.web-app-integrated-ui .page-invite-guardian,
+body.web-app-integrated-ui .notification-settings-page {
+  background: transparent;
+  padding-top: 0;
+  min-height: 0;
+}
+
+body.web-app-integrated-ui .page-team-payment-management .team-payment-management-grid,
+body.web-app-integrated-ui .page-match-analytics .dashboard-section {
+  margin-top: 0;
+}
+
+body.web-app-integrated-ui .profile-edit-container {
+  padding: var(--spacing-base, 1rem);
+  max-width: 100%;
+}
+
+body.web-app-integrated-ui .profile-edit-card {
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
+  border-radius: var(--radius-medium, 12px);
+}
+
+body.web-app-integrated-ui .page-team-members .members-section {
+  background: var(--bg-primary, #fff);
+  border-radius: var(--radius-medium, 12px);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
+}
+
+body.web-app-integrated-ui .page-team-members .team-members-container,
+body.web-app-integrated-ui .page-notification-settings .ainy-notification-settings__lead,
+body.web-app-integrated-ui .page-team-public .team-public-profile__inner {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+body.web-app-integrated-ui .page-team-public .team-public-profile,
+body.web-app-integrated-ui .page-team-public .team-public-profile--integrated {
+  margin-top: 0;
+  background: transparent;
+  min-height: 0;
+  padding: var(--spacing-base, 1rem);
+}
+
+body.web-app-integrated-ui .page-team-public .team-public-profile__inner {
+  max-width: var(--ainy-webapp-shell-max-width, 1200px);
+}
+
+body.web-app-integrated-ui .page-team-public .team-public-profile__hero {
+  margin-top: 0;
+}
+
+body.web-app-integrated-ui .page-team-public .team-public-profile__title {
+  font-size: var(--font-size-lg, 1.25rem);
+}
+
+body.web-app-integrated-ui .dashboard-section--flush {
+  padding: 0;
+  margin-bottom: var(--spacing-base, 1rem);
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+body.web-app-integrated-ui .ainy-webapp-content--schedule-edit {
+  padding: var(--spacing-base, 1rem);
+}
+
+body.web-app-integrated-ui .page-match-requests-wrap > h1,
+body.web-app-integrated-ui .team-management-page > h1 {
+  display: none;
+}
+
+body.web-app-integrated-ui .page-match-detail .match-detail {
+  padding: 0;
+}
+
+body.web-app-integrated-ui .ainy-webapp-content--communication,
+body.web-app-integrated-ui .ainy-webapp-content--schedule-management {
+  padding-left: var(--spacing-base, 1rem);
+  padding-right: var(--spacing-base, 1rem);
+}
+
+/* 白コンテンツ・カード（レガシー dashboard-section） */
+body.web-app-integrated-ui .dashboard-section,
+body.web-app-integrated-ui .team-dashboard-container .main-content-area {
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-large, 16px);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.06));
+  padding: var(--spacing-lg, 1.5rem);
+  margin-bottom: var(--spacing-lg, 1.5rem);
+}
+
+body.web-app-integrated-ui .ainy-webapp-content .dashboard-section {
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin-bottom: var(--spacing-base, 1rem);
+  background: transparent;
+}
+
+/* タブ（Design Tokens） */
+body.web-app-integrated-ui .tab-navigation {
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-medium, 12px);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.06));
+  margin-bottom: var(--spacing-base, 1rem);
+}
+
+body.web-app-integrated-ui .tab-btn {
+  color: var(--text-secondary);
+  font-size: var(--font-size-base, 1rem);
+  min-height: 44px;
+}
+
+body.web-app-integrated-ui .tab-btn:hover {
+  background: var(--bg-light);
+  color: var(--primary-color);
+}
+
+body.web-app-integrated-ui .tab-btn.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+  background: var(--bg-light);
+}
+
+body.web-app-integrated-ui .tab-btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* フォーム・ボタンは components に任せ、直色の #007bff 上書きを抑止 */
+body.web-app-integrated-ui .dashboard-section .btn-primary,
+body.web-app-integrated-ui .main-content-area .btn-primary {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  border-color: transparent;
+}

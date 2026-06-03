@@ -1,0 +1,292 @@
+/**
+ * テーマ SVG アイコン（インライン currentColor）
+ */
+.aidunite-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 0;
+    vertical-align: middle;
+}
+
+.aidunite-icon__svg,
+.aidunite-icon svg {
+    display: block;
+    flex-shrink: 0;
+}
+
+/* ========================================
+   インライン（SVG + テキスト）整列
+   ======================================== */
+.aidunite-icon--inline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 0;
+    vertical-align: middle;
+}
+
+/* 親要素：先頭アイコン + テキストを flex で中央揃え */
+:is(
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    .section-title,
+    .subsection-title,
+    .profile-section-title,
+    .form-section-title,
+    .dashboard-section > h2,
+    .dashboard-section > h3,
+    .dashboard-section > h4,
+    p,
+    li,
+    label,
+    .status-badge,
+    .radio-option > span,
+    .attendance-title,
+    .attendance-place,
+    .member-name,
+    .match-date,
+    .history-item-type,
+    .login-error-message,
+    .date-info,
+    .form-help-item,
+    .alert
+):has(> .aidunite-icon--inline:first-child),
+:is(
+    .btn,
+    .login-submit-btn,
+    .profile-save-btn,
+    .profile-cancel-btn,
+    .member-register-submit
+):has(> .aidunite-icon--inline:first-child),
+.btn:has(> .btn-icon:first-child),
+.btn:has(> .aidunite-icon:first-child),
+.btn:has(> .btn-nav-chevron),
+.btn:has(> .btn__label) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+}
+
+:is(
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    .section-title,
+    .subsection-title,
+    .profile-section-title,
+    .form-section-title,
+    .dashboard-section > h2,
+    .dashboard-section > h3,
+    .dashboard-section > h4,
+    p,
+    li,
+    .login-error-message,
+    .date-info,
+    .alert
+):has(> .aidunite-icon--inline:first-child) {
+    display: flex;
+}
+
+/* ボタン内アイコンスロット */
+.btn-icon,
+.btn-nav-chevron,
+.post-icon,
+.draft-icon,
+.trial-icon,
+.member-register-submit-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 0;
+}
+
+.btn__label {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    line-height: 1;
+    align-self: center;
+}
+
+.btn-icon .aidunite-icon,
+.btn-nav-chevron.aidunite-icon,
+.btn-nav-chevron,
+.post-icon .aidunite-icon,
+.draft-icon .aidunite-icon,
+.trial-icon .aidunite-icon,
+.member-register-submit-icon .aidunite-icon,
+.btn-icon svg,
+.btn-nav-chevron svg,
+.btn-nav-chevron .aidunite-icon__svg,
+.post-icon svg,
+.draft-icon svg,
+.trial-icon svg,
+.member-register-submit-icon svg {
+    display: block;
+}
+
+.aidunite-icon--danger,
+.aidunite-icon.aidunite-icon--danger {
+    color: var(--danger-color);
+}
+
+.aidunite-icon--success,
+.aidunite-icon.aidunite-icon--success {
+    color: var(--success-color);
+}
+
+.aidunite-icon--warning,
+.aidunite-icon.aidunite-icon--warning {
+    color: var(--warning-color, var(--danger-color));
+}
+
+.aidunite-icon--info,
+.aidunite-icon.aidunite-icon--info {
+    color: var(--info-color);
+}
+
+.aidunite-toast-notification:not([data-type="success"]) .aidunite-toast-icon .aidunite-icon__svg {
+    width: 28px;
+    height: 28px;
+}
+
+.card-icon .aidunite-icon__svg,
+.card-icon.aidunite-icon .aidunite-icon__svg,
+.card-icon .aidunite-icon svg,
+.card-icon svg {
+    display: block;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.completion-icon .aidunite-icon__svg,
+.error-icon .aidunite-icon__svg {
+    width: 48px;
+    height: 48px;
+}
+
+.calendar-nav-btn__chevron .aidunite-icon__svg,
+.btn-nav-chevron .aidunite-icon__svg,
+.btn-nav-chevron svg {
+    display: block;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.ainy-notification-card__icon .aidunite-icon__svg {
+    width: 22px;
+    height: 22px;
+}
+
+.team-settings-dash__menu-icon .aidunite-icon__svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* ========================================
+   アイコン + テキスト（同一行）: 垂直中央揃え
+   ======================================== */
+.aidunite-icon-text-row,
+.schedule-wizard-info-bar,
+.form-help-item,
+.toast-notification-content,
+.ainy-notification-card__header,
+.team-count-label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm, 0.5rem);
+}
+
+.aidunite-icon-text-row__icon,
+.schedule-wizard-info-bar__icon,
+.form-help-item > .aidunite-icon,
+.form-help-item > .aidunite-icon--inline,
+.form-help-item > span:first-child,
+.team-count-label > .team-icon,
+.team-count-label > .aidunite-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 0;
+    align-self: center;
+    margin-top: 0;
+}
+
+/* flex 行内の先頭アイコンスロット（__icon 命名） */
+:is(
+    .alert,
+    .login-error-message,
+    .date-info,
+    .mypage-mission-hint,
+    .dashboard-info-row
+):has(> [class*="__icon"]:first-child) {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm, 0.5rem);
+}
+
+:is(
+    .alert,
+    .login-error-message,
+    .date-info,
+    .mypage-mission-hint,
+    .dashboard-info-row
+) > [class*="__icon"]:first-child {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 0;
+    align-self: center;
+    margin-top: 0;
+}
+
+/* ウィザードナビ（＜ 戻る / 次へ ＞）: 同一行・同高さ・シェブロンとラベル垂直中央 */
+.unified-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.unified-navigation .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm, 0.5rem);
+    line-height: 1;
+    min-height: 48px;
+    box-sizing: border-box;
+    align-self: center;
+}
+
+.unified-navigation .btn .btn__label {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    align-self: center;
+}
+
+.unified-navigation .btn .btn-nav-chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 0;
+    align-self: center;
+    margin: 0;
+    padding: 0;
+}

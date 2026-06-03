@@ -1,0 +1,421 @@
+<?php
+/**
+ * スケジュール登録・更新の本体（normalize 経由 → postmeta 一本化）
+ *
+ * 正ルート: page-schedule-edit.php POST / REST register-schedule-v2 / update-schedule-v2
+ * 互換: admin_post_aidunite_save_schedule（最小メタのみ）
+ *
+ * @package AidUnite
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+/**
+ * フォーム・REST 共通: 生入力を正規化済みペイロードへ
+ *
+ * @param array<string, mixed> $raw
+ * @return array<string, mixed>
+ */
+function aidunite_schedule_normalize_form_input(array $raw) {
+    $intent = sanitize_text_field((string) ($raw['intent'] ?? ''));
+    $certainty = sanitize_text_field((string) ($raw['certainty'] ?? ''));
+    if ($certainty === '' && $intent === 'tentative') {
+        $certainty = 'tentative';
+    }
+
+    $venue = sanitize_text_field((string) ($raw['venue_condition'] ?? $raw['schedule_place'] ?? $raw['place_type'] ?? ''));
+    $gender = sanitize_text_field((string) ($raw['gender_condition'] ?? $raw['schedule_gender'] ?? $raw['gender'] ?? ''));
+
+    $male_slots = isset($raw['male_slots']) ? (int) $raw['male_slots'] : (int) ($raw['male_teams'] ?? 0);
+    $female_slots = isset($raw['female_slots']) ? (int) $raw['female_slots'] : (int) ($raw['female_teams'] ?? 0);
+
+    $payload = [
+        'intent' => $intent,
+        'certainty' => $certainty,
+        'place_type' => $venue,
+        'venue_condition' => $venue,
+        'schedule_place' => $venue,
+        'gender' => $gender,
+        'gender_condition' => $gender,
+        'male_slots' => $male_slots,
+        'female_slots' => $female_slots,
+    ];
+
+    if (function_exists('aidunite_normalize_schedule_payload')) {
+        $payload = aidunite_normalize_schedule_payload($payload);
+    } elseif ($gender !== '' && function_exists('aidunite_normalize_gender_canonical')) {
+        $g = aidunite_normalize_gender_canonical($gender);
+        if ($g !== '') {
+            $payload['gender'] = $g;
+            $payload['gender_condition'] = $g;
+        }
+    }
+
+    $intent_out = (string) ($payload['intent'] ?? $intent);
+    if ($intent_out === '' && function_exists('aidunite_normalize_schedule_intent')) {
+        $intent_out = aidunite_normalize_schedule_intent($intent, $certainty);
+    }
+
+    $place_out = (string) (
+        $payload['schedule_place']
+        ?? $payload['place_type']
+        ?? $payload['venue_condition']
+        ?? $venue
+    );
+    $gender_out = (string) (
+        $payload['gender_condition']
+        ?? $payload['gender']
+        ?? $payload['matching_gender_condition']
+        ?? ''
+    );
+    if ($gender_out !== '' && function_exists('aidunite_normalize_gender_canonical')) {
+        $gender_out = aidunite_normalize_gender_canonical($gender_out);
+    }
+
+    $out = [
+        'intent' => $intent_out !== '' ? $intent_out : 'confirmed',
+        'schedule_type' => sanitize_text_field((string) ($raw['schedule_type'] ?? $raw['type'] ?? '')),
+        'date' => sanitize_text_field((string) ($raw['date'] ?? $raw['start_date'] ?? '')),
+        'start_time' => sanitize_text_field((string) ($raw['start_time'] ?? '')),
+        'end_time' => sanitize_text_field((string) ($raw['end_time'] ?? '')),
+        'venue_condition' => $place_out,
+        'venue_name' => sanitize_text_field((string) ($raw['venue_name'] ?? '')),
+        'gender_condition' => $gender_out,
+        'male_slots' => max(0, (int) ($payload['male_slots'] ?? $male_slots)),
+        'female_slots' => max(0, (int) ($payload['female_slots'] ?? $female_slots)),
+        'team_id' => (int) ($raw['team_id'] ?? 0),
+        'user_id' => (int) ($raw['user_id'] ?? get_current_user_id()),
+        'is_personal' => !empty($raw['is_personal']) ? '1' : '0',
+        'attendance_required' => !empty($raw['attendance_required']) ? '1' : '0',
+        'schedule_quick_memo' => sanitize_textarea_field((string) ($raw['schedule_quick_memo'] ?? $raw['note'] ?? '')),
+    ];
+
+    if (!empty($raw['schedule_gender'])) {
+        $override = function_exists('aidunite_normalize_gender_canonical')
+            ? aidunite_normalize_gender_canonical((string) $raw['schedule_gender'])
+            : sanitize_text_field((string) $raw['schedule_gender']);
+        if ($override !== '') {
+            $out['schedule_gender_override'] = $override;
+        }
+    }
+
+    return $out;
+}
+
+/**
+ * 保存前バリデーション用: intent / 会場 / 性別のみ正規化
+ *
+ * @param array<string, mixed> $raw intent, certainty, venue_condition, gender_condition
+ * @return array{intent: string, venue_condition: string, gender_condition: string}
+ */
+function aidunite_schedule_normalize_recruit_fields(array $raw) {
+    $norm = aidunite_schedule_normalize_form_input(array_merge([
+        'date' => '',
+        'start_time' => '',
+        'end_time' => '',
+        'schedule_type' => '',
+        'team_id' => 0,
+        'user_id' => 0,
+    ], $raw));
+
+    return [
+        'intent' => (string) ($norm['intent'] ?? ''),
+        'venue_condition' => (string) ($norm['venue_condition'] ?? ''),
+        'gender_condition' => (string) ($norm['gender_condition'] ?? ''),
+    ];
+}
+
+/**
+ * intent=recruit 時の male_slots / female_slots（both は保存しない）
+ *
+ * @return array{male_slots: int, female_slots: int}
+ */
+function aidunite_schedule_derive_recruit_slots($gender_condition, $male_count, $female_count) {
+    $gender = function_exists('aidunite_normalize_gender_canonical')
+        ? aidunite_normalize_gender_canonical((string) $gender_condition)
+        : strtolower(trim((string) $gender_condition));
+
+    $male = max(0, (int) $male_count);
+    $female = max(0, (int) $female_count);
+
+    if ($gender === 'female') {
+        return ['male_slots' => 0, 'female_slots' => max(1, $female)];
+    }
+    if ($gender === 'male') {
+        return ['male_slots' => max(1, $male), 'female_slots' => 0];
+    }
+
+    return ['male_slots' => 0, 'female_slots' => 0];
+}
+
+/**
+ * 募集性別が recruit として保存可能か
+ *
+ * @param int    $schedule_post_id 新規は 0
+ * @param string $gender_condition
+ * @return true|\WP_Error
+ */
+function aidunite_schedule_validate_recruit_gender_for_save($schedule_post_id, $gender_condition) {
+    if (function_exists('aidunite_recruit_both_gender_save_permitted')
+        && !aidunite_recruit_both_gender_save_permitted((int) $schedule_post_id, $gender_condition)) {
+        return new WP_Error(
+            'recruit_both_not_allowed',
+            '新規の募集では「男子・女子可」（both）を設定できません。'
+        );
+    }
+
+    $canonical = function_exists('aidunite_normalize_gender_canonical')
+        ? aidunite_normalize_gender_canonical($gender_condition)
+        : strtolower(trim((string) $gender_condition));
+
+    if ($canonical === '' && strtolower(trim((string) $gender_condition)) === 'both') {
+        return new WP_Error('invalid_gender', '男子・女子可（混合）の募集は利用できません。');
+    }
+
+    return true;
+}
+
+/**
+ * 会場名をチーム履歴に追記（最新10件）
+ */
+function aidunite_schedule_append_venue_name_history($team_id, $venue_name) {
+    $team_id = (int) $team_id;
+    $venue_name = trim((string) $venue_name);
+    if ($team_id < 1 || $venue_name === '') {
+        return;
+    }
+    $venue_history = get_post_meta($team_id, 'venue_name_history', true);
+    if (!is_array($venue_history)) {
+        $venue_history = [];
+    }
+    if (!in_array($venue_name, $venue_history, true)) {
+        $venue_history[] = $venue_name;
+        update_post_meta($team_id, 'venue_name_history', array_slice($venue_history, -10));
+    }
+}
+
+/**
+ * 正規化済みペイロードを postmeta に反映
+ *
+ * @param int                  $post_id
+ * @param array<string, mixed> $data aidunite_schedule_normalize_form_input の戻り値相当
+ */
+function aidunite_schedule_write_post_meta($post_id, array $data) {
+    $post_id = (int) $post_id;
+    if ($post_id < 1) {
+        return;
+    }
+
+    $intent = (string) ($data['intent'] ?? 'confirmed');
+    $date = (string) ($data['date'] ?? '');
+    $schedule_type = (string) ($data['schedule_type'] ?? '');
+    $start_time = (string) ($data['start_time'] ?? '');
+    $end_time = (string) ($data['end_time'] ?? '');
+    $venue = (string) ($data['venue_condition'] ?? '');
+    $venue_name = (string) ($data['venue_name'] ?? '');
+    $gender = (string) ($data['gender_condition'] ?? '');
+    $team_id = (int) ($data['team_id'] ?? 0);
+
+    if ($date !== '' && $schedule_type !== '') {
+        wp_update_post([
+            'ID' => $post_id,
+            'post_title' => $date . ' ' . $schedule_type,
+        ]);
+    }
+
+    if ($date !== '') {
+        update_post_meta($post_id, 'schedule_date', $date);
+        update_post_meta($post_id, 'schedule_end_date', $date);
+    }
+    if ($schedule_type !== '') {
+        update_post_meta($post_id, 'schedule_type', $schedule_type);
+    }
+
+    update_post_meta($post_id, 'intent', $intent);
+    update_post_meta($post_id, 'certainty', $intent === 'tentative' ? 'tentative' : 'firm');
+
+    if ($start_time !== '') {
+        update_post_meta($post_id, 'schedule_start_time', $start_time);
+    }
+    if ($end_time !== '') {
+        update_post_meta($post_id, 'schedule_end_time', $end_time);
+    }
+    if ($team_id > 0) {
+        update_post_meta($post_id, 'team_id', $team_id);
+    }
+
+    update_post_meta($post_id, 'is_personal', (string) ($data['is_personal'] ?? '0'));
+    update_post_meta($post_id, 'attendance_required', (string) ($data['attendance_required'] ?? '0'));
+
+    if (!empty($data['schedule_quick_memo'])) {
+        update_post_meta($post_id, 'schedule_quick_memo', $data['schedule_quick_memo']);
+    }
+
+    if ($intent === 'recruit') {
+        update_post_meta($post_id, 'matching', '1');
+        update_post_meta($post_id, 'is_match_requested', '1');
+
+        $slots = aidunite_schedule_derive_recruit_slots(
+            $gender,
+            (int) ($data['male_slots'] ?? 0),
+            (int) ($data['female_slots'] ?? 0)
+        );
+
+        if ($gender !== '') {
+            update_post_meta($post_id, 'schedule_gender', $gender);
+            update_post_meta($post_id, 'matching_gender_condition', $gender);
+        }
+        if ($venue !== '') {
+            update_post_meta($post_id, 'schedule_place', $venue);
+            update_post_meta($post_id, 'schedule_place_option', $venue);
+        }
+        if ($venue_name !== '') {
+            update_post_meta($post_id, 'venue_name', $venue_name);
+            if ($team_id > 0) {
+                aidunite_schedule_append_venue_name_history($team_id, $venue_name);
+            }
+        }
+
+        $capacity = $slots['male_slots'] + $slots['female_slots'];
+        $gender_valid = function_exists('aidunite_mvp_gender_is_valid')
+            ? aidunite_mvp_gender_is_valid($gender)
+            : in_array($gender, ['male', 'female'], true);
+        if ($gender_valid && $capacity > 0) {
+            update_post_meta($post_id, 'capacity', $capacity);
+            update_post_meta($post_id, 'male_slots', $slots['male_slots']);
+            update_post_meta($post_id, 'female_slots', $slots['female_slots']);
+            update_post_meta($post_id, 'male_capacity', $slots['male_slots']);
+            update_post_meta($post_id, 'female_capacity', $slots['female_slots']);
+            // 読取互換（Phase 4 で削除予定）
+            update_post_meta($post_id, 'male_teams', $slots['male_slots']);
+            update_post_meta($post_id, 'female_teams', $slots['female_slots']);
+        }
+
+        if (function_exists('aidunite_apply_normalized_schedule_meta')) {
+            aidunite_apply_normalized_schedule_meta($post_id, [
+                'intent' => 'recruit',
+                'schedule_place' => $venue,
+                'schedule_gender' => $gender,
+                'matching_gender_condition' => $gender,
+                'is_match_requested' => 1,
+                'male_slots' => $slots['male_slots'],
+                'female_slots' => $slots['female_slots'],
+            ]);
+        }
+    } else {
+        update_post_meta($post_id, 'matching', '0');
+        delete_post_meta($post_id, 'is_match_requested');
+        delete_post_meta($post_id, 'matching_gender_condition');
+        delete_post_meta($post_id, 'schedule_place_option');
+
+        if ($gender !== '') {
+            update_post_meta($post_id, 'schedule_gender', $gender);
+        }
+        if ($venue !== '') {
+            update_post_meta($post_id, 'schedule_place', $venue);
+        }
+        if ($venue_name !== '') {
+            update_post_meta($post_id, 'venue_name', $venue_name);
+            if ($team_id > 0) {
+                aidunite_schedule_append_venue_name_history($team_id, $venue_name);
+            }
+        }
+    }
+
+    if (!empty($data['schedule_gender_override'])) {
+        update_post_meta($post_id, 'schedule_gender', $data['schedule_gender_override']);
+    }
+
+    if (!function_exists('aidunite_schedule_save_registration_venue_snapshot')) {
+        require_once get_template_directory() . '/functions/schedule/admin-schedule-list.php';
+    }
+    if (function_exists('aidunite_schedule_save_registration_venue_snapshot')) {
+        aidunite_schedule_save_registration_venue_snapshot(
+            $post_id,
+            (string) get_post_meta($post_id, 'schedule_place', true),
+            (string) get_post_meta($post_id, 'venue_name', true)
+        );
+    }
+}
+
+/**
+ * 新規 schedule 投稿を作成してメタ保存
+ *
+ * @param array<string, mixed> $data
+ * @return int|\WP_Error post_id
+ */
+function aidunite_schedule_create_published_post(array $data) {
+    $user_id = (int) ($data['user_id'] ?? get_current_user_id());
+    $date = (string) ($data['date'] ?? '');
+    $schedule_type = (string) ($data['schedule_type'] ?? '');
+
+    $post_id = wp_insert_post([
+        'post_title' => $date . ' ' . $schedule_type,
+        'post_content' => '',
+        'post_status' => 'publish',
+        'post_type' => 'schedule',
+        'post_author' => $user_id > 0 ? $user_id : get_current_user_id(),
+    ], true);
+
+    if (is_wp_error($post_id) || !$post_id) {
+        return is_wp_error($post_id)
+            ? $post_id
+            : new WP_Error('schedule_create_failed', 'スケジュールの作成に失敗しました');
+    }
+
+    aidunite_schedule_write_post_meta((int) $post_id, $data);
+
+    if (($data['intent'] ?? '') === 'recruit' && function_exists('aidunite_fire_schedule_registered_hooks')) {
+        aidunite_fire_schedule_registered_hooks((int) $post_id, [
+            'intent' => 'recruit',
+            'team_id' => (int) ($data['team_id'] ?? 0),
+        ]);
+    }
+
+    return (int) $post_id;
+}
+
+/**
+ * 既存 schedule を更新
+ *
+ * @param int                  $post_id
+ * @param array<string, mixed> $data
+ * @return true|\WP_Error
+ */
+function aidunite_schedule_update_published_post($post_id, array $data) {
+    $post_id = (int) $post_id;
+    $post = get_post($post_id);
+    if (!$post || $post->post_type !== 'schedule') {
+        return new WP_Error('invalid_schedule', '編集対象のスケジュールが見つかりません');
+    }
+
+    if (($data['intent'] ?? '') === 'recruit') {
+        $gender_check = aidunite_schedule_validate_recruit_gender_for_save($post_id, (string) ($data['gender_condition'] ?? ''));
+        if (is_wp_error($gender_check)) {
+            return $gender_check;
+        }
+        $team_id = (int) ($data['team_id'] ?? 0);
+        if ($team_id && function_exists('aidunite_validate_recruit_gender_for_team')) {
+            $team_err = aidunite_validate_recruit_gender_for_team($team_id, (string) ($data['gender_condition'] ?? ''));
+            if (is_wp_error($team_err)) {
+                return $team_err;
+            }
+        }
+    }
+
+    aidunite_schedule_write_post_meta($post_id, $data);
+
+    if (($data['attendance_required'] ?? '0') === '1') {
+        $path = get_stylesheet_directory() . '/functions/attendance/attendance-notification.php';
+        if (is_readable($path)) {
+            require_once $path;
+            if (function_exists('aidunite_notify_attendance_request')) {
+                aidunite_notify_attendance_request($post_id);
+            }
+        }
+    }
+
+    return true;
+}

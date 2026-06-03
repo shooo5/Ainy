@@ -1,0 +1,9 @@
+#,論点,選択肢A,選択肢B,推奨（技術）,影響範囲,事業側メモ欄
+B1,募集性別に男女可を将来復活するか,MVP male/femaleのみ,both復活,male/female維持,"登録UI, マッチ, 枠",
+B2,会場bothをDBに残すか,禁止（eitherのみ）,読取互換のみ,eitherへ統一（保存前normalize）,全schedule経路,
+B3,MR承認済みと試合確定のユーザー向け用語,accepted表示,established表示,establishedを確定の正本,全マッチ画面,
+B4,性別コードをmaleのままにするか boys等へ,male維持,boys等へ,male維持（コード正本）,API破壊,
+B5,活動地域をマッチ条件に入れるか,入れる,表示のみ,現状未使用,マッチアルゴリズム,
+B6,Forminator会員登録,廃止,統合,member_registerへ統一,既存ユーザー,
+B7,掲示板ステータス体系,game集計（compute）,AidUniteStatusクラス,game集計を正本に一本化,掲示板・テスト,
+B8,通知type表記ゆれ,notification.md固定,現状維持,notification.md + config正本,設定UI・ログ,

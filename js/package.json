@@ -1,0 +1,36 @@
+{
+  "name": "aidunite-test-automation",
+  "version": "1.0.0",
+  "description": "AidUnite/TUNAGERU WordPressテーマのテスト自動化ツール",
+  "main": "index.js",
+  "scripts": {
+    "test:links": "node link-checker.js",
+    "test:ui": "node ui-test-automation.js",
+    "test:all": "npm run test:links && npm run test:ui",
+    "install-deps": "npm install puppeteer"
+  },
+  "keywords": [
+    "wordpress",
+    "theme",
+    "testing",
+    "automation",
+    "puppeteer"
+  ],
+  "author": "AidUnite Development Team",
+  "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^3.3.2",
+    "puppeteer": "^21.11.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aidunite/aidunite-original.git"
+  },
+  "bugs": {
+    "url": "https://github.com/aidunite/aidunite-original/issues"
+  },
+  "homepage": "https://aidunitemvp.xsrv.jp"
+}

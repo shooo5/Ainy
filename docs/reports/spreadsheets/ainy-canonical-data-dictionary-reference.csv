@@ -1,0 +1,20 @@
+種別,名前,対象・出力,備考
+normalize関数,aidunite_normalize_gender_canonical,募集・申請性別 → male | female | 空,gender-meta.php
+normalize関数,aidunite_normalize_team_gender_option,チーム属性（both系は空）,gender-meta.php
+normalize関数,aidunite_normalize_place_for_lock,会場 both→either 等,match-gender-venue-helpers.php
+normalize関数,normalize_place_value,日本語ラベル→home/away/either,match-score.php
+normalize関数,aidunite_normalize_schedule_intent,confirmed | recruit | tentative,schedule-functions.php
+normalize関数,aidunite_normalize_match_request_status,MR状態（日本語・publish含む）,schedule-dependency-guards.php
+normalize関数,aidunite_normalize_email,メール正規化,common-functions.php
+保存キー参考（ユーザー）,aidunite_role / registration_status / user_status / registration_token / registration_date,,§2
+保存キー参考（ユーザー）,last_name / first_name / user_gender / user_birth_date,,WP標準+usermeta
+保存キー参考（ユーザー）,managed_team_ids / team_id / pending_team_id / team_memberships / family_id,,マルチチーム
+保存キー参考（チーム）,team_name / team_gender_option / sport_type / team_category / team_type,,§3
+保存キー参考（チーム）,region / activity_* / team_leader_id / invite_code,,§3
+保存キー参考（チーム）,aidunite_activation_stage / payment_mode / trial_start_date / stripe_* / board_*,,§3
+保存キー参考（MR）,from_team_id / to_team_id / other_team_id / to_schedule_id / my_schedule_id,,§5
+保存キー参考（MR）,selected_* / preferred_*（ミラー） / match_id / established_gender_slot / chat_room_id,,§5
+legacy経路,page-schedule-edit POST,schedule保存,both未変換あり
+legacy経路,rest-schedule-legacy,schedule REST,match_request判定のゆれ
+legacy経路,Forminator 271,会員登録,registration_date等欠損
+legacy経路,管理save_schedule_metabox,schedule,raw保存

@@ -1,0 +1,7 @@
+{
+  // Cursorのレビュー機能を無効化
+  "cursor.review.enabled": false,
+  "cursor.chat.autoReview": false,
+  // 自動レビュータブの表示を無効化
+  "cursor.review.autoOpen": false
+}

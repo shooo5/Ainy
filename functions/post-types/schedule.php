@@ -1,0 +1,485 @@
+<?php
+/**
+ * スケジュール投稿タイプ定義
+ * ACFから独立したカスタムフィールド実装
+ */
+
+// スケジュール投稿タイプ登録
+function register_schedule_post_type() {
+    $labels = array(
+        'name' => 'スケジュール',
+        'singular_name' => 'スケジュール',
+        'menu_name' => 'スケジュール',
+        'name_admin_bar' => 'スケジュールを追加',
+        'add_new' => '新規追加',
+        'add_new_item' => '新しいスケジュールを追加',
+        'new_item' => '新規スケジュール',
+        'edit_item' => 'スケジュールを編集',
+        'view_item' => 'スケジュールを表示',
+        'all_items' => '全スケジュール',
+        'search_items' => 'スケジュールを検索',
+        'not_found' => 'スケジュールが見つかりませんでした',
+        'not_found_in_trash' => 'ゴミ箱にスケジュールはいません',
+    );
+
+    $args = array(
+        'labels' => $labels,
+        'public' => true,
+        'has_archive' => true,
+        'show_in_menu' => false,
+        'menu_position' => 6,
+        'menu_icon' => 'dashicons-calendar-alt',
+        'supports' => array('title', 'author'),
+        'capability_type' => 'post',
+        'show_in_rest' => true,
+    );
+
+    register_post_type('schedule', $args);
+}
+add_action('init', 'register_schedule_post_type');
+
+// スケジュールメタボックス追加
+function add_schedule_metaboxes() {
+    add_meta_box(
+        'schedule_details',
+        'スケジュール詳細',
+        'render_schedule_metabox',
+        'schedule',
+        'normal',
+        'high'
+    );
+}
+add_action('add_meta_boxes', 'add_schedule_metaboxes');
+
+// メタボックス表示
+function render_schedule_metabox($post) {
+    wp_nonce_field('save_schedule_metabox', 'schedule_metabox_nonce');
+
+    // 既存の値を取得
+    $schedule_date = get_post_meta($post->ID, 'schedule_date', true);
+    $schedule_start_time = get_post_meta($post->ID, 'schedule_start_time', true);
+    $schedule_end_time = get_post_meta($post->ID, 'schedule_end_time', true);
+    $schedule_place = get_post_meta($post->ID, 'schedule_place', true);
+    $schedule_note = get_post_meta($post->ID, 'schedule_note', true);
+    $schedule_type = get_post_meta($post->ID, 'schedule_type', true);
+    $matching = get_post_meta($post->ID, 'matching', true); // 統一されたキー名を使用
+    $matching_gender_condition = get_post_meta($post->ID, 'matching_gender_condition', true);
+    $schedule_place_option = get_post_meta($post->ID, 'schedule_place_option', true);
+
+    // 時間オプション生成
+    $time_options = '';
+    for ($hour = 6; $hour <= 23; $hour++) {
+        for ($minute = 0; $minute < 60; $minute += 30) {
+            $time = sprintf('%02d:%02d', $hour, $minute);
+            $time_options .= "<option value='{$time}'" .
+                (($schedule_start_time === $time) ? ' selected' : '') .
+                ">{$time}</option>";
+        }
+    }
+
+    ?>
+    <table class="form-table">
+        <tr>
+            <th><label for="schedule_date">日付</label></th>
+            <td>
+                <input type="date" id="schedule_date" name="schedule_date"
+                       value="<?php echo esc_attr($schedule_date); ?>" required>
+            </td>
+        </tr>
+        <tr>
+            <th><label for="schedule_start_time">開始時間</label></th>
+            <td>
+                <select id="schedule_start_time" name="schedule_start_time" required>
+                    <option value="">選択してください</option>
+                    <?php echo $time_options; ?>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th><label for="schedule_end_time">終了時間</label></th>
+            <td>
+                <select id="schedule_end_time" name="schedule_end_time" required>
+                    <option value="">選択してください</option>
+                    <?php echo $time_options; ?>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th><label for="schedule_type">種別</label></th>
+            <td>
+                <select id="schedule_type" name="schedule_type" required>
+                    <option value="">選択してください</option>
+                    <option value="練習" <?php selected($schedule_type, '練習'); ?>>練習</option>
+                    <option value="試合" <?php selected($schedule_type, '試合'); ?>>試合</option>
+                    <option value="大会" <?php selected($schedule_type, '大会'); ?>>大会</option>
+                    <option value="その他" <?php selected($schedule_type, 'その他'); ?>>その他</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th><label for="schedule_place">会場</label></th>
+            <td>
+                <input type="text" id="schedule_place" name="schedule_place"
+                       value="<?php echo esc_attr($schedule_place); ?>"
+                       placeholder="例：○○体育館">
+            </td>
+        </tr>
+        <tr>
+            <th><label for="schedule_place_option">会場オプション</label></th>
+            <td>
+                <select id="schedule_place_option" name="schedule_place_option">
+                    <option value="">選択してください</option>
+                    <option value="自宅" <?php selected($schedule_place_option, '自宅'); ?>>自宅</option>
+                    <option value="学校" <?php selected($schedule_place_option, '学校'); ?>>学校</option>
+                    <option value="体育館" <?php selected($schedule_place_option, '体育館'); ?>>体育館</option>
+                    <option value="公園" <?php selected($schedule_place_option, '公園'); ?>>公園</option>
+                    <option value="その他" <?php selected($schedule_place_option, 'その他'); ?>>その他</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th><label for="matching">マッチング希望</label></th>
+            <td>
+                <input type="checkbox" id="matching" name="matching" value="1"
+                       <?php checked($matching, '1'); ?>>
+                <label for="matching">練習試合の相手を探す</label>
+            </td>
+        </tr>
+        <tr>
+            <th><label for="matching_gender_condition">性別条件</label></th>
+            <td>
+                <select id="matching_gender_condition" name="matching_gender_condition">
+                    <option value="">指定なし</option>
+                    <option value="男子" <?php selected($matching_gender_condition, '男子'); ?>>男子</option>
+                    <option value="女子" <?php selected($matching_gender_condition, '女子'); ?>>女子</option>
+                    <option value="男女" <?php selected($matching_gender_condition, '男女'); ?>>男女</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th><label for="schedule_note">備考</label></th>
+            <td>
+                <textarea id="schedule_note" name="schedule_note" rows="4" cols="50"
+                          placeholder="詳細な情報があれば記入してください"><?php echo esc_textarea($schedule_note); ?></textarea>
+            </td>
+        </tr>
+    </table>
+    <?php
+}
+
+// メタボックス保存処理
+function save_schedule_metabox($post_id) {
+    // セキュリティチェック
+    if (!isset($_POST['schedule_metabox_nonce']) ||
+        !wp_verify_nonce($_POST['schedule_metabox_nonce'], 'save_schedule_metabox')) {
+        return;
+    }
+
+    // 自動保存チェック
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+        return;
+    }
+
+    // 権限チェック
+    if (!current_user_can('edit_post', $post_id)) {
+        return;
+    }
+
+    // 投稿タイプチェック
+    if (get_post_type($post_id) !== 'schedule') {
+        return;
+    }
+
+    // フィールド保存
+    $fields = [
+        'schedule_date',
+        'schedule_start_time',
+        'schedule_end_time',
+        'schedule_place',
+        'schedule_note',
+        'schedule_type',
+        'matching_gender_condition',
+        'schedule_place_option'
+    ];
+
+    foreach ($fields as $field) {
+        if (isset($_POST[$field])) {
+            $value = sanitize_text_field($_POST[$field]);
+            update_post_meta($post_id, $field, $value);
+        }
+    }
+
+    // チェックボックス処理
+    $matching = isset($_POST['matching']) ? '1' : '0';
+    update_post_meta($post_id, 'matching', $matching); // 統一されたキー名を使用
+    update_post_meta($post_id, 'is_match_requested', $matching);
+
+    // チームID保存
+    $team_id = function_exists('aidunite_resolve_schedule_owner_team_id')
+        ? (int) aidunite_resolve_schedule_owner_team_id((int) $post_id)
+        : 0;
+    if (!$team_id) {
+        $author_id = (int) get_post_field('post_author', $post_id);
+        if ($author_id > 0) {
+            $team_id = function_exists('aidunite_get_current_team_id')
+                ? (int) aidunite_get_current_team_id($author_id)
+                : (int) get_user_meta($author_id, 'team_id', true);
+        }
+    }
+    if ($team_id) {
+        update_post_meta($post_id, 'team_id', $team_id);
+    }
+
+    // 会場補完処理
+    $place = get_post_meta($post_id, 'schedule_place', true);
+    $place_option = get_post_meta($post_id, 'schedule_place_option', true);
+
+    if (empty($place) && !empty($place_option)) {
+        update_post_meta($post_id, 'schedule_place', $place_option);
+    }
+}
+add_action('save_post', 'save_schedule_metabox');
+
+// スケジュール取得ヘルパー関数
+function get_schedule_meta($post_id, $key = null) {
+    if ($key) {
+        return get_post_meta($post_id, $key, true);
+    }
+
+    return [
+        'date' => get_post_meta($post_id, 'schedule_date', true),
+        'start_time' => get_post_meta($post_id, 'schedule_start_time', true),
+        'end_time' => get_post_meta($post_id, 'schedule_end_time', true),
+        'place' => get_post_meta($post_id, 'schedule_place', true),
+        'note' => get_post_meta($post_id, 'schedule_note', true),
+        'type' => get_post_meta($post_id, 'schedule_type', true),
+        'matching' => get_post_meta($post_id, 'matching', true), // 統一されたキー名を使用
+        'gender_condition' => get_post_meta($post_id, 'matching_gender_condition', true),
+        'place_option' => get_post_meta($post_id, 'schedule_place_option', true),
+        'team_id' => get_post_meta($post_id, 'team_id', true)
+    ];
+}
+
+// 新しいメタフィールドの宣言（REST API公開用）
+function register_schedule_meta_fields() {
+    // 主要メタキー（enumは文字列）
+    register_post_meta('schedule', 'schedule_type', [
+        'type' => 'string',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'match_status', [
+        'type' => 'string',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'match_opponent_team_id', [
+        'type' => 'string',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'match_opponent_name', [
+        'type' => 'string',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'schedule_date', [
+        'type' => 'string',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'schedule_start_time', [
+        'type' => 'string',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'schedule_end_time', [
+        'type' => 'string',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'schedule_place', [
+        'type' => 'string',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'match_request', [
+        'type' => 'string',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'venue_condition', [
+        'type' => 'string',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'gender_condition', [
+        'type' => 'string',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'capacity', [
+        'type' => 'number',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'male_capacity', [
+        'type' => 'number',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'female_capacity', [
+        'type' => 'number',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'note', [
+        'type' => 'string',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    // 新機能用のメタフィールド
+    register_post_meta('schedule', 'certainty', [
+        'type' => 'string',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'min_required_teams', [
+        'type' => 'number',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'participants', [
+        'type' => 'string',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'accepted_count', [
+        'type' => 'number',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'include_self_count', [
+        'type' => 'boolean',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'auto_confirm', [
+        'type' => 'boolean',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'notify_on_confirm', [
+        'type' => 'boolean',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    // 出欠管理メタフィールド
+    register_post_meta('schedule', 'attendance_required', [
+        'type' => 'string',
+        'single' => true,
+        'show_in_rest' => true,
+        'default' => '0',
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+
+    register_post_meta('schedule', 'attendance_data', [
+        'type' => 'string',  // WordPressでは配列はJSON文字列として保存
+        'single' => true,
+        'show_in_rest' => false,  // セキュリティのためREST APIでは公開しない
+        'auth_callback' => function() {
+            return current_user_can('edit_posts') || current_user_can('administrator');
+        }
+    ]);
+}
+add_action('init', 'register_schedule_meta_fields');

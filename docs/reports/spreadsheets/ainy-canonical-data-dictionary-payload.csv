@@ -1,0 +1,13 @@
+意味（payload論理名）,保存キー（meta/field）,備考,normalize必須,影響
+user.email,user_email,usersテーブル,Yes（aidunite_normalize_email）,ログイン・重複チェック
+user.registration_status,registration_status,usermeta,No,本登録フロー
+user.aidunite_role,aidunite_role,usermeta,No,権限・マイページ
+team.gender_option,team_gender_option,post_meta,Yes（aidunite_normalize_team_gender_option）,募集・マッチ
+team.activity,activity_prefecture / activity_area_type / activity_area,post_meta,Yes（team-activity-options）,表示・フィルター
+schedule.intent,intent,post_meta,Yes（aidunite_normalize_schedule_intent）,カレンダー・掲示板
+schedule.venue_condition,schedule_place（schedule_place_option廃止候補）,post_meta,Yes（both→either）,マッチ
+schedule.recruit_gender,schedule_gender,post_meta,Yes（gender-meta）,マッチ・枠
+schedule.male_slots / female_slots,male_slots / female_slots,post_meta,No,満了・成立
+match_request.status,status（request_status廃止候補）,post_meta,Yes（MR status normalize）,全マッチ
+match_request.selected_place,selected_place,post_meta,Yes（place normalize）,成立
+notification.type,type（CPT meta）,post_meta,未（type揺れあり）,配信

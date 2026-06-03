@@ -1,0 +1,58 @@
+/**
+ * 管理者一覧のフィルターUI（スケジュール一覧・チーム管理で共通）
+ */
+
+.admin-schedule-filters__form,
+.team-management-filters__form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-base);
+  align-items: end;
+}
+
+.admin-schedule-filters__field label,
+.team-management-filters__field label {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--text-secondary);
+}
+
+.admin-schedule-filters__input,
+.team-management-filters__input {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-small);
+  background: var(--bg-primary);
+}
+
+.admin-schedule-filters__input:focus-visible,
+.team-management-filters__input:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.admin-schedule-filters__actions,
+.team-management-filters__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  align-items: center;
+  min-height: 44px;
+}
+
+@media (max-width: 1024px) {
+  .admin-schedule-filters__form,
+  .team-management-filters__form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-schedule-filters__form,
+  .team-management-filters__form {
+    grid-template-columns: 1fr;
+  }
+}

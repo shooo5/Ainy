@@ -1,0 +1,186 @@
+/* ========================================
+   [ページ名] ページ専用スタイル
+   ======================================== */
+/*
+ * このファイルは [ページ名] ページ専用のスタイルを定義します
+ *
+ * 重要: ページ固有CSSは最小限に留め、可能な限り既存コンポーネント（assets/css/components/）を使用すること
+ *
+ * 参照:
+ * - UI統一定義ルールブック: docs/Ainy-UI-Unified-Rules.md
+ * - 実装計画: docs/Ainy-UI-Implementation-Plan.md
+ * - デザインリファレンス: page-design-reference.php
+ */
+
+/* ========================================
+   ページ固有のレイアウト調整
+   ======================================== */
+/*
+ * 注意: 基本コンポーネント（.btn, .card, .form-control など）のスタイルを
+ * 上書きする場合は、!important の使用を最小限にし、可能な限り既存の
+ * バリアントクラスやCSS変数を使用すること
+ */
+
+.[page-name]-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+  background: var(--bg-light);
+  min-height: 100vh;
+}
+
+.[page-name]-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+  padding: var(--spacing-xl);
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: var(--text-light);
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-md);
+}
+
+.[page-name]-header h1 {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.[page-name]-header p {
+  margin: 0;
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+/* ========================================
+   ページ固有のカスタマイズ
+   ======================================== */
+/*
+ * ここにページ固有のスタイルを記述
+ * 既存コンポーネントを上書きする場合は、理由をコメントで明記すること
+ */
+
+/* 例: ページ固有のカードスタイル */
+.[page-name]-card {
+  /* 既存の .card コンポーネントをベースに、ページ固有の調整を追加 */
+  background: var(--bg-primary);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-base);
+}
+
+.[page-name]-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.[page-name]-card:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* ========================================
+   ページ固有のフォーム要素
+   ======================================== */
+/*
+ * フォーム要素は既存の .form-control クラスを使用し、
+ * 必要に応じてページ固有のクラスで微調整すること
+ */
+
+.[page-name]-form-input {
+  /* 既存の .form-control を拡張 */
+  width: 100%;
+  padding: var(--spacing-base) calc(var(--spacing-base) + var(--spacing-xs));
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-base);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+  min-height: 48px;
+}
+
+.[page-name]-form-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(106, 90, 249, 0.1);
+}
+
+.[page-name]-form-input:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.[page-name]-form-input.error {
+  border-color: var(--danger-color);
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.[page-name]-form-input.error:focus-visible {
+  outline: 2px solid var(--danger-color);
+  outline-offset: 2px;
+}
+
+/* ========================================
+   ページ固有のボタン
+   ======================================== */
+/*
+ * ボタンは既存の .btn クラスを使用し、
+ * 必要に応じてページ固有のクラスで微調整すること
+ */
+
+.[page-name]-btn {
+  /* 既存の .btn を拡張 */
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-base) var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-medium);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 44px;
+}
+
+.[page-name]-btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* ========================================
+   レスポンシブ対応
+   ======================================== */
+
+@media (max-width: 768px) {
+  .[page-name]-container {
+    padding: var(--spacing-base);
+  }
+
+  .[page-name]-header {
+    padding: var(--spacing-md);
+  }
+
+  .[page-name]-header h1 {
+    font-size: 2rem;
+  }
+
+  .[page-name]-header p {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .[page-name]-container {
+    padding: var(--spacing-sm);
+  }
+
+  .[page-name]-header {
+    padding: var(--spacing-base);
+  }
+
+  .[page-name]-header h1 {
+    font-size: 1.8rem;
+  }
+}

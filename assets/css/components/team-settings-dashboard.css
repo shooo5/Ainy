@@ -1,0 +1,536 @@
+/**
+ * /team-settings チーム管理ダッシュボード
+ * マイページ共通メニュー（mypage-redesign-menu-item）のトーンに寄せる。
+ */
+
+.team-settings-dash {
+  background: var(--bg-light);
+  min-height: 100vh;
+  padding: var(--spacing-base, 1rem) 0;
+}
+
+.team-settings-dash__inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-base, 1rem);
+}
+
+.team-settings-dash__title {
+  color: var(--text-primary);
+  font-size: var(--font-size-xl, 1.5rem);
+  font-weight: 700;
+  margin: 0 0 var(--spacing-sm, 0.75rem);
+}
+
+.team-settings-dash__lead {
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-base, 1rem);
+  line-height: 1.6;
+}
+
+.team-settings-dash__alert {
+  border-radius: var(--radius-medium, 12px);
+  padding: var(--spacing-base, 1rem);
+  margin-bottom: var(--spacing-base, 1rem);
+  border-left: 4px solid var(--danger-color);
+  background: rgba(220, 53, 69, 0.08);
+  color: var(--text-primary);
+}
+
+.team-settings-dash__alert--success {
+  border-left-color: var(--success-color);
+  background: rgba(40, 167, 69, 0.08);
+}
+
+.team-settings-dash__alert--info {
+  border-left-color: var(--primary-color);
+  background: rgba(102, 126, 234, 0.08);
+}
+
+.team-settings-dash__public-block {
+  margin-top: var(--spacing-base, 1rem);
+  padding-top: var(--spacing-base, 1rem);
+  border-top: 1px solid var(--border-light);
+}
+
+.team-settings-dash__public-lead {
+  margin: 0 0 var(--spacing-sm, 0.75rem);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm, 0.875rem);
+  line-height: 1.6;
+}
+
+.team-settings-dash__public-url {
+  margin: var(--spacing-sm, 0.75rem) 0 0;
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--text-secondary);
+}
+
+.team-settings-dash__public-url-label {
+  display: block;
+  margin-bottom: var(--spacing-xs, 0.25rem);
+  font-weight: 600;
+}
+
+.team-settings-dash__public-url-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: var(--spacing-sm, 0.5rem);
+}
+
+.team-settings-dash__public-url-input {
+  flex: 1 1 12rem;
+  min-width: 0;
+  min-height: 44px;
+  padding: var(--spacing-sm, 0.75rem) var(--spacing-base, 1rem);
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--text-primary);
+  background: var(--bg-light);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-base, 10px);
+  -webkit-user-select: text;
+  user-select: text;
+  word-break: break-all;
+}
+
+.team-settings-dash__public-url-input:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-color: var(--primary-color);
+}
+
+.team-settings-dash__public-url-copy {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.team-settings-dash__section {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-large, 16px);
+  padding: var(--spacing-lg, 1.5rem);
+  margin-bottom: var(--spacing-lg, 1.5rem);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.06));
+}
+
+.team-settings-dash__section-title {
+  color: var(--text-primary);
+  font-size: var(--font-size-lg, 1.25rem);
+  font-weight: 600;
+  margin: 0 0 var(--spacing-base, 1rem);
+  padding-bottom: var(--spacing-sm, 0.75rem);
+  border-bottom: 2px solid var(--border-light);
+}
+
+.team-settings-dash__section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-base, 1rem);
+  margin-bottom: var(--spacing-base, 1rem);
+  padding-bottom: var(--spacing-sm, 0.75rem);
+  border-bottom: 2px solid var(--border-light);
+}
+
+.team-settings-dash__section-title--in-head {
+  margin: 0;
+  padding: 0;
+  border-bottom: none;
+}
+
+.team-settings-dash__operating-hint {
+  margin: 0 0 var(--spacing-base, 1rem);
+  padding: var(--spacing-sm, 0.75rem) var(--spacing-base, 1rem);
+  font-size: var(--font-size-sm, 0.875rem);
+  line-height: 1.6;
+  color: var(--text-secondary);
+  background: rgba(102, 126, 234, 0.08);
+  border-left: 4px solid var(--primary-color);
+  border-radius: var(--radius-base, 10px);
+}
+
+.team-settings-dash__summary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm, 0.75rem);
+}
+
+.team-settings-dash__summary-actions-divider {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm, 0.875rem);
+  user-select: none;
+}
+
+.team-settings-dash__summary-actions-note {
+  margin: var(--spacing-xs, 0.35rem) 0 0;
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.team-settings-dash__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.team-settings-dash__summary {
+  --team-settings-summary-label-width: 6.5em;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-base, 1rem);
+}
+
+.team-settings-dash__summary-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-base, 1rem);
+}
+
+.team-settings-dash__summary-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs, 0.25rem);
+  min-width: 0;
+}
+
+.team-settings-dash__summary-name-label {
+  font-size: var(--font-size-xs, 0.8125rem);
+  font-weight: 600;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+.team-settings-dash__summary-name-value {
+  font-size: var(--font-size-3xl, 1.8rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.team-settings-dash__logo {
+  width: 88px;
+  height: 88px;
+  border-radius: var(--radius-medium, 12px);
+  object-fit: cover;
+  border: 1px solid var(--border-light);
+  background: var(--bg-light);
+}
+
+.team-settings-dash__summary-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-sm, 0.75rem);
+  margin: 0;
+}
+
+@media (min-width: 480px) {
+  .team-settings-dash__summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 小ラベル（固定幅）＋値：ラベル長で値の開始位置がずれないよう統一 */
+.team-settings-dash__summary-cell {
+  display: grid;
+  grid-template-columns: var(--team-settings-summary-label-width) minmax(0, 1fr);
+  column-gap: var(--spacing-sm, 0.75rem);
+  align-items: baseline;
+  margin: 0;
+}
+
+.team-settings-dash__summary-label {
+  margin: 0;
+  font-size: var(--font-size-xs, 0.8125rem);
+  font-weight: 600;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.team-settings-dash__summary-value {
+  margin: 0;
+  font-size: var(--font-size-base, 1rem);
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.team-settings-dash__summary-value--badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs, 0.35rem);
+}
+
+.team-settings-dash__badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-small, 6px);
+  font-size: var(--font-size-sm, 0.8rem);
+  font-weight: 600;
+  background: var(--bg-light);
+  color: var(--primary-color);
+  border: 1px solid var(--border-light);
+}
+
+.team-settings-dash__logo-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: var(--spacing-md, 1rem);
+}
+
+.team-settings-dash__form-grid--name-kana {
+  margin-bottom: var(--spacing-sm, 0.75rem);
+}
+
+@media (min-width: 768px) {
+  .team-settings-dash__form-grid--name-kana {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.team-settings-dash__field--span-all {
+  grid-column: 1 / -1;
+}
+
+.team-settings-dash__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm, 0.75rem);
+  margin-top: var(--spacing-base, 1rem);
+}
+
+.team-settings-dash__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 var(--spacing-base, 1rem);
+  border-radius: var(--radius-base, 10px);
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.team-settings-dash__btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.team-settings-dash__btn--primary {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: #fff;
+}
+
+.team-settings-dash__btn--secondary {
+  background: var(--bg-light);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+}
+
+.team-settings-dash__btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.1));
+}
+
+.team-settings-dash__form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-base, 1rem);
+}
+
+@media (min-width: 768px) {
+  .team-settings-dash__form-grid--2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.team-settings-dash__field label {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs, 0.35rem);
+  font-size: var(--font-size-base, 1rem);
+}
+
+.team-settings-dash__field .required {
+  color: var(--danger-color);
+}
+
+.team-settings-dash__input,
+.team-settings-dash__select,
+.team-settings-dash__textarea,
+/* 活動地域ヘルパーが誤って登録画面用クラスを付けても、本ページの select/input は同一トークンで表示 */
+.team-settings-dash__form select,
+.team-settings-dash__form .member-register-form-input {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--spacing-sm, 0.75rem) var(--spacing-base, 1rem);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-base, 10px);
+  font-size: var(--font-size-base, 1rem);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+.team-settings-dash__form .member-register-form-group,
+.team-settings-dash__form .aidunite-team-activity-fields {
+  margin-bottom: 0;
+}
+
+.page-team-settings .aidunite-team-activity-tokyo-wrap--settings {
+  margin-bottom: var(--spacing-base, 1rem);
+}
+
+.page-team-settings .aidunite-team-activity-tokyo-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-base, 1rem);
+}
+
+@media (min-width: 768px) {
+  .page-team-settings .aidunite-team-activity-tokyo-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.team-settings-dash__textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.team-settings-dash__input:focus-visible,
+.team-settings-dash__select:focus-visible,
+.team-settings-dash__textarea:focus-visible,
+.team-settings-dash__form select:focus-visible,
+.team-settings-dash__form .member-register-form-input:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-color: var(--primary-color);
+}
+
+.team-settings-dash__hint {
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--text-secondary);
+  margin-top: var(--spacing-xs, 0.35rem);
+  line-height: 1.5;
+}
+
+.team-settings-dash__menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-base, 1rem);
+}
+
+@media (min-width: 769px) {
+  .team-settings-dash__menu-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+}
+
+.team-settings-dash__menu-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-xs, 0.35rem);
+  padding: var(--spacing-base, 1rem);
+  background: var(--bg-primary);
+  border-radius: var(--radius-medium, 12px);
+  text-decoration: none;
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.06));
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  position: relative;
+  min-height: 120px;
+}
+
+.team-settings-dash__menu-card--attention {
+  border-color: var(--warning-color, #ffc107);
+  background: rgba(255, 193, 7, 0.06);
+}
+
+.team-settings-dash__menu-card--attention .team-settings-dash__badge {
+  color: var(--warning-color, #856404);
+  border-color: rgba(255, 193, 7, 0.45);
+  background: rgba(255, 193, 7, 0.12);
+}
+
+.team-settings-dash__menu-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-md, 0 6px 16px rgba(0, 0, 0, 0.08));
+  transform: translateY(-2px);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.team-settings-dash__menu-card:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.team-settings-dash__menu-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.team-settings-dash__menu-title {
+  font-weight: 700;
+  font-size: var(--font-size-base, 1rem);
+}
+
+.team-settings-dash__menu-desc {
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  flex: 1 1 auto;
+}
+
+.team-settings-dash__menu-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: auto;
+  gap: var(--spacing-sm, 0.5rem);
+}
+
+.team-settings-dash__menu-arrow {
+  font-size: 1.25rem;
+  color: var(--primary-color);
+}
+
+.team-settings-dash__help {
+  font-size: var(--font-size-sm, 0.9rem);
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.team-settings-dash__help ul {
+  margin: var(--spacing-sm, 0.5rem) 0 0;
+  padding-left: 1.25rem;
+}
+
+.team-settings-dash__stack {
+  margin-top: var(--spacing-base, 1rem);
+}
+
+.team-settings-dash__stack--lg {
+  margin-top: var(--spacing-lg, 1.5rem);
+}
+
+.team-settings-dash__logo--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}

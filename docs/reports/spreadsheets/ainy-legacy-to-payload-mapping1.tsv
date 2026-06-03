@@ -1,0 +1,48 @@
+ドメイン	意味	旧値/揺れ値	旧保存キー	payload key	normalize後の正式値	保存エンティティ	保存meta_key	対応方針	優先度
+スケジュール	募集性別	both	matching_gender_condition	gender	除外（新規保存禁止）	postmeta	matching_gender_condition	読取時は不正値として除外し、UIで再選択を要求	P0
+スケジュール	募集性別	男子	matching_gender_condition	gender	male	postmeta	matching_gender_condition	日本語値を male に正規化	P0
+スケジュール	募集性別	女子	matching_gender_condition	gender	female	postmeta	matching_gender_condition	日本語値を female に正規化	P0
+スケジュール	募集性別	male	matching_gender_condition	gender	male	postmeta	matching_gender_condition	そのまま採用	P1
+スケジュール	募集性別	female	matching_gender_condition	gender	female	postmeta	matching_gender_condition	そのまま採用	P1
+試合申請	申請時性別	both	selected_gender	selected_gender	除外（新規保存禁止）	postmeta	selected_gender	読取時は不正値として除外し、再入力を要求	P0
+試合申請	申請時性別	男子	selected_gender	selected_gender	male	postmeta	selected_gender	日本語値を male に正規化	P1
+試合申請	申請時性別	女子	selected_gender	selected_gender	female	postmeta	selected_gender	日本語値を female に正規化	P1
+スケジュール	会場条件	both	schedule_place / schedule_place_option	place_type	either	postmeta	schedule_place	both は either に強制正規化	P0
+スケジュール	会場条件	どちらでも	schedule_place / schedule_place_option	place_type	either	postmeta	schedule_place	日本語値を either に正規化	P0
+スケジュール	会場条件	home	schedule_place	place_type	home	postmeta	schedule_place	そのまま採用	P1
+スケジュール	会場条件	away	schedule_place	place_type	away	postmeta	schedule_place	そのまま採用	P1
+スケジュール	会場条件	either	schedule_place	place_type	either	postmeta	schedule_place	そのまま採用	P1
+試合申請	申請時会場	both	selected_place	selected_place	either	postmeta	selected_place	both は either に強制正規化	P0
+試合申請	申請時会場	どちらでも	selected_place	selected_place	either	postmeta	selected_place	日本語値を either に正規化	P1
+試合申請	申請時会場	（空）	selected_place	selected_place	legacy_empty（削除対象）	postmeta	selected_place	新規保存不可。空の場合はバリデーションエラー	P0
+試合申請	申請状態	publish	status / request_status	status	pending	postmeta	status	publish は pending として扱う	P0
+試合申請	申請状態	accepted	status	status	established（遷移先）	postmeta	status	現行フローでは accepted を established に寄せる	P0
+試合申請	申請状態	established	status	status	established	postmeta	status	そのまま採用	P1
+試合申請	申請状態	pending	status	status	pending	postmeta	status	そのまま採用	P1
+試合申請	キャンセル理由	別方向成立（文言）	canceled_reason / cancel_reason / aidunite_cancel_reason	cancel_reason_code	mirror_established	postmeta	cancel_reason_code	3系統キーを1系統へ統合	P0
+試合申請	キャンセル理由	別申請成立（文言）	canceled_reason / cancel_reason / aidunite_cancel_reason	cancel_reason_code	superseded_established	postmeta	cancel_reason_code	3系統キーを1系統へ統合	P0
+試合申請	キャンセル理由	mirror_established	canceled_reason / cancel_reason / aidunite_cancel_reason	cancel_reason_code	mirror_established	postmeta	cancel_reason_code	キー統合のみ実施	P1
+試合申請	キャンセル理由	superseded_established	canceled_reason / cancel_reason / aidunite_cancel_reason	cancel_reason_code	superseded_established	postmeta	cancel_reason_code	キー統合のみ実施	P1
+通知	通知種別	team_approved	type / notification_type	type	team_approval_completed	postmeta	type	旧通知名を正式名に統一	P0
+通知	通知種別	team_approval	type / notification_type	type	team_approval_completed	postmeta	type	旧通知名を正式名に統一	P0
+通知	通知種別	match_accepted	type / notification_type	type	match_established	postmeta	type	DB互換読取は許容し、新規保存は match_established	P0
+通知	通知種別	admin_team_application	type / notification_type	type	team_approval_request	postmeta	type	旧通知名を正式名に統一	P1
+通知	既読	FALSE	is_read	is_read	false	postmeta	is_read	大文字文字列は boolean false へ正規化	P1
+通知	既読	TRUE	is_read	is_read	true	postmeta	is_read	大文字文字列は boolean true へ正規化	P1
+スケジュール	出欠状態	attending	attendance_data.status	attendance_status	present	postmeta	attendance_data	attending は present に正規化	P0
+スケジュール	出欠状態	not_attending	attendance_data.status	attendance_status	absent	postmeta	attendance_data	not_attending は absent に正規化	P0
+スケジュール	出欠状態	pending	attendance_data.status	attendance_status	no_response	postmeta	attendance_data	pending は no_response に正規化	P0
+スケジュール	出欠状態	（空）	attendance_data.status	attendance_status	no_response	postmeta	attendance_data	空は no_response を補完	P0
+ユーザー	会員登録経路	Forminator 271	Forminator form 271 / 不統一メタ	registration_source	legacy_forminator	usermeta	registration_source	登録処理は正ルートへ統合。履歴上の経路は legacy_forminator として残す	P0
+ユーザー	利用者種別	subscriber	WP role / user_type	role	general	usermeta	aidunite_role	WP role を製品ロールへ正規化	P1
+ユーザー	利用者種別	author	WP role / user_type	role	team_leader	usermeta	aidunite_role	WP role を製品ロールへ正規化	P1
+ユーザー	利用者種別	guardian	user_type	role	parent	usermeta	aidunite_role	旧表記を parent に統一	P1
+ユーザー	利用者種別	athlete	user_type	role	player	usermeta	aidunite_role	旧表記を player に統一	P1
+チーム	団体種別	学校	team_type	org_type	school	postmeta	team_type	日本語保存値を内部コードへ正規化	P0
+チーム	団体種別	クラブ	team_type	org_type	club	postmeta	team_type	日本語保存値を内部コードへ正規化	P0
+チーム	団体種別	企業	team_type	org_type	corporate	postmeta	team_type	日本語保存値を内部コードへ正規化	P1
+チーム	団体種別	地域	team_type	org_type	community	postmeta	team_type	日本語保存値を内部コードへ正規化	P1
+チーム	団体種別	その他	team_type	org_type	other	postmeta	team_type	日本語保存値を内部コードへ正規化	P1
+決済	課金モード	school	payment_mode	payment_mode	business	postmeta	payment_mode	school は business に統一	P0
+決済	課金モード	board	payment_mode	payment_mode	board	postmeta	payment_mode	そのまま採用	P1
+決済	課金モード	personal	payment_mode	payment_mode	personal	postmeta	payment_mode	そのまま採用	P1

@@ -1,0 +1,268 @@
+/**
+ * トースト通知ベーススタイル
+ *
+ * スケジュール登録完了時のトースト通知を基本とした統一トースト通知システム
+ *
+ * 使用方法:
+ *   <link rel="stylesheet" href="<?php echo get_template_directory_uri(); ?>/assets/css/components/toast-notification.css">
+ *   <script src="<?php echo get_template_directory_uri(); ?>/js/toast-notification.js"></script>
+ */
+
+/* ============================================
+   トースト通知オーバーレイ
+   ============================================ */
+.aidunite-toast-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    /* スケジュール詳細モーダル（z-index:10000）より前面 */
+    z-index: 20150;
+    pointer-events: auto;
+    opacity: 1;
+    transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: aiduniteToastOverlayIn 0.35s ease-out;
+}
+
+.aidunite-toast-overlay.is-hiding {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ============================================
+   トースト通知コンテナ
+   ============================================ */
+.aidunite-toast-notification {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 20160;
+    pointer-events: none;
+    font-family: inherit;
+}
+
+.aidunite-toast-notification.show {
+    animation: aiduniteToastOverlayIn 0.35s ease-out;
+}
+
+.aidunite-toast-notification.hide {
+    animation: aiduniteToastContainerOut 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    pointer-events: none;
+}
+
+.aidunite-toast-notification.hide .aidunite-toast-card {
+    animation: aiduniteToastCardOut 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ============================================
+   トーストカード
+   ============================================ */
+.aidunite-toast-card {
+    background: var(--bg-primary);
+    padding: calc(var(--spacing-lg) + var(--spacing-sm)) var(--spacing-xl);
+    border-radius: var(--radius-large);
+    box-shadow: var(--shadow-xl);
+    text-align: center;
+    max-width: 500px;
+    width: 90%;
+    animation: slideIn 0.5s ease-out;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-base);
+    pointer-events: auto;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.aidunite-toast-card:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.aidunite-toast-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
+}
+
+/* ============================================
+   トーストアイコン（完了モーダル .completion-icon と同系: 48px・success 色）
+   ============================================ */
+.aidunite-toast-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+    animation: iconBounce 0.6s ease-out;
+}
+
+.aidunite-toast-notification[data-type="success"] .aidunite-toast-icon .aidunite-icon--success,
+.aidunite-toast-notification[data-type="success"] .aidunite-toast-icon .aidunite-icon.aidunite-icon--success {
+    color: var(--success-color);
+}
+
+.aidunite-toast-notification[data-type="success"] .aidunite-toast-icon .aidunite-icon__svg,
+.aidunite-toast-notification[data-type="success"] .aidunite-toast-icon svg {
+    width: 48px;
+    height: 48px;
+}
+
+/* info トースト＋ check_circle（オンボーディング「次は」等）: 上ボーダーと同色 */
+.aidunite-toast-notification[data-type="info"] .aidunite-toast-icon .aidunite-icon--info,
+.aidunite-toast-notification[data-type="info"] .aidunite-toast-icon .aidunite-icon.aidunite-icon--info {
+    color: var(--info-color);
+}
+
+.aidunite-toast-notification[data-type="info"] .aidunite-toast-icon .aidunite-icon__svg,
+.aidunite-toast-notification[data-type="info"] .aidunite-toast-icon svg {
+    width: 48px;
+    height: 48px;
+}
+
+/* ============================================
+   トーストメッセージ
+   ============================================ */
+.aidunite-toast-message {
+    flex: 1;
+    width: 100%;
+}
+
+.aidunite-toast-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+}
+
+.aidunite-toast-content {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: #666;
+    word-break: break-word;
+}
+
+/* ============================================
+   タイプ別スタイル
+   ============================================ */
+.aidunite-toast-notification[data-type="success"] .aidunite-toast-card {
+    border-top: 4px solid var(--success-color);
+}
+
+.aidunite-toast-notification[data-type="error"] .aidunite-toast-card {
+    border-top: 4px solid var(--danger-color);
+}
+
+.aidunite-toast-notification[data-type="warning"] .aidunite-toast-card {
+    border-top: 4px solid var(--warning-color);
+}
+
+.aidunite-toast-notification[data-type="info"] .aidunite-toast-card {
+    border-top: 4px solid var(--info-color);
+}
+
+/* ============================================
+   アニメーション
+   ============================================ */
+@keyframes aiduniteToastOverlayIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes aiduniteToastContainerOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes aiduniteToastCardOut {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(var(--spacing-sm)) scale(0.98);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes iconBounce {
+    0% {
+        transform: scale(0);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* ============================================
+   レスポンシブ対応
+   ============================================ */
+@media (max-width: 768px) {
+    .aidunite-toast-card {
+        padding: 2rem 1.5rem;
+        max-width: 90%;
+    }
+
+    .aidunite-toast-icon {
+        font-size: 3rem;
+    }
+
+    .aidunite-toast-title {
+        font-size: 1.2rem;
+    }
+
+    .aidunite-toast-content {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .aidunite-toast-card {
+        padding: 1.5rem 1.25rem;
+        max-width: 95%;
+        border-radius: 16px;
+    }
+
+    .aidunite-toast-icon {
+        font-size: 2.5rem;
+    }
+
+    .aidunite-toast-title {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .aidunite-toast-content {
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+}

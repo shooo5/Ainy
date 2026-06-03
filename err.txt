@@ -1,0 +1,14 @@
+
+=== 整合性チェック サマリ ===
+total_issues: 2026
+  teams: 9
+  match_requests: 111
+  match_lifecycle: 1906
+
+[match_lifecycle 内訳]
+  board_missing_parent: 1505
+  mr_orphan_schedule_ref: 288
+  chat_orphan_match_id: 101
+  board_orphan_parent: 12
+
+---

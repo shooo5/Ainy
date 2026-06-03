@@ -1,0 +1,408 @@
+[
+  {
+    "url": "http://aidunitemvp.xsrv.jp/mypage",
+    "path": "/mypage",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/mypage/",
+    "pageName": "マイページ",
+    "timestamp": "2025-08-02T00:21:48.080Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/login",
+    "path": "/login",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/login/",
+    "pageName": "ログイン",
+    "timestamp": "2025-08-02T00:21:48.323Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/member-register",
+    "path": "/member-register",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/member-register/",
+    "pageName": "会員登録",
+    "timestamp": "2025-08-02T00:21:48.548Z"
+  },
+
+  {
+    "url": "http://aidunitemvp.xsrv.jp/team-registration",
+    "path": "/team-registration",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/team-registration/",
+    "pageName": "チーム登録",
+    "timestamp": "2025-08-02T00:21:49.046Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/team-list",
+    "path": "/team-list",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/team-list/",
+    "pageName": "チーム一覧",
+    "timestamp": "2025-08-02T00:21:49.289Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/schedule-management",
+    "path": "/schedule-management",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/login/",
+    "pageName": "スケジュール管理",
+    "timestamp": "2025-08-02T00:21:49.767Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/match-board",
+    "path": "/match-board",
+    "status": 500,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/match-board-others/",
+    "pageName": "マッチ掲示板",
+    "timestamp": "2025-08-02T00:21:50.022Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/match-requests",
+    "path": "/match-requests",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/match-requests/",
+    "pageName": "マッチ申請",
+    "timestamp": "2025-08-02T00:21:50.269Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/payment-management",
+    "path": "/payment-management",
+    "status": 500,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/payment-management/",
+    "pageName": "支払い管理",
+    "timestamp": "2025-08-02T00:21:50.527Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/profile-edit",
+    "path": "/profile-edit",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/profile-edit/",
+    "pageName": "プロフィール編集",
+    "timestamp": "2025-08-02T00:21:50.776Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/notifications",
+    "path": "/notifications",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/notifications/",
+    "pageName": "通知一覧",
+    "timestamp": "2025-08-02T00:21:51.000Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/contact",
+    "path": "/contact",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/contact",
+    "pageName": "お問い合わせ",
+    "timestamp": "2025-08-02T00:21:51.128Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/guide",
+    "path": "/guide",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/guide",
+    "pageName": "ガイド",
+    "timestamp": "2025-08-02T00:21:51.260Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/regulation",
+    "path": "/regulation",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/regulation",
+    "pageName": "レギュレーション",
+    "timestamp": "2025-08-02T00:21:51.400Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/team-search",
+    "path": "/team-search",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/team-search",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:51.521Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/team-members",
+    "path": "/team-members",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/team-members",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:51.643Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/attendance-management",
+    "path": "/attendance-management",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/attendance-management",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:51.762Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/attendance-response",
+    "path": "/attendance-response",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/attendance-response",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:51.888Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/attendance",
+    "path": "/attendance",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/attendance",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:52.012Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/team-notifications",
+    "path": "/team-notifications",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/team-notifications",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:52.146Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/match-history",
+    "path": "/match-history",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/match-history",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:52.269Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/team-board",
+    "path": "/team-board",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/team-board",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:52.385Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/send-message",
+    "path": "/send-message",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/send-message",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:52.506Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/team-discovery",
+    "path": "/team-discovery",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/team-discovery",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:52.629Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/support-team",
+    "path": "/support-team",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/support-team",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:52.744Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/schedule-edit",
+    "path": "/schedule-edit",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/schedule-edit/",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:52.980Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/match-board-own",
+    "path": "/match-board-own",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/login/",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:53.388Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/match-board-other",
+    "path": "/match-board-other",
+    "status": 500,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/match-board-others/",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:53.611Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/match-result-report",
+    "path": "/match-result-report",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/login/",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:54.035Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/match-result-history",
+    "path": "/match-result-history",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/match-result-history",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:54.154Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/payment-settings",
+    "path": "/payment-settings",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/payment-settings",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:54.269Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/team-chat",
+    "path": "/team-chat",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/login/",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:54.695Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/message-board",
+    "path": "/message-board",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/login/",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:55.136Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/edit-team",
+    "path": "/edit-team",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/edit-team/",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:55.418Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/player-add",
+    "path": "/player-add",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/login/",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:55.875Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/invite-guardian",
+    "path": "/invite-guardian",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/invite-guardian",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:56.002Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/team-parents",
+    "path": "/team-parents",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/team-parents",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:56.145Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/team-apply",
+    "path": "/team-apply",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/team-apply",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:56.272Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/team-approval",
+    "path": "/team-approval",
+    "status": 500,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/team-approval/",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:56.483Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/match-management",
+    "path": "/match-management",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/match-management/",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:56.720Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/parent-dashboard",
+    "path": "/parent-dashboard",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/login/",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:57.185Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/player-dashboard",
+    "path": "/player-dashboard",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/login/",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:57.644Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/support-dashboard",
+    "path": "/support-dashboard",
+    "status": 200,
+    "isRedirect": true,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/login/",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:58.070Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/support-list",
+    "path": "/support-list",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/support-list",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:58.181Z"
+  },
+  {
+    "url": "http://aidunitemvp.xsrv.jp/support-history",
+    "path": "/support-history",
+    "status": 404,
+    "isRedirect": false,
+    "finalUrl": "http://aidunitemvp.xsrv.jp/support-history",
+    "pageName": "",
+    "timestamp": "2025-08-02T00:21:58.296Z"
+  }
+]

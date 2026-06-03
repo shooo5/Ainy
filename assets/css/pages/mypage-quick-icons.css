@@ -1,0 +1,139 @@
+/**
+ * 旧マイページ用 .mypage-quick-icons（v2 は mypage-redesign.css の .mypage-v2-quick-* を使用）
+ * デザインリファレンスのバッジ見本用。本番マイページでは enqueue しない。
+ */
+.mypage-quick-icons {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 0;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.mypage-quick-icon {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--bg-secondary, #f8f9fa);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: var(--radius-medium);
+  text-decoration: none;
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm, 0 2px 4px rgba(0, 0, 0, 0.08));
+  transition: box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  position: relative;
+  /* ホバー時のシマーは ::before のみ。hidden にすると件数バッジ（はみ出し）が角でクリップされる */
+  overflow: visible;
+}
+
+.mypage-quick-icon::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, rgba(106, 90, 249, 0.08), transparent);
+  transition: left 0.5s ease;
+  pointer-events: none;
+}
+
+.mypage-quick-icon:hover::before {
+  left: 100%;
+}
+
+.mypage-quick-icon:hover {
+  background: var(--bg-light, #f5f5f5);
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.12));
+  transform: translateY(-3px);
+  text-decoration: none;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.mypage-quick-icon:active {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transform: translateY(0);
+  background: var(--border-color, #e8e8e8);
+}
+
+.mypage-quick-icon:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.mypage-quick-icon-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.mypage-quick-icon-icon svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+.mypage-quick-icon-icon--img img {
+  display: block;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.mypage-quick-icon:hover .mypage-quick-icon-icon {
+  transform: scale(1.05);
+}
+
+.mypage-quick-icon-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+}
+
+/* 数字なしの丸（要対応ありの印） */
+.mypage-quick-icon-badge {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.2rem;
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
+  min-height: 12px;
+  padding: 0;
+  background: var(--danger-color);
+  border-radius: 50%;
+  border: 2px solid var(--bg-primary);
+  display: none;
+  font-size: 0;
+  box-sizing: border-box;
+}
+
+.mypage-quick-icon.has-badge .mypage-quick-icon-badge {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .mypage-quick-icons {
+    gap: 0.75rem;
+  }
+
+  .mypage-quick-icon {
+    padding: 0.5rem;
+  }
+
+  .mypage-quick-icon-icon {
+    font-size: var(--font-size-2xl);
+  }
+
+  .mypage-quick-icon-label {
+    font-size: var(--font-size-xs);
+  }
+}

@@ -1,0 +1,143 @@
+/**
+ * チーム UI テーマ（body[data-team-theme]）
+ * 色の正本: layout/gender-theme-tokens.css（--gender-boys-* / --gender-girls-*）
+ * Webアプリページのヘッダー・ツールバー・ボトムナビに適用
+ */
+
+/* ページヘッダー用トークン（男子） */
+body[data-team-theme="boys"] {
+  --page-header-bg: radial-gradient(circle at 80% 20%, var(--hero-glow), transparent 35%),
+    var(--hero-gradient);
+  --page-header-title-color: var(--text-on-dark);
+  --page-header-description-color: rgba(255, 255, 255, 0.88);
+  --schedule-selection-gradient: linear-gradient(135deg, var(--ainy-navy-700) 0%, var(--theme-accent) 100%);
+  --schedule-btn-gradient: linear-gradient(135deg, var(--theme-accent) 0%, var(--theme-accent-dark) 100%);
+  --schedule-selection-tint: color-mix(in srgb, var(--gender-boys-accent) 8%, transparent);
+  --schedule-focus-ring: color-mix(in srgb, var(--gender-boys-accent) 20%, transparent);
+  --schedule-glow-sm: color-mix(in srgb, var(--gender-boys-accent) 15%, transparent);
+  --schedule-glow-md: color-mix(in srgb, var(--gender-boys-accent) 25%, transparent);
+  --schedule-glow-lg: color-mix(in srgb, var(--gender-boys-accent) 40%, transparent);
+  --schedule-filter-all-bg: var(--schedule-selection-gradient);
+  --schedule-filter-confirmed-bg: color-mix(in srgb, var(--gender-boys-accent) 22%, transparent);
+  --schedule-filter-confirmed-border: var(--theme-accent);
+  --schedule-filter-recruit-bg: color-mix(in srgb, var(--gender-boys-navy-700) 14%, transparent);
+  --schedule-filter-recruit-border: var(--ainy-navy-700);
+  --schedule-filter-tentative-bg: rgba(255, 193, 7, 0.28);
+  --schedule-filter-tentative-border: var(--warning-color, #ffc107);
+  --schedule-filter-tentative-text: #5c4a00;
+  --schedule-status-confirmed-bg: rgba(147, 197, 253, 0.55);
+  --schedule-status-tentative-bg: rgba(255, 249, 196, 0.95);
+  --schedule-status-recruit-bg: rgba(191, 219, 254, 0.65);
+}
+
+/* 女子チーム */
+body[data-team-theme="girls"] {
+  --page-header-bg: radial-gradient(circle at 80% 20%, var(--hero-glow), transparent 35%),
+    var(--hero-gradient);
+  --page-header-title-color: var(--text-on-dark);
+  --page-header-description-color: rgba(255, 255, 255, 0.9);
+  --schedule-selection-gradient: linear-gradient(
+    180deg,
+    var(--gender-girls-navy-900) 0%,
+    var(--theme-accent) 55%,
+    var(--theme-secondary) 100%
+  );
+  --schedule-btn-gradient: linear-gradient(135deg, var(--theme-accent) 0%, var(--theme-accent-dark) 100%);
+  --schedule-selection-tint: color-mix(in srgb, var(--gender-girls-accent-dark) 8%, transparent);
+  --schedule-focus-ring: color-mix(in srgb, var(--gender-girls-accent-dark) 20%, transparent);
+  --schedule-glow-sm: color-mix(in srgb, var(--gender-girls-accent-dark) 15%, transparent);
+  --schedule-glow-md: color-mix(in srgb, var(--gender-girls-accent-dark) 25%, transparent);
+  --schedule-glow-lg: color-mix(in srgb, var(--gender-girls-accent-dark) 40%, transparent);
+  --schedule-filter-all-bg: var(--schedule-selection-gradient);
+  --schedule-filter-confirmed-bg: color-mix(in srgb, var(--gender-girls-accent) 35%, transparent);
+  --schedule-filter-confirmed-border: var(--theme-accent-dark);
+  --schedule-filter-recruit-bg: color-mix(in srgb, var(--gender-girls-accent-light) 28%, transparent);
+  --schedule-filter-recruit-border: var(--ainy-navy-700);
+  --schedule-filter-tentative-bg: rgba(255, 193, 7, 0.28);
+  --schedule-filter-tentative-border: var(--warning-color, #ffc107);
+  --schedule-filter-tentative-text: #5c4a00;
+  --schedule-status-confirmed-bg: rgba(221, 214, 254, 0.85);
+  --schedule-status-tentative-bg: rgba(255, 249, 196, 0.95);
+  --schedule-status-recruit-bg: rgba(233, 213, 255, 0.75);
+}
+
+/* 統一ページヘッダー（dashboard-header / communication-header） */
+body.web-app-page[data-team-theme] .dashboard-header,
+body.web-app-page[data-team-theme] .communication-header {
+  background: var(--page-header-bg);
+  color: var(--text-on-dark);
+}
+
+body.web-app-page[data-team-theme] .dashboard-header h1,
+body.web-app-page[data-team-theme] .dashboard-header p,
+body.web-app-page[data-team-theme] .communication-header h1,
+body.web-app-page[data-team-theme] .communication-header p {
+  color: var(--page-header-title-color);
+}
+
+body.web-app-page[data-team-theme] .dashboard-header p,
+body.web-app-page[data-team-theme] .communication-header p {
+  color: var(--page-header-description-color);
+}
+
+/* コミュニケーション／チャット Pattern C：アクセントのみ切替（構造・背景は messaging.css で共通） */
+body[data-team-theme] .page-communication-main .communication-content--pattern-c,
+body[data-team-theme] .chat-page-shell {
+  --comm-accent: var(--theme-accent);
+  --comm-accent-dark: var(--theme-accent-dark);
+  --comm-accent-soft: color-mix(in srgb, var(--theme-accent) 22%, transparent);
+}
+
+/* 通知一覧：タブアクセント（一体型ヒーローは web-app-integrated-ui.css） */
+body[data-team-theme] .page-notifications.ainy-notifications-page {
+  --ainy-notif-accent: var(--theme-accent);
+  --ainy-notif-tab-active-bg: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--theme-accent) 12%, transparent),
+    var(--ainy-notif-card)
+  );
+  --ainy-notif-tab-active-ring: color-mix(in srgb, var(--theme-accent) 22%, transparent);
+}
+
+@supports not (color: color-mix(in srgb, white 50%, black)) {
+  body[data-team-theme="boys"] .page-notifications.ainy-notifications-page {
+    --ainy-notif-tab-active-bg: linear-gradient(135deg, var(--gender-boys-accent-soft), var(--ainy-notif-card));
+    --ainy-notif-tab-active-ring: var(--gender-boys-glow);
+  }
+
+  body[data-team-theme="girls"] .page-notifications.ainy-notifications-page {
+    --ainy-notif-tab-active-bg: linear-gradient(135deg, var(--gender-girls-accent-soft), var(--ainy-notif-card));
+    --ainy-notif-tab-active-ring: var(--gender-girls-glow-strong);
+  }
+}
+
+body.web-app-page.page-team-settings[data-team-theme] .team-settings-dash__btn--primary {
+  background: linear-gradient(135deg, var(--theme-secondary), var(--theme-accent));
+  color: var(--text-on-dark);
+}
+
+/* ボトムナビ（マイページ v2 専用ナビ以外・footer インライン と競合） */
+body.web-app-page[data-team-theme] nav.ainy-bottom-nav:not(.ainy-bottom-nav--mypage-v2) {
+  background: var(--nav-dark-gradient);
+  border-top: none;
+  box-shadow: 0 -8px 28px rgba(8, 24, 39, 0.3);
+}
+
+body.web-app-page[data-team-theme="girls"] nav.ainy-bottom-nav:not(.ainy-bottom-nav--mypage-v2) {
+  box-shadow: 0 -8px 28px var(--gender-girls-glow-strong);
+}
+
+body.web-app-page[data-team-theme] nav.ainy-bottom-nav:not(.ainy-bottom-nav--mypage-v2) .ainy-bottom-nav-link {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+body.web-app-page[data-team-theme] nav.ainy-bottom-nav:not(.ainy-bottom-nav--mypage-v2) .ainy-bottom-nav-link:hover,
+body.web-app-page[data-team-theme] nav.ainy-bottom-nav:not(.ainy-bottom-nav--mypage-v2) .ainy-bottom-nav-link.active {
+  color: var(--text-on-dark);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+body.web-app-page[data-team-theme] nav.ainy-bottom-nav:not(.ainy-bottom-nav--mypage-v2) .ainy-bottom-nav-link.active svg,
+body.web-app-page[data-team-theme] nav.ainy-bottom-nav:not(.ainy-bottom-nav--mypage-v2) .ainy-bottom-nav-link:hover svg {
+  color: var(--theme-accent);
+}

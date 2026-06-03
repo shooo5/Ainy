@@ -1,0 +1,35 @@
+/* ========================================
+   保護者登録ページ専用スタイル
+   Design Tokens 使用（Ainy-UI-Unified-Rules 準拠）
+   ======================================== */
+
+.guardian-signup-container,
+.team-dashboard-container .mypage-card {
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: var(--spacing-lg);
+}
+
+.guardian-signup-container .form-group,
+.team-dashboard-container .form-group {
+  margin-bottom: var(--spacing-base);
+}
+
+.guardian-signup-container label,
+.team-dashboard-container .mypage-card label {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
+
+.guardian-signup-container .btn,
+.team-dashboard-container .mypage-card .btn {
+  min-height: 44px;
+  border-radius: var(--radius-base);
+}
+
+.guardian-signup-container .btn:focus-visible,
+.team-dashboard-container .mypage-card .btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}

@@ -1,0 +1,166 @@
+/**
+ * チーム設定・公開プロフィール用パネル
+ * スケジュール登録の selection-card トーン（大きな見出し・カード内を広く使う）
+ */
+
+.team-form-panels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg, 1.5rem);
+}
+
+/* 基本情報パネル: 文言が短いため2カラム（チーム紹介など単独セクションには付けない） */
+.team-form-panels--grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-lg, 1.5rem);
+  align-items: start;
+}
+
+.team-form-panels--grid > .team-settings-dash__form-actions,
+.team-form-panels--grid > .team-form-panel--full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 768px) {
+  .team-form-panels--grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.team-form-panel {
+  background: var(--bg-primary);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-large, 16px);
+  padding: var(--spacing-xl, 2rem) var(--spacing-lg, 1.5rem);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.06));
+  cursor: default;
+}
+
+.team-form-panel .card-header-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--spacing-sm, 0.75rem);
+  margin-bottom: var(--spacing-lg, 1.5rem);
+}
+
+.team-form-panel .card-icon {
+  font-size: clamp(2.75rem, 10vw, 3.75rem);
+  line-height: 1;
+}
+
+.team-form-panel .card-title {
+  margin: 0;
+  font-size: clamp(1.5rem, 4.5vw, 2rem);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+.team-form-panel .card-description {
+  margin: var(--spacing-xs, 0.35rem) 0 0;
+  font-size: clamp(1.0625rem, 3.2vw, 1.25rem);
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.team-form-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-base, 1rem);
+}
+
+.team-form-panel__body .form-grid {
+  gap: var(--spacing-base, 1rem);
+}
+
+.team-form-panel__body .team-settings-dash__field label {
+  font-size: clamp(1.0625rem, 3vw, 1.25rem);
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm, 0.75rem);
+}
+
+.team-form-panel__body .team-settings-dash__input,
+.team-form-panel__body .team-settings-dash__select,
+.team-form-panel__body .team-settings-dash__textarea {
+  min-height: 52px;
+  padding: var(--spacing-base, 1rem) var(--spacing-md, 1.125rem);
+  font-size: clamp(1.0625rem, 3vw, 1.25rem);
+  border-radius: var(--radius-medium, 12px);
+  border-width: 2px;
+}
+
+.team-form-panel__body .team-settings-dash__textarea {
+  min-height: 140px;
+}
+
+/* 活動場所: 東京都サブ項目はグリッド全幅 */
+.team-form-panel__body .form-grid-2 > .aidunite-team-activity-tokyo-wrap--settings {
+  grid-column: 1 / -1;
+}
+
+.team-form-panel__body .aidunite-team-activity-tokyo-grid {
+  width: 100%;
+}
+
+.team-form-panel__stat-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-base, 1rem);
+}
+
+@media (min-width: 640px) {
+  .team-form-panel__stat-grid--multi {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .team-form-panel__stat-grid--multi .team-form-panel__stat:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+.team-form-panel__stat {
+  text-align: center;
+  padding: var(--spacing-lg, 1.5rem) var(--spacing-base, 1rem);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-medium, 12px);
+  background: var(--bg-light);
+}
+
+.team-form-panel__stat-label {
+  display: block;
+  font-size: clamp(1rem, 2.8vw, 1.125rem);
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-sm, 0.75rem);
+}
+
+.team-form-panel__stat-value {
+  display: block;
+  font-size: clamp(1.375rem, 4.5vw, 1.875rem);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.team-form-panel__stat--solo .team-form-panel__stat-value {
+  font-size: clamp(1.625rem, 5vw, 2.25rem);
+}
+
+.team-form-panel__prose {
+  font-size: clamp(1.0625rem, 3vw, 1.25rem);
+  line-height: 1.75;
+  color: var(--text-primary);
+}
+
+@media (max-width: 480px) {
+  .team-form-panel {
+    padding: var(--spacing-lg, 1.5rem) var(--spacing-base, 1rem);
+  }
+}

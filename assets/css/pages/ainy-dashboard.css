@@ -1,0 +1,469 @@
+/**
+ * Ainy 管理者ダッシュボード（page-ainy-dashboard.php から移設）
+ */
+.ainy-dashboard-wrap {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+}
+
+.ainy-dashboard-header {
+  margin-bottom: var(--spacing-xl);
+}
+
+.ainy-dashboard-header h1 {
+  margin: 0 0 var(--spacing-sm);
+  font-size: var(--font-size-xl, 1.5rem);
+}
+
+.ainy-dashboard-header p {
+  margin: 0;
+  font-size: var(--font-size-base);
+}
+
+.ainy-dashboard-section-title {
+  margin: 0 0 var(--spacing-base);
+  font-size: var(--font-size-lg);
+  color: var(--text-primary);
+}
+
+.page-ainy-dashboard .ainy-dashboard-todo {
+  display: block;
+  background: var(--bg-secondary);
+  padding: var(--spacing-base);
+  border-radius: var(--radius-base);
+  margin-bottom: var(--spacing-xl);
+}
+
+.page-ainy-dashboard .ainy-dashboard-todo-empty {
+  margin: 0;
+  padding: var(--spacing-sm) 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.ainy-dashboard-todo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.ainy-dashboard-todo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-base);
+  background: var(--bg-primary);
+  border-radius: var(--radius-small);
+  color: var(--primary-color);
+  text-decoration: none;
+  border: 1px solid var(--border-color);
+}
+
+.ainy-dashboard-todo-link:hover {
+  background: rgba(var(--primary-color-rgb, 155, 143, 250), 0.1);
+}
+
+.ainy-dashboard-todo-link:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.ainy-dashboard-todo-badge {
+  background: var(--warning-color);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: var(--radius-small);
+  font-size: var(--font-size-sm);
+  font-weight: bold;
+}
+
+.ainy-dashboard-period {
+  margin-bottom: var(--spacing-lg);
+}
+
+.ainy-dashboard-period-label {
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.ainy-dashboard-period-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.ainy-dashboard-period-btn {
+  padding: var(--spacing-sm) var(--spacing-base);
+  border-radius: var(--radius-small);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  text-decoration: none;
+  border: 1px solid var(--border-color);
+}
+
+.ainy-dashboard-period-btn:hover {
+  background: var(--border-light);
+}
+
+.ainy-dashboard-period-btn.is-active {
+  background: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
+}
+
+.ainy-dashboard-kpi {
+  margin-bottom: var(--spacing-xl);
+}
+
+.ainy-dashboard-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--spacing-base);
+}
+
+.ainy-dashboard-kpi-card {
+  background: var(--bg-secondary);
+  padding: var(--spacing-base);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.ainy-dashboard-kpi-name {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.ainy-dashboard-kpi-value {
+  font-size: var(--font-size-xl);
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+.ainy-dashboard-kpi-diff {
+  font-size: var(--font-size-sm);
+}
+
+.ainy-dashboard-kpi-diff--up {
+  color: var(--success-color);
+}
+
+.ainy-dashboard-kpi-diff--down {
+  color: var(--danger-color);
+}
+
+.ainy-dashboard-kpi-meta {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.ainy-dashboard-shortcuts {
+  margin-bottom: var(--spacing-xl);
+}
+
+.ainy-dashboard-shortcuts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--spacing-base);
+}
+
+.ainy-dashboard-shortcut-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-color);
+  text-decoration: none;
+  color: var(--text-primary);
+  position: relative;
+  min-height: 80px;
+}
+
+.ainy-dashboard-shortcut-card:hover {
+  background: var(--border-light);
+  border-color: var(--primary-color);
+}
+
+.ainy-dashboard-shortcut-card:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.ainy-dashboard-shortcut-icon {
+  font-size: 1.5rem;
+}
+
+.ainy-dashboard-shortcut-label {
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+.ainy-dashboard-shortcut-badge {
+  position: absolute;
+  top: var(--spacing-xs);
+  right: var(--spacing-xs);
+  background: var(--danger-color);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: var(--radius-small);
+  font-size: var(--font-size-xs);
+  font-weight: bold;
+}
+
+.ainy-dashboard-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.ainy-dashboard-tab-btn {
+  padding: var(--spacing-sm) var(--spacing-base);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-bottom: none;
+  border-radius: var(--radius-small) var(--radius-small) 0 0;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.ainy-dashboard-tab-btn:hover {
+  background: var(--border-light);
+}
+
+.ainy-dashboard-tab-btn.is-active {
+  background: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
+}
+
+.ainy-dashboard-tab-content {
+  display: none;
+  padding: var(--spacing-lg);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-base);
+}
+
+.ainy-dashboard-tab-content.is-active {
+  display: block;
+}
+
+.ainy-dashboard-amount-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-base);
+}
+
+.ainy-dashboard-amount-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-base);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.ainy-dashboard-amount-card-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-weight: bold;
+}
+
+.ainy-dashboard-amount-card-input-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+}
+
+.ainy-dashboard-amount-input {
+  padding: var(--spacing-sm) var(--spacing-base);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-small);
+  font-size: var(--font-size-lg);
+  font-weight: bold;
+  max-width: 140px;
+}
+
+.ainy-dashboard-amount-unit {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 900px) {
+  .ainy-dashboard-amount-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .ainy-dashboard-amount-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .ainy-dashboard-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ainy-dashboard-shortcuts-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 分析基盤（推移グラフ・ページ利用・暫定KPI） */
+.ainy-dashboard-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.ainy-dashboard-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.ainy-dashboard-csv-link {
+  font-size: var(--font-size-sm);
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.ainy-dashboard-csv-link:hover {
+  text-decoration: underline;
+}
+
+.ainy-dashboard-csv-link:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.ainy-dashboard-chart-note,
+.ainy-dashboard-empty-metrics {
+  margin: 0 0 var(--spacing-base);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.ainy-dashboard-chart-wrap {
+  position: relative;
+  height: 280px;
+  padding: var(--spacing-base);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-base);
+  box-shadow: var(--shadow-sm);
+}
+
+.ainy-dashboard-beta-tag {
+  display: inline-block;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--warning-color);
+  vertical-align: middle;
+}
+
+.ainy-dashboard-kpi-card--beta {
+  border-color: var(--warning-color);
+}
+
+.ainy-dashboard-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-base);
+  background: var(--bg-secondary);
+}
+
+.ainy-dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.ainy-dashboard-table th,
+.ainy-dashboard-table td {
+  padding: var(--spacing-sm) var(--spacing-base);
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ainy-dashboard-table th {
+  background: var(--bg-primary);
+  font-weight: 600;
+}
+
+.ainy-dashboard-table code {
+  font-size: var(--font-size-xs);
+}
+
+.ainy-dashboard-kpi-card--clickable {
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font: inherit;
+  appearance: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ainy-dashboard-kpi-card--clickable:hover {
+  border-color: var(--primary-color);
+}
+
+.ainy-dashboard-kpi-card--clickable:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.ainy-dashboard-kpi-card--clickable.is-chart-active {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-md);
+}
+
+.ainy-dashboard-kpi-value small {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.ainy-dashboard-page-key-meta {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.ainy-dashboard-page-key-meta code {
+  font-size: var(--font-size-xs);
+}
+
+.ainy-dashboard-subsection-title {
+  margin: var(--spacing-base) 0 var(--spacing-sm);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.ainy-dashboard-page-chart-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-base) 0;
+}
+
+.ainy-dashboard-page-chart-toolbar-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.ainy-dashboard-page-cards {
+  margin-bottom: var(--spacing-base);
+}

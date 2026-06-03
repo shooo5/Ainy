@@ -1,0 +1,92 @@
+/**
+ * トグルスイッチ（UI パーツ統一）
+ * @version 1.0.1
+ * @see docs/reports/ui-components-inventory.md §5.10
+ * @see page-design-reference.php（デザインリファレンス）
+ *
+ * クラス: .toggle-switch / .toggle-slider / .toggle-label
+ */
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+    min-height: 44px;
+    min-width: 50px;
+    box-sizing: content-box;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+.toggle-switch input {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 50px;
+    height: 24px;
+    margin: 0;
+    transform: translateY(-50%);
+    opacity: 0;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 24px;
+    background-color: var(--border-color, #ced4da);
+    transition: background-color 0.3s ease;
+    border-radius: 24px;
+}
+
+.toggle-slider::before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: var(--bg-primary, #fff);
+    transition: transform 0.3s ease;
+    border-radius: 50%;
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.15));
+}
+
+.toggle-switch:focus-within .toggle-slider {
+    outline: 2px solid var(--primary-color, #2271b1);
+    outline-offset: 2px;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: var(--primary-color, #2271b1);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(26px);
+}
+
+.toggle-label {
+    font-size: var(--font-size-sm, 0.9rem);
+    font-weight: 600;
+    color: var(--text-primary, #1a1a1a);
+    vertical-align: middle;
+}
+
+/* スクリーンリーダー向け（ON/OFF 文言を JS で更新する場合） */
+.toggle-switch__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
