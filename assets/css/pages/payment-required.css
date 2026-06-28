@@ -1,0 +1,131 @@
+/**
+ * page-payment-required.php
+ */
+.payment-required-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.payment-required-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.payment-required-header h1 {
+    font-size: 2rem;
+    color: var(--danger-color);
+    margin-bottom: 0.5rem;
+}
+
+.status-card,
+.restriction-card,
+.action-card {
+    background: white;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.status-card h3,
+.restriction-card h3,
+.action-card h3 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 0.5rem;
+}
+
+.status-item {
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.status-badge.status-unpaid {
+    background: rgba(220, 53, 69, 0.1);
+    color: var(--danger-color);
+}
+
+.status-badge.status-trial {
+    background: rgba(23, 162, 184, 0.1);
+    color: var(--info-color);
+}
+
+.restriction-warning {
+    padding: 1rem;
+    background: rgba(255, 193, 7, 0.1);
+    border-left: 4px solid var(--warning-color);
+    border-radius: 4px;
+}
+
+.restriction-active {
+    padding: 1rem;
+    background: rgba(220, 53, 69, 0.1);
+    border-left: 4px solid var(--danger-color);
+    border-radius: 4px;
+}
+
+.restriction-warning p,
+.restriction-active p {
+    margin: 0.5rem 0;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+    flex: 1;
+    min-width: 150px;
+    padding: 0.75rem 1.5rem;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--border-light);
+}
+
+/* モバイル対応 */
+@media (max-width: 768px) {
+    .payment-required-container {
+        padding: 1rem;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .action-buttons .btn {
+        width: 100%;
+    }
+}

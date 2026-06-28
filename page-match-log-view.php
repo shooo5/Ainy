@@ -18,14 +18,7 @@ $post_types = ['match_request', 'match_board'];
 
 <!-- コンテンツが確実に表示されるよう .page-match-log-view でスコープ -->
 <div class="wrap page-match-log-view" style="padding: var(--spacing-lg); max-width: 1400px; margin: 0 auto;">
-<style>
-.page-match-log-view { display: block; }
-.page-match-log-view .log-table { width: 100%; border-collapse: collapse; }
-.page-match-log-view .log-table th,
-.page-match-log-view .log-table td { border: 1px solid var(--border-color); padding: var(--spacing-sm) var(--spacing-base); text-align: left; }
-.page-match-log-view .post-type-header { margin: var(--spacing-xl) 0 var(--spacing-base); font-weight: bold; font-size: var(--font-size-lg); }
-</style>
-  <h2>📊 マッチ投稿ログ表示（開発者用）</h2>
+<h2>📊 マッチ投稿ログ表示（開発者用）</h2>
   <p>match_request と match_board の投稿データ一覧を表示します。</p>
 
   <?php foreach ($post_types as $pt): ?>
@@ -64,19 +57,26 @@ $post_types = ['match_request', 'match_board'];
         <?php else :
           foreach ($posts as $i => $p):
             $row_no = $i + 1;
-            $from_schedule_id = get_post_meta($p->ID, 'from_schedule_id', true);
-            $to_schedule_id = get_post_meta($p->ID, 'to_schedule_id', true);
-
+            $from_schedule_id = '';
+            $to_schedule_id = '';
             $other_meta = [];
             if ($pt === 'match_request') {
-              $other_meta['from_team_id'] = get_post_meta($p->ID, 'from_team_id', true);
-              $other_meta['to_team_id'] = get_post_meta($p->ID, 'to_team_id', true);
-              $other_meta['status'] = get_post_meta($p->ID, 'status', true);
-              $other_meta['type'] = get_post_meta($p->ID, 'type', true);
+              $mr_log = function_exists('aidunite_match_request_get_canonical_meta')
+                ? aidunite_match_request_get_canonical_meta((int) $p->ID)
+                : [];
+              $from_schedule_id = (int) ($mr_log['from_schedule_id'] ?? 0);
+              $to_schedule_id = (int) ($mr_log['to_schedule_id'] ?? 0);
+              $other_meta['from_team_id'] = (int) ($mr_log['from_team_id'] ?? 0);
+              $other_meta['to_team_id'] = (int) ($mr_log['to_team_id'] ?? 0);
+              $other_meta['status'] = (string) ($mr_log['status'] ?? '');
+              $other_meta['type'] = (string) ($mr_log['type'] ?? '');
             } elseif ($pt === 'match_board') {
-              $other_meta['schedule_id'] = get_post_meta($p->ID, 'schedule_id', true);
-              $other_meta['match_board_status'] = get_post_meta($p->ID, 'match_board_status', true);
-              $other_meta['team_id'] = get_post_meta($p->ID, 'team_id', true);
+              $mb_log = function_exists('aidunite_match_board_get_canonical_meta')
+                ? aidunite_match_board_get_canonical_meta((int) $p->ID)
+                : [];
+              $other_meta['schedule_id'] = (int) ($mb_log['schedule_id'] ?? 0);
+              $other_meta['match_board_status'] = (string) ($mb_log['board_status'] ?? '');
+              $other_meta['team_id'] = (int) ($mb_log['team_id'] ?? 0);
             }
         ?>
           <tr>

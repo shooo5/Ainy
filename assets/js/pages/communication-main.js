@@ -13,7 +13,25 @@
         return (typeof AidUniteThemeIcons !== 'undefined') ? AidUniteThemeIcons.html(basename, size || 18) : '';
     }
 
+    function relocateCommunicationDomNodes() {
+        if (!document.body) {
+            return;
+        }
+        var wrap = document.querySelector('.new-message-btn-fixed-wrap');
+        if (wrap) {
+            document.body.appendChild(wrap);
+        }
+        ['startChatModal', 'messageModal'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) {
+                document.body.appendChild(el);
+            }
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
+        relocateCommunicationDomNodes();
+
         const newMessageBtn = document.getElementById('newMessageBtn');
         const messageModal = document.getElementById('messageModal');
         const modalClose = document.getElementById('modalClose');
@@ -298,11 +316,11 @@
                         closeStartChatModal();
                         window.location.href = '/team-chat?room_id=' + encodeURIComponent(result.data.room_id);
                     } else {
-                        alert(result.data && result.data.error ? result.data.error : 'チャットの作成に失敗しました');
+                        aiduniteToast(result.data && result.data.error ? result.data.error : 'チャットの作成に失敗しました', 'error');
                     }
                 })
                 .catch(function() {
-                    alert('チャットの作成に失敗しました');
+                    aiduniteToast('チャットの作成に失敗しました', 'error');
                 })
                 .finally(function() {
                     startChatSubmitBtn.disabled = false;
@@ -336,11 +354,11 @@
                 formData.append('team_id', getTeamId());
 
                 postMessage(formData).then(() => {
-                    alert('メッセージを投稿しました！');
+                    aiduniteToast('メッセージを投稿しました！', 'success');
                     closeModal();
                     loadTimeline();
                 }).catch(() => {
-                    alert('投稿に失敗しました。もう一度お試しください。');
+                    aiduniteToast('投稿に失敗しました。もう一度お試しください。', 'error');
                 }).finally(() => {
                     postBtn.disabled = false;
                     postBtn.innerHTML = '<span class="post-icon">' + themeIconHtml('send', 18) + '</span><span class="post-text">投稿</span>';
@@ -358,9 +376,9 @@
                 draftBtn.innerHTML = '<span class="draft-icon">' + themeIconHtml('hourglass_empty', 18) + '</span><span class="draft-text">保存中...</span>';
 
                 saveMessageDraft(formData).then(() => {
-                    alert('下書きを保存しました！');
+                    aiduniteToast('下書きを保存しました！', 'success');
                 }).catch(() => {
-                    alert('保存に失敗しました。');
+                    aiduniteToast('保存に失敗しました。', 'error');
                 }).finally(() => {
                     draftBtn.disabled = false;
                     draftBtn.innerHTML = '<span class="draft-icon">' + themeIconHtml('save', 18) + '</span><span class="draft-text">下書き保存</span>';
@@ -960,34 +978,46 @@
         }
 
         function deleteMessage(messageId) {
-            if (!confirm('このメッセージを削除しますか？')) return;
-            fetch('/wp-json/aidunite/v1/messages/' + messageId, {
-                method: 'DELETE',
-                headers: { 'X-WP-Nonce': aidunite_messaging.nonce }
-            })
-            .then(response => {
-                if (response.ok) loadTimeline();
-                else alert('メッセージの削除に失敗しました');
-            })
-            .catch(error => {
-                console.error('削除エラー:', error);
-                alert('メッセージの削除に失敗しました');
+            aiduniteConfirm({
+                message: 'このメッセージを削除しますか？',
+                confirmLabel: '削除する',
+                confirmVariant: 'danger',
+                onConfirm: function () {
+                    fetch('/wp-json/aidunite/v1/messages/' + messageId, {
+                        method: 'DELETE',
+                        headers: { 'X-WP-Nonce': aidunite_messaging.nonce }
+                    })
+                    .then(response => {
+                        if (response.ok) loadTimeline();
+                        else aiduniteToast('メッセージの削除に失敗しました', 'error');
+                    })
+                    .catch(error => {
+                        console.error('削除エラー:', error);
+                        aiduniteToast('メッセージの削除に失敗しました', 'error');
+                    });
+                }
             });
         }
 
         function deleteChatRoom(roomId) {
-            if (!confirm('このチャットルームを削除しますか？')) return;
-            fetch('/wp-json/aidunite/v1/chats/' + roomId, {
-                method: 'DELETE',
-                headers: { 'X-WP-Nonce': aidunite_messaging.nonce }
-            })
-            .then(response => {
-                if (response.ok) loadTimeline();
-                else alert('チャットルームの削除に失敗しました');
-            })
-            .catch(error => {
-                console.error('削除エラー:', error);
-                alert('チャットルームの削除に失敗しました');
+            aiduniteConfirm({
+                message: 'このチャットルームを削除しますか？',
+                confirmLabel: '削除する',
+                confirmVariant: 'danger',
+                onConfirm: function () {
+                    fetch('/wp-json/aidunite/v1/chats/' + roomId, {
+                        method: 'DELETE',
+                        headers: { 'X-WP-Nonce': aidunite_messaging.nonce }
+                    })
+                    .then(response => {
+                        if (response.ok) loadTimeline();
+                        else aiduniteToast('チャットルームの削除に失敗しました', 'error');
+                    })
+                    .catch(error => {
+                        console.error('削除エラー:', error);
+                        aiduniteToast('チャットルームの削除に失敗しました', 'error');
+                    });
+                }
             });
         }
 

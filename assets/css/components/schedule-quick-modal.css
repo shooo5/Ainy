@@ -1,0 +1,894 @@
+/**
+ * スケジュールクイックモーダル（aidunite-schedule-quick-modal）
+ * マイページ・スケジュール管理など複数画面で共有。ページ固有 CSS とは分離。
+ */
+
+/* クイック登録・カード操作モーダル */
+.aidunite-schedule-quick-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.aidunite-schedule-quick-modal.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.aidunite-schedule-quick-modal .sqm-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.aidunite-schedule-quick-modal .sqm-panel {
+    position: relative;
+    width: min(100%, 420px);
+    max-height: 90vh;
+    overflow: auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+
+.aidunite-schedule-quick-modal .sqm-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #dee2e6;
+    background: #fff;
+}
+
+.aidunite-schedule-quick-modal .sqm-header h3 {
+    margin: 0;
+    padding: 0.1rem 0 0.1rem 0.65rem;
+    border-left: 4px solid var(--sqm-view-accent);
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.aidunite-schedule-quick-modal .sqm-close {
+    border: none;
+    background: transparent;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    color: #6c757d;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-close svg {
+    display: block;
+}
+
+.aidunite-schedule-quick-modal .sqm-advanced--mobile-only {
+    display: inline-flex;
+}
+
+@media (min-width: 769px) {
+    .aidunite-schedule-quick-modal .sqm-advanced--mobile-only {
+        display: none !important;
+    }
+
+    .aidunite-schedule-quick-modal.sqm--pc .sqm-panel {
+        width: min(100%, 440px);
+    }
+
+    .aidunite-schedule-quick-modal.sqm--pc .sqm-panel--confirm-view {
+        width: min(100%, 520px);
+    }
+}
+
+.aidunite-schedule-quick-modal .sqm-panel--confirm-view {
+    width: min(100%, 480px);
+}
+
+.aidunite-schedule-quick-modal .sqm-header--view {
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.3rem 0.55rem;
+    border-radius: 4px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.aidunite-schedule-quick-modal .sqm-badge__icon {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+}
+
+.aidunite-schedule-quick-modal .sqm-badge__icon .aidunite-icon {
+    line-height: 1;
+}
+
+.aidunite-schedule-quick-modal .sqm-badge__text {
+    line-height: 1.2;
+}
+
+.aidunite-schedule-quick-modal .sqm-badge--practice {
+    background: var(--schedule-badge-practice-bg);
+    color: #212529;
+}
+
+.aidunite-schedule-quick-modal .sqm-badge--confirmed {
+    background: var(--schedule-badge-practice-bg);
+    color: #212529;
+}
+
+.aidunite-schedule-quick-modal .sqm-badge--recruit {
+    background: var(--schedule-badge-recruit-bg);
+    color: #212529;
+}
+
+.aidunite-schedule-quick-modal .sqm-badge--match {
+    background: var(--schedule-badge-match-confirmed-bg);
+    color: #212529;
+}
+
+.aidunite-schedule-quick-modal .sqm-badge--meeting {
+    background: var(--schedule-badge-meeting-bg);
+    color: #212529;
+}
+
+.aidunite-schedule-quick-modal .sqm-badge--rest,
+.aidunite-schedule-quick-modal .sqm-badge--tentative {
+    background: var(--schedule-badge-off-bg);
+    color: #212529;
+}
+
+.aidunite-schedule-quick-modal .sqm-badge--tentative {
+    background: var(--schedule-badge-tentative-bg);
+}
+
+.aidunite-schedule-quick-modal .sqm-body--view {
+    padding: 0 1.25rem 1rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-view-title-wrap {
+    margin: 0 -1.25rem 0;
+    padding: 0 1.25rem 0.75rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.aidunite-schedule-quick-modal .sqm-view-title {
+    margin: 0;
+    padding: 0.15rem 0 0.15rem 0.65rem;
+    border-left: 4px solid var(--sqm-view-accent);
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: #212529;
+}
+
+.aidunite-schedule-quick-modal .sqm-view-title__inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.aidunite-schedule-quick-modal .sqm-view-title__team {
+    color: #495057;
+    font-weight: 600;
+}
+
+.aidunite-schedule-quick-modal .sqm-view-title__sep {
+    display: inline-block;
+    width: 1px;
+    height: 1.15em;
+    background: #ced4da;
+    flex-shrink: 0;
+}
+
+.aidunite-schedule-quick-modal .sqm-view-title__kind {
+    color: #212529;
+    font-weight: 700;
+}
+
+.aidunite-schedule-quick-modal {
+    --sqm-view-accent: var(--gender-boys-accent-dark);
+    --sqm-view-label-bg: var(--gender-boys-accent-soft);
+    --sqm-view-label-color: var(--gender-boys-accent);
+}
+
+.aidunite-schedule-quick-modal--actions {
+    --sqm-view-info-bg: #fff8e6;
+    --sqm-view-info-color: #8a6100;
+    --sqm-view-info-border: #ffe082;
+}
+
+.aidunite-schedule-quick-modal--actions.sqm--theme-male,
+.aidunite-schedule-quick-modal.sqm--theme-male {
+    --sqm-view-accent: var(--gender-boys-accent-dark);
+    --sqm-view-label-bg: var(--gender-boys-accent-soft);
+    --sqm-view-label-color: var(--gender-boys-accent);
+}
+
+.aidunite-schedule-quick-modal--actions.sqm--theme-female,
+.aidunite-schedule-quick-modal.sqm--theme-female {
+    --sqm-view-accent: var(--gender-girls-accent-dark);
+    --sqm-view-label-bg: var(--gender-girls-accent-soft);
+    --sqm-view-label-color: var(--gender-girls-accent);
+}
+
+.aidunite-schedule-quick-modal .sqm-view-detail-list {
+    margin: 1rem 0 0;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.aidunite-schedule-quick-modal .sqm-view-detail-row {
+    display: grid;
+    grid-template-columns: minmax(6.5rem, auto) 1px minmax(0, 1fr);
+    align-items: stretch;
+    min-height: 2.5rem;
+    border-bottom: 1px dotted #dee2e6;
+}
+
+.aidunite-schedule-quick-modal .sqm-view-detail-row:last-child {
+    border-bottom: none;
+}
+
+.aidunite-schedule-quick-modal .sqm-view-detail-row__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.55rem;
+    background: var(--sqm-view-label-bg);
+    color: var(--sqm-view-label-color);
+}
+
+.aidunite-schedule-quick-modal .sqm-view-detail-row__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: inherit;
+    align-self: center;
+}
+
+.aidunite-schedule-quick-modal .sqm-view-detail-row__icon .aidunite-icon {
+    line-height: 1;
+    color: inherit;
+}
+
+.aidunite-schedule-quick-modal .sqm-view-detail-row__label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.25;
+    white-space: nowrap;
+    align-self: center;
+}
+
+.aidunite-schedule-quick-modal .sqm-view-detail-row__sep {
+    width: 1px;
+    background: linear-gradient(to bottom, #cfd4da 35%, transparent 35%);
+    background-size: 1px 6px;
+    background-repeat: repeat-y;
+}
+
+.aidunite-schedule-quick-modal .sqm-view-detail-row__value {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: #212529;
+    text-align: center;
+    word-break: break-word;
+}
+
+.aidunite-schedule-quick-modal .sqm-view-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 0.85rem;
+    padding: 0.65rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--sqm-view-info-border, #ffe082);
+    background: var(--sqm-view-info-bg, #fff8e6);
+    color: var(--sqm-view-info-color, #8a6100);
+    font-size: 0.8125rem;
+    line-height: 1.45;
+}
+
+.aidunite-schedule-quick-modal .sqm-view-info .aidunite-icon {
+    flex-shrink: 0;
+    margin-top: 0;
+    color: var(--sqm-view-info-color, #8a6100);
+    line-height: 1;
+    align-self: center;
+}
+
+.aidunite-schedule-quick-modal .sqm-view-info p {
+    margin: 0;
+}
+
+.aidunite-schedule-quick-modal .sqm-footer--view {
+    gap: 0.55rem;
+    padding-top: 0.85rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-action-btn {
+    padding-top: 0.55rem;
+    padding-bottom: 0.55rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-action-btn__inner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    width: 100%;
+}
+
+.aidunite-schedule-quick-modal .sqm-action-btn--split .sqm-action-btn__inner {
+    position: relative;
+    justify-content: center;
+}
+
+.aidunite-schedule-quick-modal .sqm-action-btn--split .sqm-action-btn__trailing {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.aidunite-schedule-quick-modal .sqm-action-btn__leading {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-action-btn__trailing {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    align-self: center;
+}
+
+.aidunite-schedule-quick-modal .sqm-action-btn .aidunite-icon {
+    line-height: 1;
+    align-self: center;
+}
+
+.aidunite-schedule-quick-modal .sqm-footer--view .btn-secondary {
+    border: 1px solid #ced4da;
+    background: #fff;
+    color: #495057;
+}
+
+.aidunite-schedule-quick-modal .sqm-footer--view .btn-secondary .aidunite-icon {
+    color: #6c757d;
+}
+
+.aidunite-schedule-quick-modal .sqm-footer--view .btn-danger .aidunite-icon {
+    color: #fff;
+}
+
+.aidunite-schedule-quick-modal .sqm-footer--view .btn-primary .aidunite-icon {
+    color: #fff;
+}
+
+.aidunite-schedule-quick-modal .sqm-view-close-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    width: 100%;
+    margin-top: 0.15rem;
+    padding: 0.35rem;
+    border: none;
+    background: none;
+    color: #6c757d;
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.aidunite-schedule-quick-modal .sqm-view-close-link .aidunite-icon {
+    line-height: 1;
+    align-self: center;
+}
+
+.aidunite-schedule-quick-modal .sqm-view-close-link:hover {
+    color: #495057;
+}
+
+.aidunite-schedule-quick-modal .sqm-confirm-dl--view {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-footer--view .btn-outline {
+    border: 1px solid #ced4da;
+    background: #fff;
+    color: #212529;
+}
+
+.aidunite-schedule-quick-modal--actions.sqm--theme-male .sqm-footer--view .btn-primary,
+.aidunite-schedule-quick-modal--actions.sqm--theme-female .sqm-footer--view .btn-primary,
+.aidunite-schedule-quick-modal.sqm--theme-male .sqm-footer--view .btn-primary,
+.aidunite-schedule-quick-modal.sqm--theme-female .sqm-footer--view .btn-primary {
+    --btn-primary-background: var(--sqm-view-label-color);
+    --btn-primary-background-hover: var(--sqm-view-accent);
+    --btn-primary-border-color: transparent;
+    --btn-primary-hover-filter: brightness(0.92);
+    --btn-primary-hover-transform: none;
+    background: var(--btn-primary-background);
+    border-color: transparent;
+}
+
+.aidunite-schedule-quick-modal--actions.sqm--theme-male .sqm-footer--view .btn-primary:hover,
+.aidunite-schedule-quick-modal--actions.sqm--theme-female .sqm-footer--view .btn-primary:hover,
+.aidunite-schedule-quick-modal.sqm--theme-male .sqm-footer--view .btn-primary:hover,
+.aidunite-schedule-quick-modal.sqm--theme-female .sqm-footer--view .btn-primary:hover {
+    background: var(--btn-primary-background-hover);
+    border-color: transparent;
+}
+
+.aidunite-schedule-quick-modal .sqm-body {
+    padding: 1rem 1.25rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-form-head,
+.aidunite-schedule-quick-modal .sqm-confirm-head {
+    margin: 0 -1.25rem 1rem;
+    padding: 0 1.25rem 0.75rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.aidunite-schedule-quick-modal .sqm-form-head .sqm-date {
+    margin: 0;
+}
+
+.aidunite-schedule-quick-modal .sqm-form-head .sqm-label {
+    margin-bottom: 0.35rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-confirm-head .sqm-confirm-lead {
+    margin: 0;
+}
+
+.aidunite-schedule-quick-modal .sqm-date {
+    margin: 0 0 1rem;
+    font-weight: 600;
+    color: #212529;
+}
+
+.aidunite-schedule-quick-modal .sqm-field {
+    margin-bottom: 0.85rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-field--kind {
+    margin-bottom: 0;
+}
+
+.aidunite-schedule-quick-modal .sqm-field--time {
+    margin-bottom: 0;
+}
+
+.aidunite-schedule-quick-modal .sqm-field--section {
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.aidunite-schedule-quick-modal .sqm-field--section:last-child {
+    padding-bottom: 0;
+}
+
+.aidunite-schedule-quick-modal .sqm-field--attendance .sqm-hint {
+    margin: 0.35rem 0 0;
+    font-size: 0.8rem;
+    color: #6c757d;
+    line-height: 1.45;
+}
+
+.aidunite-schedule-quick-modal .sqm-field--memo {
+    margin-bottom: 0;
+}
+
+.aidunite-schedule-quick-modal .sqm-all-day-field {
+    margin-bottom: 0.65rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-row-time.sqm-is-hidden {
+    display: none;
+}
+
+.aidunite-schedule-quick-modal .sqm-row-time--inline {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-row-time--inline .sqm-time-pickers {
+    flex: 1;
+    min-width: 0;
+}
+
+.aidunite-schedule-quick-modal .sqm-time-range-sep {
+    flex-shrink: 0;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #495057;
+    line-height: 1;
+    user-select: none;
+}
+
+.aidunite-schedule-quick-modal .sqm-select-wrap {
+    position: relative;
+}
+
+.aidunite-schedule-quick-modal .sqm-input--select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 2.25rem;
+    cursor: pointer;
+}
+
+.aidunite-schedule-quick-modal .sqm-select-chevron {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    font-size: 0.6rem;
+    line-height: 1;
+    color: #6c757d;
+}
+
+.aidunite-schedule-quick-modal .sqm-label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 0.85rem;
+    color: #495057;
+}
+
+.aidunite-schedule-quick-modal .sqm-input,
+.aidunite-schedule-quick-modal .sqm-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    padding: 0.45rem 0.6rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-input--readonly {
+    background: #f8f9fa;
+}
+
+.aidunite-schedule-quick-modal .sqm-radios {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-recruit-only .sqm-radios {
+    justify-content: center;
+}
+
+.aidunite-schedule-quick-modal .sqm-radio {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.aidunite-schedule-quick-modal .sqm-row-2 {
+    display: grid;
+    grid-template-columns: auto 1fr auto 1fr;
+    gap: 0.5rem 0.75rem;
+    align-items: center;
+}
+
+.aidunite-schedule-quick-modal .sqm-time-pickers {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-time-select {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    text-align-last: center;
+    appearance: none;
+    -webkit-appearance: none;
+    padding-left: 0.45rem;
+    padding-right: 0.45rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-time-colon {
+    font-weight: 600;
+    color: #495057;
+}
+
+.aidunite-schedule-quick-modal .sqm-link-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #0d6efd;
+    font-size: 0.875rem;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.aidunite-schedule-quick-modal .sqm-confirm-back-wrap {
+    margin: 0 0 0.5rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-is-hidden {
+    display: none;
+}
+
+.aidunite-schedule-quick-modal .sqm-footer--confirm-only {
+    justify-content: stretch;
+}
+
+.aidunite-schedule-quick-modal .sqm-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.aidunite-schedule-quick-modal .sqm-footer--stack {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.aidunite-schedule-quick-modal .sqm-full {
+    width: 100%;
+    text-align: center;
+}
+
+.aidunite-schedule-quick-modal .sqm-advanced {
+    margin-right: auto;
+    font-size: 0.85rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-confirm-dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: 6em 1fr;
+    gap: 0.35rem 0.75rem;
+    font-size: 0.9rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-confirm-dl dt {
+    margin: 0;
+    color: #6c757d;
+}
+
+.aidunite-schedule-quick-modal .sqm-confirm-dl dd {
+    margin: 0;
+}
+
+/* 登録確認 dl（カード操作モーダルは .sqm-view-detail-list を使用） */
+/* 男女テーマ: アクセントは sqm-view ラベル色に統一（レガシー女子ピンク廃止） */
+.aidunite-schedule-quick-modal.sqm--theme-male,
+.aidunite-schedule-quick-modal.sqm--theme-female {
+    --sqm-accent: var(--sqm-view-label-color);
+    --sqm-accent-hover: var(--sqm-view-accent);
+    --sqm-accent-soft: var(--sqm-view-label-bg);
+}
+
+/* プライマリボタンは button.css トークンに委譲（枠線透明・背景単色） */
+.aidunite-schedule-quick-modal.sqm--theme-male .btn-primary,
+.aidunite-schedule-quick-modal.sqm--theme-female .btn-primary {
+    --btn-primary-background: var(--sqm-view-label-color);
+    --btn-primary-background-hover: var(--sqm-view-accent);
+    --btn-primary-border-color: transparent;
+    --btn-primary-hover-filter: brightness(0.92);
+    --btn-primary-hover-transform: none;
+    background: var(--btn-primary-background);
+    border-color: transparent;
+}
+
+.aidunite-schedule-quick-modal.sqm--theme-male .btn-primary:hover,
+.aidunite-schedule-quick-modal.sqm--theme-female .btn-primary:hover {
+    background: var(--btn-primary-background-hover);
+    border-color: transparent;
+}
+
+.aidunite-schedule-quick-modal.sqm--theme-male .btn-primary:focus-visible,
+.aidunite-schedule-quick-modal.sqm--theme-female .btn-primary:focus-visible {
+    outline-color: var(--sqm-view-label-color);
+}
+
+.aidunite-schedule-quick-modal.sqm--theme-male .sqm-kind-pill--selected,
+.aidunite-schedule-quick-modal.sqm--theme-female .sqm-kind-pill--selected {
+    border-color: var(--sqm-accent);
+    background: var(--sqm-accent-soft);
+    color: var(--sqm-accent);
+}
+
+.aidunite-schedule-quick-modal .sqm-kind-main {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-kind-more {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.aidunite-schedule-quick-modal #sqm-tentative-kind-field {
+    margin-top: 0.35rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #dee2e6;
+}
+
+.aidunite-schedule-quick-modal .sqm-tentative-kind-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-kind-pill--sub {
+    font-size: 0.78rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-kind-more-toggle {
+    display: block;
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.35rem 0;
+    border: none;
+    background: transparent;
+    color: #495057;
+    font-size: 0.85rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.aidunite-schedule-quick-modal .sqm-kind-pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.35rem;
+    padding: 0.35rem 0.25rem;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 0.8rem;
+    text-align: center;
+    cursor: pointer;
+}
+
+.aidunite-schedule-quick-modal .sqm-kind-pill__input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.aidunite-schedule-quick-modal .sqm-repeat-custom {
+    margin-top: 0.65rem;
+    padding-top: 0.65rem;
+    border-top: 1px dashed #dee2e6;
+}
+
+.aidunite-schedule-quick-modal .sqm-radios--stack {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-radio--wrap {
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-input--inline {
+    width: auto;
+    min-width: 8rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-input--narrow {
+    width: 4rem;
+    min-width: 0;
+}
+
+.aidunite-schedule-quick-modal .sqm-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.aidunite-schedule-quick-modal .sqm-hint {
+    margin: 0.35rem 0 0;
+    font-size: 0.78rem;
+    color: #6c757d;
+    line-height: 1.4;
+}
+
+.aidunite-schedule-quick-modal .sqm-memo-only-hint {
+    margin: 0 0 0.75rem;
+    padding: 0.5rem 0.65rem;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: #664d03;
+    background: #fff3cd;
+    border-radius: 6px;
+}
+
+.aidunite-schedule-quick-modal .sqm-footer--confirm-only {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-confirm-lead {
+    margin: 0 0 0.75rem;
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+.aidunite-schedule-quick-modal .sqm-body--confirm .sqm-view-detail-list {
+    margin-top: 0;
+}
+
+.aidunite-schedule-quick-modal .sqm-body--confirm .sqm-confirm-head {
+    margin-top: 0;
+}
+
+.aidunite-schedule-quick-modal .sqm-body--confirm .sqm-view-info {
+    margin-top: 0.85rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-badge--official_match,
+.aidunite-schedule-quick-modal .sqm-badge--practice_match {
+    background: var(--schedule-badge-match-confirmed-bg);
+    color: #212529;
+}
+
+.aidunite-schedule-quick-modal .sqm-badge--joint_practice,
+.aidunite-schedule-quick-modal .sqm-badge--camp,
+.aidunite-schedule-quick-modal .sqm-badge--expedition {
+    background: var(--schedule-badge-event-bg);
+    color: #212529;
+}
+
+/* .sqm-footer の display:flex/grid より後に置き、ステップ切替時の非表示を優先 */
+.aidunite-schedule-quick-modal .sqm-footer.sqm-is-hidden {
+    display: none;
+}

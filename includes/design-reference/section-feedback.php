@@ -262,6 +262,19 @@
                     </div>
                     <p class="part-description">Web Push はサイトを開いていなくても OS 通知センターに届きます。体験ボタンはブラウザの <code>Notification</code> API を使用します（HTTPS 推奨）。</p>
 
+                    <div class="design-part" id="ref-first-match-billing-modal">
+                        <h5 class="feedback-demo-subtitle feedback-demo-subtitle--spaced">初試合成立・課金案内モーダル</h5>
+                        <p class="part-description">
+                            実チーム初回試合成立後、代表者のマイページで1回表示される中央モーダルです（オンボーディング・ボット試合は対象外）。
+                            本番は <code>payment-first-match-prompt.js</code> ＋ REST <code>/payment-exit/first-match-prompt</code>。
+                            仕様は <code>docs/spec/team.md</code> §12.1。
+                        </p>
+                        <div class="feedback-demo-actions">
+                            <button type="button" class="btn btn-primary" onclick="demoShowFirstMatchBillingModal()">初試合成立モーダルを表示</button>
+                        </div>
+                        <p class="part-description">デザイン確認用のサンプルデータです。ボタン操作はメタ保存や遷移を行いません。</p>
+                    </div>
+
                     <h5 class="feedback-demo-subtitle feedback-demo-subtitle--spaced">⚠️ 移行対象パターン（見本のみ）</h5>
                     <p class="part-description">バナー・スナックバーは<strong>非採用</strong>です。体験後は正規の <code>showToastNotification</code> へ統一してください。</p>
                     <div class="feedback-demo-actions">

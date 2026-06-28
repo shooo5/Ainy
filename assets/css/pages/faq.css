@@ -1,0 +1,114 @@
+/**
+ * page-faq.php
+ */
+.faq-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.faq-category {
+  margin-bottom: 40px;
+}
+
+.faq-category h3 {
+  color: var(--text-primary);
+  font-size: var(--font-size-lg, 1.2rem);
+  margin-bottom: var(--spacing-md, 1.25rem);
+  padding-bottom: var(--spacing-sm, 0.625rem);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.faq-item {
+  margin-bottom: var(--spacing-base, 1rem);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-base, 8px);
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+
+.faq-item:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.faq-question {
+  background: var(--bg-secondary);
+  padding: var(--spacing-md, 1.25rem);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: background-color 0.2s ease;
+}
+
+.faq-question:hover {
+  background: var(--bg-light);
+}
+
+.faq-question:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+}
+
+.faq-toggle {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--text-muted);
+  transition: transform 0.3s ease;
+}
+
+.faq-question.active .faq-toggle {
+  transform: rotate(45deg);
+}
+
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  background: var(--bg-primary);
+}
+
+.faq-answer.active {
+  max-height: 200px;
+}
+
+.faq-answer p {
+  padding: 20px;
+  margin: 0;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.contact-section {
+  text-align: center;
+  margin-top: 50px;
+  padding: 30px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-medium, 12px);
+}
+
+.contact-section h3 {
+  color: var(--text-primary);
+  margin-bottom: 15px;
+}
+
+.contact-section p {
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .faq-question {
+    padding: 15px;
+    font-size: 0.9rem;
+  }
+
+  .faq-answer p {
+    padding: 15px;
+  }
+
+  .contact-section {
+    padding: 20px;
+  }
+}

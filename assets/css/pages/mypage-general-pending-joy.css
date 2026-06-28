@@ -1,0 +1,127 @@
+/**
+ * 一般ユーザー 承認待ちマイページ（Joy UI 統一）
+ */
+
+.page-mypage.page-mypage--general-pending.team-dashboard-container {
+  max-width: none;
+  padding: 0;
+  background: var(--bg-secondary, #f4f7fb);
+}
+
+body.mypage-joy-dashboard--general-pending #page .ainy-header {
+  display: none;
+}
+
+body.mypage-joy-dashboard--general-pending #main.site-main,
+body.mypage-joy-dashboard--general-pending .full-container,
+body.mypage-joy-dashboard--general-pending .site-content {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.mypage-joy--general-pending .mypage-joy-profile__logo.mypage-general-pending-joy__logo {
+  color: var(--warning-color, #fd7e14);
+  background: rgba(253, 126, 20, 0.12);
+}
+
+.mypage-general-pending-joy {
+  padding-bottom: var(--spacing-lg);
+}
+
+.mypage-general-pending-joy__status {
+  margin-bottom: 0;
+  padding: var(--spacing-base) var(--spacing-base) 0;
+}
+
+.mypage-general-pending-joy__status-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  text-align: center;
+}
+
+.mypage-general-pending-joy__status-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+  padding: 0.25rem 0.625rem;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: #c05621;
+  background: rgba(253, 126, 20, 0.12);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.mypage-general-pending-joy__status-message {
+  margin: 0 0 var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.mypage-general-pending-joy__status-message strong {
+  color: var(--success-color);
+  font-weight: 700;
+}
+
+.mypage-general-pending-joy__status-date {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  width: 100%;
+  margin: 0 0 var(--spacing-base);
+  padding-bottom: var(--spacing-base);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.mypage-general-pending-joy__status-date-label {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.mypage-general-pending-joy__status-date time {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.mypage-general-pending-joy .team-reg-pending {
+  margin-bottom: 0;
+}
+
+.mypage-general-pending-joy__email {
+  margin-bottom: 0;
+}
+
+.mypage-general-pending-joy__pricing-note {
+  margin: 0;
+  padding: var(--spacing-base);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  color: var(--text-secondary);
+  text-align: center;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-sm);
+}
+
+.mypage-general-pending-joy__pricing-note a {
+  color: var(--primary-color);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.mypage-general-pending-joy__pricing-note a:hover {
+  text-decoration: underline;
+}
+
+.mypage-general-pending-joy__pricing-note a:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}

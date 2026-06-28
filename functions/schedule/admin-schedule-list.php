@@ -10,6 +10,38 @@ if (!defined('ABSPATH')) {
 /**
  * intent の表示ラベル
  */
+/**
+ * @param int $schedule_id
+ * @return array<string, mixed>
+ */
+function aidunite_admin_schedule_list_canonical($schedule_id) {
+    if (function_exists('aidunite_schedule_get_display_bundle')) {
+        $bundle = aidunite_schedule_get_display_bundle((int) $schedule_id);
+        if ($bundle !== []) {
+            return $bundle;
+        }
+    }
+    if (function_exists('aidunite_schedule_get_canonical_meta')) {
+        $c = aidunite_schedule_get_canonical_meta((int) $schedule_id);
+        if ($c !== []) {
+            return [
+                'team_id' => (int) ($c['team_id'] ?? 0),
+                'date' => (string) ($c['date'] ?? ''),
+                'start_time' => (string) ($c['start_time'] ?? ''),
+                'end_time' => (string) ($c['end_time'] ?? ''),
+                'schedule_type' => (string) ($c['schedule_type'] ?? ''),
+                'intent' => (string) ($c['intent'] ?? ''),
+                'gender' => (string) ($c['schedule_gender'] ?? ''),
+                'matching' => (string) ($c['matching'] ?? '0'),
+                'place' => (string) ($c['schedule_place'] ?? ''),
+                'venue_name' => (string) ($c['venue_name'] ?? ''),
+            ];
+        }
+    }
+
+    return [];
+}
+
 function aidunite_admin_schedule_list_intent_label($intent) {
     if (function_exists('aidunite_schedule_intent_label')) {
         return aidunite_schedule_intent_label($intent);
@@ -35,14 +67,14 @@ function aidunite_schedule_save_registration_venue_snapshot($schedule_id, $place
 
     $place = sanitize_text_field((string) $place);
     $venue_name = sanitize_text_field((string) $venue_name);
-    if ($place === '') {
-        $place = (string) get_post_meta($schedule_id, 'schedule_place', true);
+    if ($place === '' || $venue_name === '') {
+        $canonical = aidunite_admin_schedule_list_canonical($schedule_id);
         if ($place === '') {
-            $place = (string) get_post_meta($schedule_id, 'schedule_place_option', true);
+            $place = (string) ($canonical['place'] ?? '');
         }
-    }
-    if ($venue_name === '') {
-        $venue_name = (string) get_post_meta($schedule_id, 'venue_name', true);
+        if ($venue_name === '') {
+            $venue_name = (string) ($canonical['venue_name'] ?? '');
+        }
     }
 
     update_post_meta($schedule_id, 'schedule_place_at_registration', $place);
@@ -250,15 +282,17 @@ function aidunite_admin_schedule_list_collect_schedule_types() {
  */
 function aidunite_admin_schedule_list_matches_filters(WP_Post $post, array $filters) {
     $schedule_id = (int) $post->ID;
+    $canonical = aidunite_admin_schedule_list_canonical($schedule_id);
 
     $team_filter = $filters['team_filter'] ?? '';
     if ($team_filter !== '') {
-        if ((string) get_post_meta($schedule_id, 'team_id', true) !== (string) (int) $team_filter) {
+        $team_id = (int) ($canonical['team_id'] ?? (function_exists('aidunite_schedule_read_team_id') ? aidunite_schedule_read_team_id($schedule_id) : 0));
+        if ((string) $team_id !== (string) (int) $team_filter) {
             return false;
         }
     }
 
-    $schedule_date = (string) get_post_meta($schedule_id, 'schedule_date', true);
+    $schedule_date = (string) ($canonical['date'] ?? (function_exists('aidunite_schedule_read_normalized_date') ? aidunite_schedule_read_normalized_date($schedule_id) : ''));
     $date_from = $filters['date_from'] ?? '';
     if ($date_from !== '' && ($schedule_date === '' || $schedule_date < $date_from)) {
         return false;
@@ -269,7 +303,8 @@ function aidunite_admin_schedule_list_matches_filters(WP_Post $post, array $filt
     }
 
     $intent_filter = $filters['intent_filter'] ?? '';
-    if ($intent_filter !== '' && (string) get_post_meta($schedule_id, 'intent', true) !== $intent_filter) {
+    $intent = (string) ($canonical['intent'] ?? (function_exists('aidunite_schedule_read_intent') ? aidunite_schedule_read_intent($schedule_id) : ''));
+    if ($intent_filter !== '' && $intent !== $intent_filter) {
         return false;
     }
 
@@ -279,7 +314,8 @@ function aidunite_admin_schedule_list_matches_filters(WP_Post $post, array $filt
     }
 
     $type_filter = $filters['type_filter'] ?? '';
-    if ($type_filter !== '' && (string) get_post_meta($schedule_id, 'schedule_type', true) !== $type_filter) {
+    $schedule_type = (string) ($canonical['schedule_type'] ?? '');
+    if ($type_filter !== '' && $schedule_type !== $type_filter) {
         return false;
     }
 
@@ -299,16 +335,18 @@ function aidunite_admin_schedule_list_row_data($schedule_id) {
         return [];
     }
 
-    $team_id = (int) get_post_meta($schedule_id, 'team_id', true);
+    $canonical = aidunite_admin_schedule_list_canonical($schedule_id);
+
+    $team_id = (int) ($canonical['team_id'] ?? (function_exists('aidunite_schedule_read_team_id') ? aidunite_schedule_read_team_id($schedule_id) : 0));
     $team_name = '—';
     if ($team_id > 0) {
         $team_post = get_post($team_id);
         $team_name = $team_post ? $team_post->post_title : ('ID:' . $team_id);
     }
 
-    $start = (string) get_post_meta($schedule_id, 'schedule_start_time', true);
-    $end = (string) get_post_meta($schedule_id, 'schedule_end_time', true);
-    $legacy_time = (string) get_post_meta($schedule_id, 'schedule_time', true);
+    $start = (string) ($canonical['start_time'] ?? '');
+    $end = (string) ($canonical['end_time'] ?? '');
+    $legacy_time = (string) ($canonical['legacy_time'] ?? '');
     if ($start !== '' && $end !== '') {
         $time_display = $start . '〜' . $end;
     } elseif ($legacy_time !== '') {
@@ -321,16 +359,20 @@ function aidunite_admin_schedule_list_row_data($schedule_id) {
         ? aidunite_admin_list_get_schedule_venue_parts($schedule_id)
         : ['place_label' => '—', 'venue_name' => '—'];
 
-    $gender_raw = (string) get_post_meta($schedule_id, 'schedule_gender', true);
+    $gender_raw = (string) ($canonical['gender'] ?? '');
     if ($gender_raw === '') {
-        $gender_raw = (string) get_post_meta($schedule_id, 'gender_condition', true);
+        $gender_raw = function_exists('aidunite_schedule_read_gender_raw')
+            ? (string) aidunite_schedule_read_gender_raw($schedule_id)
+            : '';
     }
     $gender_label = function_exists('aidunite_admin_list_format_gender_display')
         ? aidunite_admin_list_format_gender_display($gender_raw)
         : $gender_raw;
 
-    $intent = (string) get_post_meta($schedule_id, 'intent', true);
-    $matching = (string) get_post_meta($schedule_id, 'matching', true);
+    $intent = (string) ($canonical['intent'] ?? (function_exists('aidunite_schedule_read_intent') ? aidunite_schedule_read_intent($schedule_id) : ''));
+    $matching = (string) ($canonical['matching'] ?? '0');
+    $schedule_date_raw = (string) ($canonical['date'] ?? (function_exists('aidunite_schedule_read_normalized_date') ? aidunite_schedule_read_normalized_date($schedule_id) : ''));
+    $schedule_type = (string) ($canonical['schedule_type'] ?? '');
 
     $author_id = (int) $post->post_author;
     $author = $author_id > 0 ? get_userdata($author_id) : false;
@@ -345,10 +387,10 @@ function aidunite_admin_schedule_list_row_data($schedule_id) {
     return [
         'id' => $schedule_id,
         'schedule_date' => function_exists('aidunite_admin_list_format_date_display')
-            ? aidunite_admin_list_format_date_display((string) get_post_meta($schedule_id, 'schedule_date', true))
-            : ((string) get_post_meta($schedule_id, 'schedule_date', true) ?: '—'),
+            ? aidunite_admin_list_format_date_display($schedule_date_raw)
+            : ($schedule_date_raw ?: '—'),
         'time_display' => $time_display,
-        'schedule_type' => (string) get_post_meta($schedule_id, 'schedule_type', true) ?: '—',
+        'schedule_type' => $schedule_type !== '' ? $schedule_type : '—',
         'intent' => $intent,
         'intent_label' => aidunite_admin_schedule_list_intent_label($intent),
         'gender_label' => $gender_label !== '' && $gender_label !== '不明' ? $gender_label : '—',
@@ -361,7 +403,9 @@ function aidunite_admin_schedule_list_row_data($schedule_id) {
         'author_name' => $author_name,
         'author_id' => $author_id > 0 ? $author_id : '—',
         'created' => $created,
-        'edit_url' => add_query_arg('post_id', $schedule_id, home_url('/schedule-edit')),
+        'edit_url' => function_exists('aidunite_get_schedule_edit_url')
+            ? aidunite_get_schedule_edit_url((int) $schedule_id)
+            : add_query_arg('edit_schedule', (int) $schedule_id, home_url('/schedule-management')),
         'wp_edit_url' => get_edit_post_link($schedule_id, 'raw'),
         'all_meta' => get_post_meta($schedule_id),
     ];

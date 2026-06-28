@@ -88,7 +88,7 @@ $settings_url = home_url('/notification-settings');
     ?>
 
     <?php if ($items) : ?>
-        <nav class="ainy-notifications-filter-tabs" role="tablist" aria-label="通知の絞り込み">
+        <nav class="ainy-notifications-filter-tabs" data-aidunite-tabs="filter" role="tablist" aria-label="通知の絞り込み">
             <button type="button" class="active" role="tab" aria-selected="true" data-filter="unread">
                 未読
                 <span class="ainy-notifications-tab-count" data-tab-count="unread" data-count="<?php echo (int) $count_unread; ?>" aria-label="<?php echo $count_unread > 0 ? '未読' . (int) $count_unread . '件' : ''; ?>"><?php echo $count_unread > 0 ? (int) $count_unread : ''; ?></span>

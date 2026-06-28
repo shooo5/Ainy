@@ -16,10 +16,10 @@ require_once get_template_directory() . '/functions/payment/payment-config.php';
 
 $payment_config = aidunite_get_payment_config();
 $paid_count = function_exists('aidunite_dashboard_count_paid_users') ? aidunite_dashboard_count_paid_users() : 0;
-$school_amount = (int) ($payment_config['school']['personal_amount'] ?? 0);
-$revenue_estimate = $paid_count * $school_amount;
+$match_amount = (int) ($payment_config['match']['monthly_amount'] ?? 0);
+$revenue_estimate = $paid_count * $match_amount;
 $retention_ltv = function_exists('aidunite_dashboard_get_retention_ltv')
-    ? aidunite_dashboard_get_retention_ltv($school_amount)
+    ? aidunite_dashboard_get_retention_ltv($match_amount)
     : ['retention_months_avg' => 0, 'ltv_per_user' => 0, 'ltv_total' => 0, 'paid_count' => 0];
 
 get_header();
@@ -28,7 +28,7 @@ get_header();
 <div class="wrap page-admin-payment-management-wrap">
     <h1>決済管理</h1>
     <p style="color:var(--text-secondary); margin:0 0 var(--spacing-lg);">
-        金額設定・プラン・Stripe・専用コードを管理します。
+        金額設定・プラン・Stripe を管理します。
         <a href="<?php echo esc_url(home_url('/admin-payment-list')); ?>">決済一覧</a>でユーザー別の決済状況を確認できます。
     </p>
 

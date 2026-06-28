@@ -1,113 +1,89 @@
-/* ========================================
-   保護者招待ページ（invite-guardian）
-   Ainy-UI-Unified-Rules 準拠
-   ======================================== */
+/* invite-guardian.css */
 
-.invite-guardian-container {
-  background: var(--bg-light);
+/* 一体型シェルを使わずフルページ表示（Hero グラデーションを白カード内に閉じ込めない） */
+body.web-app-integrated-ui .page-invite-guardian.guardian-flow-page {
+  background: var(--guardian-bg, #f6f8fc);
   min-height: 100vh;
-  padding: var(--spacing-lg) var(--spacing-base);
+  padding-top: 0;
 }
 
-.invite-guardian-card {
-  max-width: 600px;
-  margin: 0 auto;
-  background: var(--bg-primary);
-  border-radius: var(--radius-large);
-  padding: var(--spacing-lg);
-  box-shadow: var(--shadow-md);
+.invite-guardian-flow .guardian-flow-form .guardian-flow-cta[type="submit"] {
+  margin-bottom: var(--spacing-md, 1rem);
 }
 
-.invite-guardian-header {
-  margin-bottom: var(--spacing-md);
+.guardian-flow-card--qr .guardian-qr-panel {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: start;
+  margin-top: 0.25rem;
 }
 
-.invite-guardian-header h1 {
-  font-size: var(--font-size-2xl);
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 var(--spacing-sm);
-  font-family: var(--font-sans-jp);
+@media (min-width: 768px) {
+  .guardian-flow-card--qr .guardian-qr-panel {
+    grid-template-columns: minmax(0, 1fr) 220px;
+    gap: 1.75rem;
+    align-items: start;
+  }
 }
 
-.invite-guardian-header p {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  margin: 0;
-  line-height: 1.5;
+.guardian-qr-panel__url {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.invite-guardian-container .form-group {
-  margin-bottom: var(--spacing-md);
-}
-
-.invite-guardian-container .form-label {
-  display: block;
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: var(--spacing-sm);
-}
-
-.invite-guardian-container .form-label .required {
-  color: var(--danger-color);
-}
-
-.invite-guardian-container .form-control {
-  min-height: 48px;
-  padding: var(--spacing-base) var(--spacing-md);
-  border-radius: var(--radius-medium);
-  font-size: var(--font-size-base);
-}
-
-.invite-guardian-container .form-control:focus-visible {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
-}
-
-.invite-guardian-container .btn {
-  min-height: 44px;
-  padding: var(--spacing-base) var(--spacing-lg);
-  border-radius: var(--radius-medium);
-  font-size: var(--font-size-base);
+.guardian-qr-panel__copy {
   width: 100%;
-  margin-top: var(--spacing-sm);
+  max-width: 280px;
+  margin-top: 0.25rem;
 }
 
-.invite-guardian-container .btn:focus-visible {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
+.guardian-qr-panel__code {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
 }
 
-.invite-guardian-container .alert {
-  margin-bottom: var(--spacing-md);
-  border-radius: var(--radius-medium);
-  padding: var(--spacing-base) var(--spacing-md);
-  font-size: var(--font-size-sm);
-}
-
-.invite-guardian-container .alert-success {
-  background: rgba(40, 167, 69, 0.1);
-  border-color: var(--success-color);
-  color: var(--text-primary);
-}
-
-.invite-guardian-container .alert-danger {
-  background: rgba(220, 53, 69, 0.1);
-  border-color: var(--danger-color);
-  color: var(--text-primary);
-}
-
-@media (max-width: 480px) {
-  .invite-guardian-container {
-    padding: var(--spacing-base);
+@media (min-width: 768px) {
+  .guardian-qr-panel__code {
+    justify-self: end;
+    width: 220px;
   }
+}
 
-  .invite-guardian-card {
-    padding: var(--spacing-md);
-  }
+.guardian-qr-panel__code-label {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--guardian-muted, #64748b);
+  text-align: center;
+  width: 100%;
+}
 
-  .invite-guardian-header h1 {
-    font-size: var(--font-size-xl);
-  }
+.guardian-qr-panel__canvas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 200px;
+  padding: 0.75rem;
+  border: 1px solid var(--guardian-border, #e5e7eb);
+  border-radius: 14px;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.guardian-qr-panel__canvas img,
+.guardian-qr-panel__canvas canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.guardian-qr-panel__canvas table {
+  margin: 0 auto;
 }

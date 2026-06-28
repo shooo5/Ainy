@@ -51,21 +51,17 @@ get_header();
   <div class="member-register-container">
     <div class="member-register-main-col">
       <div class="member-register-signup-body">
-        <header class="member-register-hero">
-          <h1 class="member-register-title">新規会員登録</h1>
-          <p class="member-register-subtitle">Ainyでチーム運営をもっとスムーズに。</p>
-        </header>
-
         <div class="member-register-card">
             <div class="member-register-card-intro">
-              <div class="member-register-card-intro-icon">
-                <?php echo aidunite_get_theme_icon_svg('person_add', ['width' => '28', 'height' => '28']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+              <div class="member-register-card-intro-icon" aria-hidden="true">
+                <?php echo aidunite_get_theme_icon_svg('person_add', ['width' => '48', 'height' => '48']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
               </div>
-              <div>
-                <h2 class="member-register-card-title">アカウント情報を入力</h2>
-                <p class="member-register-card-lead">登録後、確認メールをお送りします。<br>
-                メール内のリンクで本登録が完了します。</p>
-              </div>
+              <h1 class="member-register-title ainy-title-accent">新規会員登録</h1>
+              <p class="member-register-subtitle">Ainyでチーム運営をもっとスムーズに。</p>
+              <p class="member-register-card-lead">
+                <span class="member-register-card-lead-icon" aria-hidden="true"><?php echo aidunite_get_theme_icon_svg('mail', ['width' => '20', 'height' => '20']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+                <span>メール認証後、本登録が完了します。</span>
+              </p>
             </div>
 
             <?php if (!empty($form_errors)) : ?>
@@ -112,7 +108,7 @@ get_header();
                          value="<?php echo esc_attr($_POST['user_email'] ?? ''); ?>"
                          placeholder="example@email.com" required autocomplete="email">
                 </div>
-                <p class="member-register-hint">ログインIDとして使用されます</p>
+                <p class="member-register-hint">ログインIDとして使用されます。</p>
               </div>
 
               <div class="member-register-field">
@@ -133,7 +129,7 @@ get_header();
                   </div>
                   <p class="member-register-strength-text" id="strength-text">パスワード強度</p>
                 </div>
-                <p class="member-register-hint">8文字以上で、英大文字・英小文字・数字を含めてください</p>
+                <p class="member-register-hint">8文字以上で、英大文字・英小文字・数字を含めてください。</p>
               </div>
 
               <div class="member-register-field">
@@ -156,7 +152,7 @@ get_header();
                        <?php checked(isset($_POST['agree_terms'])); ?> required>
                 <label for="agree_terms" class="member-register-terms-label">
                   <a href="<?php echo esc_url($terms_url); ?>" class="member-register-link" target="_blank" rel="noopener noreferrer">利用規約</a>および
-                  <a href="<?php echo esc_url($privacy_url); ?>" class="member-register-link" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a>に同意します
+                  <a href="<?php echo esc_url($privacy_url); ?>" class="member-register-link" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a>に同意します。
                 </label>
               </div>
 
@@ -180,21 +176,21 @@ get_header();
             <span class="member-register-value-card-icon" aria-hidden="true"><?php echo aidunite_get_theme_icon_svg('search', ['width' => '22', 'height' => '22']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
             <div class="member-register-value-card-body">
               <h3 class="member-register-value-card-title">練習試合を探せる</h3>
-              <p class="member-register-value-card-desc">自チームに合った対戦相手を見つけられます</p>
+              <p class="member-register-value-card-desc">自チームに合った対戦相手を見つけられます。</p>
             </div>
           </li>
           <li class="member-register-value-card member-register-value-card--blue">
             <span class="member-register-value-card-icon" aria-hidden="true"><?php echo aidunite_get_theme_icon_svg('calendar_month', ['width' => '22', 'height' => '22']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
             <div class="member-register-value-card-body">
               <h3 class="member-register-value-card-title">スケジュール共有</h3>
-              <p class="member-register-value-card-desc">練習や試合予定をチーム全体で共有できます</p>
+              <p class="member-register-value-card-desc">練習や試合予定をチーム全体で共有できます。</p>
             </div>
           </li>
           <li class="member-register-value-card member-register-value-card--green">
             <span class="member-register-value-card-icon" aria-hidden="true"><?php echo aidunite_get_theme_icon_svg('chat', ['width' => '22', 'height' => '22']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
             <div class="member-register-value-card-body">
               <h3 class="member-register-value-card-title">チーム連絡を効率化</h3>
-              <p class="member-register-value-card-desc">保護者・選手との連絡をまとめて管理できます</p>
+              <p class="member-register-value-card-desc">保護者・選手との連絡をまとめて管理できます。</p>
             </div>
           </li>
         </ul>

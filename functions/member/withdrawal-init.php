@@ -32,15 +32,29 @@ function aidunite_handle_confirm_withdrawal_post() {
         exit;
     }
 
-    $notify_opponents = isset($_POST['notify_opponents']) && $_POST['notify_opponents'] === '1';
     $team_ids = function_exists('aidunite_get_representative_team_ids') ? aidunite_get_representative_team_ids($user_id) : [];
-    $execute_at = time() + (defined('AIDUNITE_WITHDRAWAL_REP_DELAY_SECONDS') ? AIDUNITE_WITHDRAWAL_REP_DELAY_SECONDS : 30 * 24 * 3600);
-
-    if (function_exists('aidunite_add_scheduled_withdrawal')) {
-        aidunite_add_scheduled_withdrawal($user_id, $team_ids, $execute_at);
+    foreach ($team_ids as $tid) {
+        $tid = (int) $tid;
+        if ($tid <= 0 || !function_exists('aidunite_payment_exit_evaluate_gates')) {
+            continue;
+        }
+        $gates = aidunite_payment_exit_evaluate_gates($tid);
+        if (!$gates['can_start']) {
+            wp_redirect(home_url('/confirm-withdrawal?error=gate_a_blocked'));
+            exit;
+        }
+        if (function_exists('aidunite_payment_exit_purge_next_month_items')) {
+            aidunite_payment_exit_purge_next_month_items($tid);
+        }
+        $complete_at = function_exists('aidunite_payment_exit_compute_completion_date')
+            ? aidunite_payment_exit_compute_completion_date($tid, 'dissolve')
+            : date('Y-m-d', time() + (defined('AIDUNITE_WITHDRAWAL_REP_DELAY_SECONDS') ? AIDUNITE_WITHDRAWAL_REP_DELAY_SECONDS : 30 * DAY_IN_SECONDS));
+        if (function_exists('aidunite_payment_exit_write_pending')) {
+            aidunite_payment_exit_write_pending($tid, $user_id, 'dissolve', $complete_at);
+        }
     }
     if (function_exists('aidunite_notify_team_dissolution_scheduled')) {
-        aidunite_notify_team_dissolution_scheduled($user_id, $team_ids, $notify_opponents);
+        aidunite_notify_team_dissolution_scheduled($user_id, $team_ids);
     }
 
     wp_redirect(home_url('/confirm-withdrawal?step=rep_scheduled'));

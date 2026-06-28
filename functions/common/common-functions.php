@@ -32,6 +32,35 @@ function aidunite_normalize_email($email) {
 /*--------------------------------------------------------------
   カスタムログイン処理
 --------------------------------------------------------------*/
+if (!function_exists('aidunite_normalize_login_display_error')) {
+    /**
+     * ログインエラー表示用（URL クエリに残った旧 status 表記を除去）
+     */
+    function aidunite_normalize_login_display_error($message) {
+        $message = trim((string) $message);
+        if ($message === '') {
+            return '';
+        }
+
+        $message = str_replace(["\r\n", "\r"], "\n", $message);
+        $message = preg_replace('/（status:\s*[^）]*）/u', '', $message);
+        $message = preg_replace('/\(status:\s*[^)]*\)/i', '', $message);
+        $message = preg_replace('/（user_status:\s*[^）]*）/u', '', $message);
+        $message = preg_replace('/\(user_status:\s*[^)]*\)/i', '', $message);
+        $message = preg_replace('/[ \t]+/u', ' ', $message);
+        $message = trim($message);
+
+        if (str_contains($message, '本登録が完了していません') && str_contains($message, 'メール認証')) {
+            return "本登録が完了していません。\nメール認証を完了してください。";
+        }
+        if (str_contains($message, 'アカウントが無効化') && str_contains($message, '運営')) {
+            return "アカウントが無効化されています。\n運営までご連絡ください。";
+        }
+
+        return $message;
+    }
+}
+
 if (!function_exists('aidunite_custom_login')) {
 function aidunite_custom_login($username, $password, $remember = false) {
     $username = aidunite_normalize_email($username);
@@ -79,6 +108,16 @@ function aidunite_custom_login($username, $password, $remember = false) {
         ];
     }
 
+    if (function_exists('aidunite_admin_security_block_frontend_admin_login')) {
+        $admin_block = aidunite_admin_security_block_frontend_admin_login($user_obj);
+        if ($admin_block instanceof WP_Error) {
+            return [
+                'success' => false,
+                'message' => $admin_block->get_error_message(),
+            ];
+        }
+    }
+
     // ユーザー認証
     error_log('🔑 [aidunite_custom_login] パスワード認証開始 - user_login: ' . $username . ', user_id: ' . $user_obj->ID);
     $creds = [
@@ -90,6 +129,13 @@ function aidunite_custom_login($username, $password, $remember = false) {
 
     if (is_wp_error($user)) {
         error_log('❌ [aidunite_custom_login] パスワード認証エラー - user_login: ' . $username . ' - ' . $user->get_error_message());
+        if (
+            function_exists('aidunite_admin_security_record_login_failure')
+            && function_exists('aidunite_admin_security_is_privileged_user')
+            && aidunite_admin_security_is_privileged_user($user_obj)
+        ) {
+            aidunite_admin_security_record_login_failure((int) $user_obj->ID);
+        }
         return [
             'success' => false,
             'message' => 'メールアドレスまたはパスワードが間違っています。'
@@ -107,14 +153,14 @@ function aidunite_custom_login($username, $password, $remember = false) {
         error_log('❌ [aidunite_custom_login] 本登録未完了 - registration_status: "' . $registration_status . '"');
         return [
             'success' => false,
-            'message' => '本登録が完了していません（status: ' . $registration_status . '）。メール認証を完了してください。'
+            'message' => "本登録が完了していません。\nメール認証を完了してください。"
         ];
     }
     if ($user_status !== '' && $user_status !== '0') {
         error_log('❌ [aidunite_custom_login] アカウント無効化 - user_status: "' . $user_status . '"');
         return [
             'success' => false,
-            'message' => 'アカウントが無効化されています（user_status: ' . $user_status . '）。運営までご連絡ください。'
+            'message' => "アカウントが無効化されています。\n運営までご連絡ください。"
         ];
     }
 
@@ -325,16 +371,6 @@ function aidunite_get_login_redirect_url($user) {
     }
 }
 
-/**
- * 後方互換性のためのラッパー関数（段階的削除予定）
- * @deprecated 代わりに aidunite_get_login_redirect_url() を使用してください
- */
-if (!function_exists('tunageru_get_login_redirect_url')) {
-function tunageru_get_login_redirect_url($user) {
-    return aidunite_get_login_redirect_url($user);
-}
-}
-
 /*--------------------------------------------------------------
   ログインフォームのHTML生成
 --------------------------------------------------------------*/
@@ -342,6 +378,9 @@ function tunageru_get_login_redirect_url($user) {
  * ログインフォームのHTMLを生成（統一命名）
  */
 function aidunite_get_login_form_html($error_message = '') {
+    $error_message = function_exists('aidunite_normalize_login_display_error')
+        ? aidunite_normalize_login_display_error($error_message)
+        : trim((string) $error_message);
     $current_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
 
     ob_start();
@@ -352,7 +391,7 @@ function aidunite_get_login_form_html($error_message = '') {
         <?php if ($error_message): ?>
             <div class="login-error-message" role="alert">
                 <span class="login-error-icon"><?php echo aidunite_get_theme_icon_svg('brightness_alert', ['width' => '22', 'height' => '22']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-                <?php echo esc_html($error_message); ?>
+                <span class="login-error-message__text"><?php echo nl2br(esc_html($error_message), false); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
             </div>
         <?php endif; ?>
 
@@ -391,20 +430,87 @@ function aidunite_get_login_form_html($error_message = '') {
     </form>
 
     <div class="login-footer">
-        <p>アカウントをお持ちでない方は<a href="<?php echo esc_url(home_url('/member-register')); ?>">新規登録</a>してください。</p>
+    <p>アカウントをお持ちでない方は、<br><a href="<?php echo esc_url(home_url('/member-register')); ?>">新規登録</a>してください。</p>
     </div>
     <?php
     return ob_get_clean();
 }
 
 /**
- * 後方互換性のためのラッパー関数（段階的削除予定）
- * @deprecated 代わりに aidunite_get_login_form_html() を使用してください
+ * team_memberships / managed_team_ids から表示ロールを補完（meta が general のとき）
+ *
+ * @param int $user_id
+ * @return string team_leader|parent|player|'' 
  */
-if (!function_exists('tunageru_get_login_form_html')) {
-function tunageru_get_login_form_html($error_message = '') {
-    return aidunite_get_login_form_html($error_message);
-}
+function aidunite_resolve_role_from_team_affiliation($user_id) {
+    $user_id = (int) $user_id;
+    if ($user_id <= 0) {
+        return '';
+    }
+
+    if (function_exists('aidunite_get_managed_team_ids')) {
+        $managed = aidunite_get_managed_team_ids($user_id);
+        if (!empty($managed)) {
+            return 'team_leader';
+        }
+    }
+
+    if (!function_exists('aidunite_user_read_team_memberships')) {
+        return '';
+    }
+
+    $memberships = aidunite_user_read_team_memberships($user_id);
+    if ($memberships === []) {
+        return '';
+    }
+
+    $team_id = function_exists('aidunite_get_current_team_id')
+        ? (int) aidunite_get_current_team_id($user_id)
+        : 0;
+
+    $resolve_membership_role = static function ($membership) {
+        if (!is_array($membership)) {
+            return '';
+        }
+        $status = (string) ($membership['status'] ?? 'active');
+        if ($status !== '' && $status !== 'active') {
+            return '';
+        }
+        $role = (string) ($membership['role'] ?? '');
+        return in_array($role, ['team_leader', 'parent', 'player'], true) ? $role : '';
+    };
+
+    if ($team_id > 0) {
+        $current_membership = $memberships[$team_id] ?? null;
+        if ($current_membership === null) {
+            foreach ($memberships as $membership) {
+                if (is_array($membership) && (int) ($membership['team_id'] ?? 0) === $team_id) {
+                    $current_membership = $membership;
+                    break;
+                }
+            }
+        }
+        $current_role = $resolve_membership_role($current_membership);
+        if ($current_role !== '') {
+            return $current_role;
+        }
+    }
+
+    $has_player = false;
+    foreach ($memberships as $membership) {
+        $role = $resolve_membership_role($membership);
+        if ($role === 'team_leader') {
+            return 'team_leader';
+        }
+        if ($role === 'parent') {
+            return 'parent';
+        }
+        if ($role === 'player') {
+            $has_player = true;
+        }
+    }
+
+    return $has_player ? 'player' : '';
 }
 
 /**
@@ -452,6 +558,21 @@ function aidunite_get_effective_user_role() {
             $preview = false;
             // 管理者自身の通常ロールに戻す
             $role = (in_array($aidunite_role, $allowed, true)) ? $aidunite_role : 'general';
+        }
+    }
+
+    if (!$preview) {
+        if (in_array($role, ['general', 'public', ''], true)) {
+            $affiliation_role = aidunite_resolve_role_from_team_affiliation($current_user_id);
+            if ($affiliation_role !== '') {
+                $role = $affiliation_role;
+            } elseif (
+                $user_type_meta !== ''
+                && in_array($user_type_meta, $allowed, true)
+                && !in_array($user_type_meta, ['general', 'public'], true)
+            ) {
+                $role = $user_type_meta;
+            }
         }
     }
 
@@ -598,6 +719,20 @@ if (!function_exists('aidunite_get_player_parent')) {
 function aidunite_get_player_parent($player_id) {
     if (!$player_id) return null;
 
+    // 方法0: linked_parent_id（親子紐付けの正本）
+    $linked_parent_id = function_exists('aidunite_player_read_linked_parent_id')
+        ? aidunite_player_read_linked_parent_id($player_id)
+        : (int) get_user_meta($player_id, 'linked_parent_id', true);
+    if ($linked_parent_id > 0) {
+        $parent = get_userdata($linked_parent_id);
+        if ($parent) {
+            $parent_role = get_user_meta($linked_parent_id, 'aidunite_role', true) ?: get_user_meta($linked_parent_id, 'user_type', true);
+            if ($parent_role === 'parent' || $parent_role === '' || $parent_role === 'general') {
+                return $parent;
+            }
+        }
+    }
+
     // 方法1: ユーザーメタにparent_idが保存されている場合
     $parent_id = get_user_meta($player_id, 'parent_id', true);
     if ($parent_id) {
@@ -645,6 +780,38 @@ function aidunite_is_developer_preview_mode() {
  * 確認モードバナー表示
  * @param string|null $preview_mode aidunite_get_effective_user_role() の第2戻り値
  */
+function aidunite_enqueue_preview_mode_banner_assets($base_url = '') {
+    static $done = false;
+    if ($done) {
+        return;
+    }
+    $done = true;
+    $css = get_stylesheet_directory() . '/assets/css/components/preview-mode-banner.css';
+    if (is_readable($css)) {
+        wp_enqueue_style(
+            'aidunite-preview-mode-banner',
+            get_stylesheet_directory_uri() . '/assets/css/components/preview-mode-banner.css',
+            ['aidunite-style'],
+            (string) filemtime($css)
+        );
+    }
+    $js = get_stylesheet_directory() . '/assets/js/common/preview-mode-banner.js';
+    if (is_readable($js)) {
+        wp_enqueue_script(
+            'aidunite-preview-mode-banner',
+            get_stylesheet_directory_uri() . '/assets/js/common/preview-mode-banner.js',
+            [],
+            (string) filemtime($js),
+            true
+        );
+        if ($base_url !== '') {
+            wp_localize_script('aidunite-preview-mode-banner', 'aidunitePreviewModeBanner', [
+                'baseUrl' => $base_url,
+            ]);
+        }
+    }
+}
+
 function aidunite_preview_mode_banner($preview_mode) {
     // 統一認証・権限チェック（管理者のみ）
     require_once get_template_directory() . '/functions/common/auth-middleware.php';
@@ -672,29 +839,29 @@ function aidunite_preview_mode_banner($preview_mode) {
         $base_role_label = $role_labels[$base_role] ?? $base_role;
         $current_label = $preview_mode ? ($role_labels[$preview_mode] ?? $preview_mode) : '';
 
+        aidunite_enqueue_preview_mode_banner_assets($base_url);
         echo '<div class="preview-mode-banner" id="preview-mode-banner" role="region" aria-label="プレビューモード">';
-        echo '<style>.preview-mode-banner{background:linear-gradient(135deg,#ff9800 0%,#f57c00 100%);color:#fff;margin-bottom:1em;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);}.preview-mode-banner__header{cursor:pointer;padding:0.75em 1em;display:flex;align-items:center;justify-content:center;gap:0.5em;font-weight:bold;user-select:none;}.preview-mode-banner__header:hover{background:rgba(255,255,255,0.08);border-radius:8px 8px 0 0;}.preview-mode-banner__toggle{font-size:0.85em;opacity:0.9;}.preview-mode-banner__body{overflow:hidden;transition:max-height 0.25s ease;}.preview-mode-banner.is-collapsed .preview-mode-banner__body{max-height:0;}.preview-mode-banner__inner{padding:0 1em 1em;text-align:center;}</style>';
         echo '<div class="preview-mode-banner__header" id="preview-mode-banner-toggle" tabindex="0" role="button" aria-expanded="true" aria-controls="preview-mode-banner-body">';
         echo '<span aria-hidden="true">🔍 プレビューモード</span>';
         if ($current_label) {
-            echo ' <span style="background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:4px;font-size:0.9em;">' . esc_html($current_label) . '</span>';
+            echo ' <span class="preview-mode-banner__badge">' . esc_html($current_label) . '</span>';
         }
         echo ' <span class="preview-mode-banner__toggle" id="preview-mode-banner-toggle-label">▼ 折りたたむ</span>';
         echo '</div>';
         echo '<div class="preview-mode-banner__body" id="preview-mode-banner-body">';
         echo '<div class="preview-mode-banner__inner">';
-        echo '<div style="margin-bottom:0.5em;font-size:0.9em;opacity:0.9;">';
-        echo '基本ロール: <span style="background:rgba(255,255,255,0.3);padding:2px 6px;border-radius:4px;font-weight:bold;">' . esc_html($base_role_label) . '</span>';
+        echo '<div class="preview-mode-banner__meta">';
+        echo '基本ロール: <span class="preview-mode-banner__role-pill">' . esc_html($base_role_label) . '</span>';
         echo '</div>';
 
         if ($preview_mode) {
-            echo '<div style="margin-bottom:1em;">';
-            echo '現在 <span style="background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:4px;font-weight:bold;">' . esc_html($role_labels[$preview_mode] ?? $preview_mode) . '</span> としてプレビュー中';
+            echo '<div class="preview-mode-banner__current">';
+            echo '現在 <strong>' . esc_html($role_labels[$preview_mode] ?? $preview_mode) . '</strong> としてプレビュー中';
             echo '</div>';
         }
 
-        echo '<form style="display:inline;" id="preview-mode-form">';
-        echo '<select id="preview-mode-select" name="mode" style="margin:0 0.5em;padding:5px 10px;border-radius:4px;border:none;background:rgba(255,255,255,0.9);color:#333;font-weight:bold;">';
+        echo '<form class="preview-mode-banner__form" id="preview-mode-form">';
+        echo '<select id="preview-mode-select" name="mode" class="preview-mode-banner__select">';
         echo '<option value="">▼ ロールを選択</option>';
         foreach ($allowed_roles as $role) {
             $selected = ($preview_mode === $role) ? 'selected' : '';
@@ -707,88 +874,30 @@ function aidunite_preview_mode_banner($preview_mode) {
         echo '</form>';
 
         if ($preview_mode) {
-            echo ' <a href="' . esc_url($off_url) . '" style="color:#fff;text-decoration:underline;margin-left:1em;background:rgba(255,255,255,0.2);padding:4px 8px;border-radius:4px;">プレビューモード解除</a>';
-            echo '<div style="margin-top:0.5em;font-size:0.9em;opacity:0.9;">';
+            echo ' <a href="' . esc_url($off_url) . '" class="preview-mode-banner__off-link">プレビューモード解除</a>';
+            echo '<div class="preview-mode-banner__hint">';
             echo '⚠️ プレビューモード解除後は基本ロール（' . esc_html($base_role_label) . '）に戻ります';
             echo '</div>';
         }
 
-        echo '<div style="margin-top:0.5em;font-size:0.9em;opacity:0.9;">';
+        echo '<div class="preview-mode-banner__hint">';
         echo '💡 各ロールの機能をテストできます。すべてのリンクに自動的にプレビューモードが適用されます。';
         echo '</div>';
         echo '</div></div></div>';
-        ?>
-        <script>
-        (function() {
-            var STORAGE_KEY = 'aidunite_preview_banner_collapsed';
-            var banner = document.getElementById('preview-mode-banner');
-            var body = document.getElementById('preview-mode-banner-body');
-            var toggleLabel = document.getElementById('preview-mode-banner-toggle-label');
-            var header = document.getElementById('preview-mode-banner-toggle');
-            if (!banner || !body) return;
-            var collapsed = sessionStorage.getItem(STORAGE_KEY) === '1';
-            if (collapsed) {
-                banner.classList.add('is-collapsed');
-                toggleLabel.textContent = '▶ 開く';
-                header.setAttribute('aria-expanded', 'false');
-            } else {
-                body.style.maxHeight = body.scrollHeight + 'px';
-            }
-            function setExpanded(expanded) {
-                if (expanded) {
-                    banner.classList.remove('is-collapsed');
-                    body.style.maxHeight = body.scrollHeight + 'px';
-                    toggleLabel.textContent = '▼ 折りたたむ';
-                    header.setAttribute('aria-expanded', 'true');
-                    sessionStorage.removeItem(STORAGE_KEY);
-                } else {
-                    banner.classList.add('is-collapsed');
-                    body.style.maxHeight = '0';
-                    toggleLabel.textContent = '▶ 開く';
-                    header.setAttribute('aria-expanded', 'false');
-                    sessionStorage.setItem(STORAGE_KEY, '1');
-                }
-            }
-            function toggle() {
-                setExpanded(banner.classList.contains('is-collapsed'));
-            }
-            if (header) {
-                header.addEventListener('click', toggle);
-                header.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        toggle();
-                    }
-                });
-            }
-            var select = document.getElementById('preview-mode-select');
-            if (select) {
-                select.addEventListener('change', function() {
-                    var mode = this.value;
-                    if (!mode) return;
-                    var base = "<?php echo esc_js(esc_url($base_url)); ?>";
-                    var path = base.split('?')[0].replace(/\/?$/, '');
-                    window.location.href = path + '?mode=' + encodeURIComponent(mode);
-                });
-            }
-        })();
-        </script>
-        <?php
     } else if ($preview_mode) {
         // 管理者以外は従来通り（解除時も ?mode=off で Cookie を消す）。折りたたみ対応
         $current_url = (is_ssl() ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
         $off_url = add_query_arg('mode', 'off', remove_query_arg('mode', $current_url));
+        aidunite_enqueue_preview_mode_banner_assets();
         echo '<div class="preview-mode-banner preview-mode-banner--simple" id="preview-mode-banner" role="region" aria-label="プレビューモード">';
-        echo '<style>.preview-mode-banner{background:linear-gradient(135deg,#ff9800 0%,#f57c00 100%);color:#fff;margin-bottom:1em;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);}.preview-mode-banner__body{overflow:hidden;transition:max-height 0.25s ease;}.preview-mode-banner.is-collapsed .preview-mode-banner__body{max-height:0;}.preview-mode-banner--simple .preview-mode-banner__header{padding:0.6em 1em;cursor:pointer;}.preview-mode-banner--simple .preview-mode-banner__body .preview-mode-banner__inner{padding:0 1em 0.6em;}</style>';
-        echo '<div class="preview-mode-banner__header" id="preview-mode-banner-toggle" tabindex="0" role="button" aria-expanded="true" aria-controls="preview-mode-banner-body" style="cursor:pointer;background:linear-gradient(135deg,#ff9800 0%,#f57c00 100%);color:#fff;font-weight:bold;border-radius:8px 8px 0 0;">';
-        echo '<span>🔍 プレビューモード</span> <span style="background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:4px;">' . esc_html($preview_mode) . '</span> でプレビュー中';
+        echo '<div class="preview-mode-banner__header preview-mode-banner__header--gradient" id="preview-mode-banner-toggle" tabindex="0" role="button" aria-expanded="true" aria-controls="preview-mode-banner-body">';
+        echo '<span>🔍 プレビューモード</span> <span class="preview-mode-banner__badge">' . esc_html($preview_mode) . '</span> でプレビュー中';
         echo ' <span class="preview-mode-banner__toggle" id="preview-mode-banner-toggle-label">▼ 折りたたむ</span>';
         echo '</div>';
         echo '<div class="preview-mode-banner__body" id="preview-mode-banner-body">';
-        echo '<div class="preview-mode-banner__inner" style="background:linear-gradient(135deg,#ff9800 0%,#f57c00 100%);color:#fff;text-align:center;border-radius:0 0 8px 8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">';
-        echo ' <a href="' . esc_url($off_url) . '" style="color:#fff;text-decoration:underline;background:rgba(255,255,255,0.2);padding:4px 8px;border-radius:4px;">プレビューモード解除</a>';
+        echo '<div class="preview-mode-banner__inner preview-mode-banner__inner--gradient">';
+        echo ' <a href="' . esc_url($off_url) . '" class="preview-mode-banner__off-link">プレビューモード解除</a>';
         echo '</div></div></div>';
-        echo '<script>(function(){var k="aidunite_preview_banner_collapsed",b=document.getElementById("preview-mode-banner"),x=document.getElementById("preview-mode-banner-body"),l=document.getElementById("preview-mode-banner-toggle-label"),h=document.getElementById("preview-mode-banner-toggle");if(!b||!x)return;var c=sessionStorage.getItem(k)==="1";if(c){b.classList.add("is-collapsed");l.textContent="▶ 開く";h.setAttribute("aria-expanded","false");}function go(e){if(e){b.classList.remove("is-collapsed");x.style.maxHeight=x.scrollHeight+"px";l.textContent="▼ 折りたたむ";h.setAttribute("aria-expanded","true");sessionStorage.removeItem(k);}else{b.classList.add("is-collapsed");x.style.maxHeight="0";l.textContent="▶ 開く";h.setAttribute("aria-expanded","false");sessionStorage.setItem(k,"1");}}function t(){go(b.classList.contains("is-collapsed"));}h.addEventListener("click",t);h.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();t();}});})();</script>';
     }
 }
 
@@ -1092,10 +1201,22 @@ function aidunite_rest_get_user_schedules($request) {
         $schedules = aidunite_get_user_schedules_by_date_range($start_date, $end_date, $user_id, $fetch_args);
     }
 
+    $dissolution_markers = [];
+    if (function_exists('aidunite_payment_exit_collect_dissolution_markers_for_user')
+        && !empty($start_date) && !empty($end_date)) {
+        $dissolution_markers = aidunite_payment_exit_collect_dissolution_markers_for_user(
+            $user_id,
+            (string) $start_date,
+            (string) $end_date,
+            $fetch_args
+        );
+    }
+
     return rest_ensure_response([
         'success' => true,
         'data' => $schedules,
-        'count' => count($schedules)
+        'count' => count($schedules),
+        'dissolution_markers' => $dissolution_markers,
     ]);
 }
 
@@ -1122,6 +1243,40 @@ function aidunite_rest_get_schedules_by_date($request) {
 }
 
 /**
+ * ロールごとに「やること」へ出してよい要対応タイプか
+ *
+ * @param string $type
+ * @param string $effective_role
+ * @param int    $user_id
+ */
+function aidunite_action_required_item_allowed_for_role($type, $effective_role, $user_id = 0) {
+    $type = (string) $type;
+    $effective_role = (string) $effective_role;
+    $user_id = (int) $user_id;
+
+    if (in_array($effective_role, ['team_leader', 'administrator'], true)) {
+        return true;
+    }
+
+    if ($effective_role === 'parent') {
+        return in_array($type, ['attendance', 'payment', 'tuition_payment'], true);
+    }
+
+    if ($effective_role === 'player') {
+        if ($type === 'payment'
+            && $user_id > 0
+            && function_exists('aidunite_user_is_high_school_grade_or_below')
+            && aidunite_user_is_high_school_grade_or_below($user_id)) {
+            return false;
+        }
+
+        return in_array($type, ['attendance', 'payment', 'tuition_payment'], true);
+    }
+
+    return false;
+}
+
+/**
  * 要対応アイテムを取得（REST・マイページ初期表示の両方で利用）
  * Inbox型通知システム用。ログイン済みユーザーの要対応リストを返す。
  *
@@ -1139,6 +1294,52 @@ function aidunite_get_action_required_items_for_display() {
     list($effective_role, $preview_mode) = aidunite_get_effective_user_role();
 
     $action_items = [];
+
+    // 0. 保護者承認待ち（チーム代表者のみ）
+    if ($effective_role === 'team_leader' && !empty($team_scope) && function_exists('aidunite_parent_read_pending_approval_count')) {
+        foreach ($team_scope as $scope_tid) {
+            $scope_tid = (int) $scope_tid;
+            if ($scope_tid <= 0) {
+                continue;
+            }
+            $pending_count = aidunite_parent_read_pending_approval_count($scope_tid);
+            if ($pending_count <= 0) {
+                continue;
+            }
+            $team_label = '';
+            if (function_exists('aidunite_team_get_display_bundle')) {
+                $bundle = aidunite_team_get_display_bundle($scope_tid);
+                $team_label = (string) ($bundle['team_name'] ?? '');
+            }
+            $action_items[] = [
+                'type' => 'parent_approval',
+                'id' => $scope_tid,
+                'title' => '保護者の承認待ち',
+                'description' => ($team_label !== '' ? $team_label . ' — ' : '') . $pending_count . '件の参加申請があります',
+                'deadline' => null,
+                'link_url' => home_url('/team-members?list_tab=parents&parent_tab=pending&team_id=' . $scope_tid),
+                'actions' => [
+                    ['label' => '承認する', 'action' => 'open', 'type' => 'primary'],
+                ],
+            ];
+        }
+    }
+
+    // 0b. 大会・イベント招待への回答（チーム代表者のみ）
+    if ($effective_role === 'team_leader' && !empty($team_scope) && function_exists('aidunite_competition_read_action_required_items')) {
+        $competition_items = aidunite_competition_read_action_required_items($user_id, $team_scope, $effective_role);
+        if (!empty($competition_items)) {
+            $action_items = array_merge($action_items, $competition_items);
+        }
+    }
+
+    // 0c. ファネル離脱向けオンボーディング / reuse（代表者）
+    if ($effective_role === 'team_leader' && !empty($team_scope) && function_exists('aidunite_funnel_read_leader_action_items')) {
+        $funnel_items = aidunite_funnel_read_leader_action_items($user_id, $team_scope);
+        if ($funnel_items !== []) {
+            $action_items = array_merge($funnel_items, $action_items);
+        }
+    }
 
     // 1. マッチ申請への回答が必要なアイテム（チーム責任者のみ）
     if ($effective_role === 'team_leader' && !empty($team_scope)) {
@@ -1174,7 +1375,9 @@ function aidunite_get_action_required_items_for_display() {
             $schedule_author_id = get_post_field('post_author', $to_schedule_id);
             $schedule_team_id = function_exists('aidunite_resolve_schedule_owner_team_id')
                 ? (int) aidunite_resolve_schedule_owner_team_id((int) $to_schedule_id)
-                : (int) get_post_meta((int) $to_schedule_id, 'team_id', true);
+                : (function_exists('aidunite_schedule_read_team_id')
+                    ? (int) aidunite_schedule_read_team_id((int) $to_schedule_id)
+                    : 0);
             if ($schedule_team_id <= 0 && $schedule_author_id) {
                 $schedule_team_id = function_exists('aidunite_get_current_team_id')
                     ? (int) aidunite_get_current_team_id((int) $schedule_author_id)
@@ -1186,23 +1389,19 @@ function aidunite_get_action_required_items_for_display() {
                 $from_team_id = get_post_meta($match_req->ID, 'from_team_id', true);
                 $from_team = $from_team_id ? get_post($from_team_id) : null;
                 $match_date = get_post_meta($match_req->ID, 'match_date', true);
-                if (!$match_date) {
-                    $match_date = get_post_meta($to_schedule_id, 'schedule_date', true);
+                if (!$match_date && function_exists('aidunite_schedule_read_normalized_date')) {
+                    $match_date = aidunite_schedule_read_normalized_date((int) $to_schedule_id);
                 }
-                $place = get_post_meta($to_schedule_id, 'place', true);
+                $place = function_exists('aidunite_schedule_read_place_raw')
+                    ? aidunite_schedule_read_place_raw((int) $to_schedule_id)
+                    : '';
 
-                // マッチ申請の期限計算
+                // マッチ申請の返答期限（キャンセルポリシー §17.7 整合: 試合3日前23:59）
                 $deadline = null;
-                if ($match_date) {
-                    $match_ts = strtotime($match_date . ' 00:00:00');
-                    $now_ts = time();
-                    $seconds_until_match = $match_ts - $now_ts;
-                    $is_urgent_mode = ($seconds_until_match <= 48 * 60 * 60);
-                    if ($is_urgent_mode) {
-                        $deadline = date('Y-m-d 18:00:00', strtotime($match_date . ' -1 day'));
-                    } else {
-                        $deadline = date('Y-m-d 23:59:59', strtotime($match_date . ' -3 days'));
-                    }
+                if ($match_date && function_exists('aidunite_match_policy_get_response_deadline')) {
+                    $deadline = aidunite_match_policy_get_response_deadline($match_date);
+                } elseif ($match_date) {
+                    $deadline = date('Y-m-d 23:59:59', strtotime($match_date . ' -3 days'));
                 }
 
                 $board_url = home_url('/match-board-own');
@@ -1230,82 +1429,84 @@ function aidunite_get_action_required_items_for_display() {
     $today = date('Y-m-d');
     $next_week = date('Y-m-d', strtotime('+7 days'));
 
-    $schedules = get_posts([
-        'post_type' => 'schedule',
-        'post_status' => 'publish',
-        'posts_per_page' => 20,
-        'orderby' => 'meta_value',
-        'meta_key' => 'schedule_date',
-        'order' => 'ASC',
-        'meta_query' => [
-            [
-                'key' => 'schedule_date',
-                'value' => [$today, $next_week],
-                'compare' => 'BETWEEN',
-                'type' => 'DATE'
-            ],
-            [
-                'key' => 'attendance_required',
-                'value' => '1',
-                'compare' => '='
-            ]
-        ]
-    ]);
+    $schedules = function_exists('aidunite_attendance_read_schedules')
+        ? aidunite_attendance_read_schedules([
+            'date_between' => [$today, $next_week],
+            'posts_per_page' => 20,
+            'order' => 'ASC',
+        ])
+        : [];
 
     $team_scope_int = array_map('intval', $team_scope);
 
     foreach ($schedules as $schedule) {
-        $schedule_team_id = (int) get_post_meta($schedule->ID, 'team_id', true);
+        $schedule_team_id = function_exists('aidunite_schedule_read_team_id')
+            ? (int) aidunite_schedule_read_team_id((int) $schedule->ID)
+            : 0;
 
         // 管理中チームのスケジュールのみ
         if (!empty($team_scope_int) && !in_array($schedule_team_id, $team_scope_int, true)) {
             continue;
         }
 
-        $attendance_data = get_post_meta($schedule->ID, 'attendance_data', true);
+        $attendance_data = function_exists('aidunite_attendance_read_data_map')
+            ? aidunite_attendance_read_data_map((int) $schedule->ID)
+            : [];
         $has_response = false;
 
         if (is_array($attendance_data)) {
-            // 保護者の場合、子供のIDをチェック
             if ($effective_role === 'parent') {
-                // 保護者の子供を取得（player_idメタから）
                 $children_ids = get_user_meta($user_id, 'player_id', false);
+                if (empty($children_ids) && function_exists('aidunite_get_parent_children')) {
+                    foreach (aidunite_get_parent_children($user_id) as $child) {
+                        $cid = (int) ($child['user_id'] ?? 0);
+                        if ($cid > 0) {
+                            $children_ids[] = $cid;
+                        }
+                    }
+                }
                 if (empty($children_ids) && !empty($team_scope_int)) {
                     foreach ($team_scope_int as $scope_tid) {
-                        $team_members = get_users([
-                            'meta_key' => 'team_id',
-                            'meta_value' => (string) $scope_tid,
-                            'meta_compare' => '=',
-                        ]);
-                        foreach ($team_members as $member) {
-                            if (aidunite_get_user_type($member->ID) === 'player') {
-                                $children_ids[] = $member->ID;
+                        if (function_exists('aidunite_attendance_get_target_member_ids_for_team')) {
+                            foreach (aidunite_attendance_get_target_member_ids_for_team((int) $scope_tid) as $pid) {
+                                if (function_exists('aidunite_get_player_parent') && (int) aidunite_get_player_parent((int) $pid) === (int) $user_id) {
+                                    $children_ids[] = (int) $pid;
+                                }
                             }
                         }
                     }
                 }
-                foreach ($children_ids as $child_id) {
-                    if (isset($attendance_data[$child_id])) {
-                        $has_response = true;
-                        break;
+                foreach (array_unique(array_map('intval', (array) $children_ids)) as $child_id) {
+                    if ($child_id > 0 && isset($attendance_data[$child_id])) {
+                        $row_status = $attendance_data[$child_id]['status'] ?? '';
+                        if (!function_exists('aidunite_attendance_status_is_unanswered') || !aidunite_attendance_status_is_unanswered($row_status)) {
+                            $has_response = true;
+                            break;
+                        }
                     }
                 }
-            } else {
-                if (isset($attendance_data[$user_id])) {
-                    $has_response = true;
-                }
+            } elseif (isset($attendance_data[$user_id])) {
+                $has_response = true;
             }
         }
 
         if (!$has_response) {
-                $schedule_date = get_post_meta($schedule->ID, 'schedule_date', true);
-                $start_time = get_post_meta($schedule->ID, 'start_time', true);
-                $end_time = get_post_meta($schedule->ID, 'end_time', true);
-                $place = get_post_meta($schedule->ID, 'place', true);
-                $type = get_post_meta($schedule->ID, 'type', true);
+                $sch_disp = function_exists('aidunite_schedule_get_display_bundle')
+                    ? aidunite_schedule_get_display_bundle((int) $schedule->ID)
+                    : [];
+                $schedule_date = (string) ($sch_disp['date'] ?? (function_exists('aidunite_schedule_read_normalized_date')
+                    ? aidunite_schedule_read_normalized_date((int) $schedule->ID)
+                    : ''));
+                $start_time = (string) ($sch_disp['start_time'] ?? '');
+                $end_time = (string) ($sch_disp['end_time'] ?? '');
+                $place = (string) ($sch_disp['place'] ?? (function_exists('aidunite_schedule_read_place_raw')
+                    ? aidunite_schedule_read_place_raw((int) $schedule->ID)
+                    : ''));
+                $type = (string) ($sch_disp['schedule_type'] ?? '');
 
-                // 回答期限を計算（スケジュール日の前日23:59）※現状維持
-                $deadline = $schedule_date ? date('Y-m-d 23:59:59', strtotime($schedule_date . ' -1 day')) : null;
+                $deadline = function_exists('aidunite_attendance_policy_get_response_deadline')
+                    ? aidunite_attendance_policy_get_response_deadline($schedule_date)
+                    : ($schedule_date ? date('Y-m-d 18:00:00', strtotime($schedule_date . ' -1 day')) : null);
 
                 $action_items[] = [
                     'type' => 'attendance',
@@ -1316,6 +1517,9 @@ function aidunite_get_action_required_items_for_display() {
                     'time' => ($start_time && $end_time) ? "{$start_time} - {$end_time}" : null,
                     'place' => $place,
                     'deadline' => $deadline,
+                    'link_url' => function_exists('aidunite_attendance_report_url')
+                        ? aidunite_attendance_report_url((int) $schedule->ID)
+                        : home_url('/attendance-report'),
                     'actions' => [
                         ['label' => '参加', 'action' => 'attending', 'type' => 'primary'],
                         ['label' => '不参加', 'action' => 'not_attending', 'type' => 'secondary'],
@@ -1325,8 +1529,8 @@ function aidunite_get_action_required_items_for_display() {
         }
     }
 
-    // 3. 試合後アンケート（未回答・試合終了済み）
-    if (!empty($team_scope_int) && function_exists('aidunite_resolve_post_match_survey_cta')) {
+    // 3. 試合後アンケート（未回答・試合終了済み／代表者のみ）
+    if ($effective_role === 'team_leader' && !empty($team_scope_int) && function_exists('aidunite_resolve_post_match_survey_cta')) {
         foreach ($team_scope_int as $survey_team_id) {
             if ($survey_team_id <= 0) {
                 continue;
@@ -1362,8 +1566,8 @@ function aidunite_get_action_required_items_for_display() {
                 }
                 $match_date = '';
                 $to_sched = (int) get_post_meta($mr_id, 'to_schedule_id', true);
-                if ($to_sched) {
-                    $match_date = (string) get_post_meta($to_sched, 'schedule_date', true);
+                if ($to_sched && function_exists('aidunite_schedule_read_normalized_date')) {
+                    $match_date = (string) aidunite_schedule_read_normalized_date($to_sched);
                 }
                 $action_items[] = [
                     'type'        => 'match_feedback',
@@ -1381,9 +1585,24 @@ function aidunite_get_action_required_items_for_display() {
         }
     }
 
+    // 3b. 保護者：月謝カード未登録（Club・Connect 有効チームのみ）
+    if ($effective_role === 'parent'
+        && function_exists('aidunite_payment_read_parent_tuition_action_required_items')) {
+        $tuition_items = aidunite_payment_read_parent_tuition_action_required_items($user_id);
+        if (!empty($tuition_items)) {
+            $action_items = array_merge($action_items, $tuition_items);
+        }
+    }
+
     // 4. 決済・支払い（導線再有効化まで要対応に出さない）
+    $skip_player_payment_todo = (
+        $effective_role === 'player'
+        && function_exists('aidunite_user_is_high_school_grade_or_below')
+        && aidunite_user_is_high_school_grade_or_below($user_id)
+    );
     if (
-        function_exists('aidunite_payment_user_flows_enabled')
+        !$skip_player_payment_todo
+        && function_exists('aidunite_payment_user_flows_enabled')
         && aidunite_payment_user_flows_enabled()
         && function_exists('aidunite_is_payment_required')
         && aidunite_is_payment_required($user_id)
@@ -1434,10 +1653,37 @@ function aidunite_get_action_required_items_for_display() {
         $filtered_items[] = $item;
     }
 
-    // 緊急度判定（URGENT/SOON/NORMAL）を追加
+    $filtered_items = array_values(array_filter(
+        $filtered_items,
+        static function ($item) use ($effective_role, $user_id) {
+            return aidunite_action_required_item_allowed_for_role($item['type'] ?? '', $effective_role, $user_id);
+        }
+    ));
+
+    // 緊急度判定（URGENT/SOON/NORMAL）— キャンセルポリシー match-cancel-policy.php 準拠
     $now = time();
     foreach ($filtered_items as &$item) {
         $deadline = $item['deadline'] ?? null;
+        $match_date = ($item['type'] ?? '') === 'match_request' ? (string) ($item['date'] ?? '') : '';
+
+        if ($item['type'] === 'match_request' && function_exists('aidunite_match_policy_compute_action_urgency')) {
+            $urgency = aidunite_match_policy_compute_action_urgency($match_date, $deadline);
+            $item['urgency_level'] = $urgency['urgency_level'];
+            $item['is_urgent'] = !empty($urgency['is_urgent']);
+            if (isset($urgency['cancel_tier'])) {
+                $item['cancel_tier'] = $urgency['cancel_tier'];
+            }
+            if (isset($urgency['days_until_match'])) {
+                $item['days_until_match'] = $urgency['days_until_match'];
+            }
+            if (isset($urgency['remaining_hours'])) {
+                $item['remaining_hours'] = $urgency['remaining_hours'];
+            }
+            if (isset($urgency['remaining_days'])) {
+                $item['remaining_days'] = $urgency['remaining_days'];
+            }
+            continue;
+        }
 
         if ($deadline) {
             $deadline_ts = strtotime($deadline);
@@ -1477,12 +1723,17 @@ function aidunite_get_action_required_items_for_display() {
 
     // 期限順にソート（昇順）
     usort($filtered_items, function($a, $b) {
+        $priority_map = [
+            'tuition_payment' => 0,
+            'attendance' => 1,
+            'payment' => 2,
+        ];
         $deadline_a = $a['deadline'] ?? null;
         $deadline_b = $b['deadline'] ?? null;
 
         if (!$deadline_a && !$deadline_b) {
-            $priority_a = ($a['type'] === 'attendance') ? 1 : 2;
-            $priority_b = ($b['type'] === 'attendance') ? 1 : 2;
+            $priority_a = $priority_map[$a['type'] ?? ''] ?? 3;
+            $priority_b = $priority_map[$b['type'] ?? ''] ?? 3;
             if ($priority_a !== $priority_b) {
                 return $priority_a - $priority_b;
             }
@@ -1496,8 +1747,8 @@ function aidunite_get_action_required_items_for_display() {
         if ($ts_a !== $ts_b) {
             return $ts_a - $ts_b;
         }
-        $priority_a = ($a['type'] === 'attendance') ? 1 : 2;
-        $priority_b = ($b['type'] === 'attendance') ? 1 : 2;
+        $priority_a = $priority_map[$a['type'] ?? ''] ?? 3;
+        $priority_b = $priority_map[$b['type'] ?? ''] ?? 3;
         return $priority_a - $priority_b;
     });
 

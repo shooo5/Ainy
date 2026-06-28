@@ -34,23 +34,14 @@
     box-sizing: border-box;
 }
 
-/* 横パディング 0.75rem（section の共通 2rem を上書き） */
-.page-schedule-management .dashboard-section {
-    width: 100%;
-    max-width: 100%;
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
-    box-sizing: border-box;
-}
-
-/* スケジュール管理ページ：section 直下の schedule-display-area（main-content-area 廃止） */
-.page-schedule-management .dashboard-section .schedule-display-area {
+/* 横パディング 0.75rem（ainy-webapp-content の共通パディングを上書き） */
+.page-schedule-management .schedule-display-area {
     width: 100%;
     max-width: 100%;
     margin-left: 0;
     margin-right: 0;
-    padding-left: 0;
-    padding-right: 0;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
     box-sizing: border-box;
 }
 
@@ -332,8 +323,8 @@
     display: inline-block;
     padding: 0.1rem 0.4rem;
     border-radius: 999px;
-    background: #fff3cd;
-    color: #856404;
+    background: color-mix(in srgb, var(--warning-color) 20%, var(--bg-primary));
+    color: var(--warning-color);
     font-size: 0.65rem;
     font-weight: 500;
     max-width: 7rem;
@@ -400,20 +391,20 @@
 
 .se-day.se-past .day-number,
 .calendar-day.past .day-number {
-    color: #6c757d;
+    color: var(--text-secondary);
 }
 
 .se-day.se-past .schedule-card,
 .calendar-day.past .schedule-card {
     opacity: 0.6;
-    color: #6c757d;
+    color: var(--text-secondary);
 }
 
 .se-day.se-other-month,
 .calendar-day.other-month {
-    background: #f8f9fa;
-    color: #adb5bd;
-    border-color: #dee2e6;
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    border-color: var(--border-color);
 }
 
 /* 土曜日のスタイル（デザインリファレンスページに合わせて背景色を設定） */
@@ -442,8 +433,8 @@
 .calendar-grid .calendar-day.saturday.selected,
 .se-day.se-saturday.se-selected,
 .calendar-day.saturday.selected {
-    background: #E8F5E9; /* 選択された日付の背景色を優先 */
-    border-color: #90caf9;
+    background: color-mix(in srgb, var(--success-color) 15%, var(--bg-primary)); /* 選択された日付の背景色を優先 */
+    border-color: color-mix(in srgb, var(--info-color) 45%, transparent);
 }
 
 /* 土曜日で過去の場合（過去のスタイルを優先） */
@@ -491,8 +482,8 @@
 .calendar-grid .calendar-day.sunday.selected,
 .se-day.se-sunday.se-selected,
 .calendar-day.sunday.selected {
-    background: #E8F5E9; /* 選択された日付の背景色を優先 */
-    border-color: #90caf9;
+    background: color-mix(in srgb, var(--success-color) 15%, var(--bg-primary)); /* 選択された日付の背景色を優先 */
+    border-color: color-mix(in srgb, var(--info-color) 45%, transparent);
 }
 
 /* 日曜日で過去の場合（過去のスタイルを優先） */
@@ -540,8 +531,8 @@
 .calendar-grid .calendar-day.holiday.selected,
 .se-day.se-holiday.se-selected,
 .calendar-day.holiday.selected {
-    background: #E8F5E9; /* 選択された日付の背景色を優先 */
-    border-color: #90caf9;
+    background: color-mix(in srgb, var(--success-color) 15%, var(--bg-primary)); /* 選択された日付の背景色を優先 */
+    border-color: color-mix(in srgb, var(--info-color) 45%, transparent);
 }
 
 /* 祝日で過去の場合（過去のスタイルを優先） */
@@ -566,13 +557,13 @@
 /* 平日のスタイル（明示的に指定） */
 .se-day.se-weekday:not(.se-selected):not(.se-today):not(.se-past):not(.se-saturday):not(.se-sunday):not(.se-holiday),
 .calendar-day.weekday:not(.selected):not(.today):not(.past):not(.saturday):not(.sunday):not(.holiday) {
-    background: #ffffff; /* 白（デフォルト） */
+    background: var(--bg-primary); /* 白（デフォルト） */
 }
 
 .se-day.has-schedule,
 .calendar-day.has-schedule {
     background: transparent;
-    border-color: #dee2e6;
+    border-color: var(--border-color);
 }
 
 /* 月間カレンダー（管理・マイページ）：日付セルを縦長に（登録画面 #calendar_grid は正方形のまま） */
@@ -597,7 +588,7 @@
     width: 100%;
     padding: 0.15rem 0.3rem;
     background: var(--primary-color);
-    color: #333;
+    color: var(--text-primary);
     border-radius: 6px;
     /* モバイルでも確実に表示：vwフォールバック（cqi未対応ブラウザ用）。対応環境では@supportsでcqiを使用 */
     font-size: clamp(0.45rem, 2.2vw, 0.75rem);
@@ -641,7 +632,7 @@
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     background: white;
-    color: #333;
+    color: var(--text-primary);
 }
 
 /* 1行表示のスタイル（種別＋時間） */
@@ -655,7 +646,7 @@
     text-overflow: ellipsis;
     width: 100%;
     min-width: 0;
-    color: #333;
+    color: var(--text-primary);
     text-align: left;
     padding-left: 0;
     margin-left: 0;
@@ -722,27 +713,32 @@
 
 /* 色分け（intent × 種別）— カレンダー外のレガシー表示用 */
 .schedule-card.practice {
-    background: rgba(179, 229, 252, 0.85);
+    background: var(--schedule-fill-practice);
     color: var(--text-primary, #333);
 }
 
 .schedule-card.match-confirmed {
-    background: rgba(165, 214, 167, 0.85);
+    background: var(--schedule-fill-match-confirmed);
     color: var(--text-primary, #333);
 }
 
 .schedule-card.match-recruit {
-    background: rgba(255, 204, 128, 0.9);
+    background: var(--schedule-fill-match-recruit);
     color: var(--text-primary, #333);
 }
 
 .schedule-card.event {
-    background: rgba(255, 236, 179, 0.9);
+    background: var(--schedule-fill-event);
+    color: var(--text-primary, #333);
+}
+
+.schedule-card.meeting {
+    background: var(--schedule-fill-meeting);
     color: var(--text-primary, #333);
 }
 
 .schedule-card.off {
-    background: rgba(224, 224, 224, 0.9);
+    background: var(--schedule-badge-off-bg);
     color: var(--text-primary, #333);
 }
 
@@ -762,6 +758,7 @@
 #calendar-grid .schedule-card.match-confirmed,
 #calendar-grid .schedule-card.match-recruit,
 #calendar-grid .schedule-card.event,
+#calendar-grid .schedule-card.meeting,
 #calendar-grid .schedule-card.off,
 #calendar-grid .schedule-card.tentative {
     /* 背景は「超薄塗り」ベースに統一し、種類ごとに下で上書き */
@@ -773,32 +770,37 @@
 }
 
 #calendar-grid .schedule-card.practice {
-    background: var(--bg-primary);
+    background: var(--schedule-card-bg-practice);
     border-color: var(--schedule-card-border-practice);
 }
 
 #calendar-grid .schedule-card.match-confirmed {
-    background: rgba(76, 175, 80, 0.06);
+    background: var(--schedule-card-bg-match-confirmed);
     border-color: var(--schedule-card-border-match-confirmed);
 }
 
 #calendar-grid .schedule-card.match-recruit {
-    background: rgba(255, 152, 0, 0.07);
+    background: var(--schedule-card-bg-match-recruit);
     border-color: var(--schedule-card-border-match-recruit);
 }
 
 #calendar-grid .schedule-card.event {
-    background: var(--bg-primary);
+    background: var(--schedule-card-bg-event);
     border-color: var(--schedule-card-border-event);
 }
 
+#calendar-grid .schedule-card.meeting {
+    background: var(--schedule-card-bg-meeting);
+    border-color: var(--schedule-card-border-meeting);
+}
+
 #calendar-grid .schedule-card.off {
-    background: var(--bg-primary);
+    background: var(--schedule-card-bg-off);
     border-color: var(--schedule-card-border-off);
 }
 
 #calendar-grid .schedule-card.tentative {
-    background: var(--bg-primary);
+    background: var(--schedule-card-bg-tentative);
     border-color: var(--schedule-card-border-tentative);
     border-style: dashed;
     border-left-style: solid;
@@ -809,7 +811,7 @@
 }
 
 #calendar-grid .schedule-card.team-gender-female {
-    border-left-color: var(--schedule-calendar-team-female-border, var(--theme-accent-dark, #7c3aed));
+    border-left-color: var(--schedule-calendar-team-female-border, var(--theme-accent-dark));
 }
 
 #calendar-grid .schedule-card.team-gender-unknown {
@@ -864,7 +866,7 @@
 }
 
 .schedule-more:hover {
-    background: #e3f2fd;
+    background: color-mix(in srgb, var(--info-color) 15%, var(--bg-primary));
 }
 
 /* ============================================
@@ -917,7 +919,7 @@
 
 .new-schedule-popup .popup-header {
     padding: 20px 20px 0;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -925,7 +927,7 @@
 
 .new-schedule-popup .popup-header h3 {
     margin: 0;
-    color: #333;
+    color: var(--text-primary);
     font-size: 1.2rem;
 }
 
@@ -933,7 +935,7 @@
     background: none;
     border: none;
     font-size: 24px;
-    color: #999;
+    color: var(--text-muted);
     cursor: pointer;
     padding: 0;
     width: 30px;
@@ -944,7 +946,7 @@
 }
 
 .new-schedule-popup .popup-close:hover {
-    color: #333;
+    color: var(--text-primary);
 }
 
 .new-schedule-popup .popup-body {
@@ -959,7 +961,7 @@
 }
 
 .new-schedule-popup .message {
-    color: #666;
+    color: var(--text-secondary);
     margin-bottom: 10px;
     line-height: 1.5;
 }
@@ -971,32 +973,15 @@
     justify-content: center;
 }
 
-.new-schedule-popup .btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: background-color 0.2s;
-}
-
-.new-schedule-popup .btn-primary {
-    background: var(--schedule-btn-gradient, var(--primary-color));
-    color: var(--text-on-primary, #fff);
-}
-
-.new-schedule-popup .btn-primary:hover {
-    filter: brightness(0.92);
-}
-
-.new-schedule-popup .btn-secondary {
-    background: #6c757d;
-    color: white;
-}
-
-.new-schedule-popup .btn-secondary:hover {
-    background: #545b62;
+/* ポップアップ内ボタン見た目は button.css + トークン */
+.new-schedule-popup {
+    --btn-primary-background: var(--schedule-btn-gradient, var(--primary-color));
+    --btn-primary-color: var(--text-on-primary, var(--text-light));
+    --btn-primary-hover-filter: brightness(0.92);
+    --btn-primary-hover-transform: none;
+    --btn-primary-radius: var(--radius-base);
+    --btn-primary-padding: var(--spacing-sm) var(--spacing-base);
+    --btn-primary-font-size: var(--font-size-sm);
 }
 
 .schedule-detail-popup {
@@ -1035,7 +1020,7 @@
 
 .schedule-detail-modal .modal-content {
     position: relative;
-    background: #fff;
+    background: var(--bg-primary);
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     max-width: 600px;
@@ -1049,7 +1034,7 @@
 
 .schedule-detail-modal .modal-header {
     padding: 20px 20px 0;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1098,7 +1083,7 @@
 
 .schedule-detail-popup .popup-header {
     padding: 20px 20px 0;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1106,7 +1091,7 @@
 
 .schedule-detail-popup .popup-header h3 {
     margin: 0;
-    color: #333;
+    color: var(--text-primary);
     font-size: 1.2rem;
 }
 
@@ -1114,7 +1099,7 @@
     background: none;
     border: none;
     font-size: 24px;
-    color: #999;
+    color: var(--text-muted);
     cursor: pointer;
     padding: 0;
     width: 30px;
@@ -1125,7 +1110,7 @@
 }
 
 .schedule-detail-popup .popup-close:hover {
-    color: #333;
+    color: var(--text-primary);
 }
 
 .schedule-detail-popup .popup-body {
@@ -1159,7 +1144,7 @@
 .schedule-detail-modal .detail-item label {
     min-width: 60px;
     font-weight: 600;
-    color: #333;
+    color: var(--text-primary);
     margin-right: 0.5rem;
     margin-bottom: 0;
     font-size: 0.875rem;
@@ -1168,7 +1153,7 @@
 
 .schedule-detail-popup .detail-item span,
 .schedule-detail-modal .detail-item span {
-    color: #666;
+    color: var(--text-secondary);
     flex: 1;
 }
 
@@ -1188,13 +1173,13 @@
 
 .schedule-detail-popup .detail-item-venue .venue-name,
 .schedule-detail-modal .detail-item-venue .venue-name {
-    color: #666;
+    color: var(--text-secondary);
     font-weight: 500;
 }
 
 .schedule-detail-popup .detail-item-venue .venue-memo,
 .schedule-detail-modal .detail-item-venue .venue-memo {
-    color: #999;
+    color: var(--text-muted);
     font-size: 0.875rem;
     padding-top: 0.25rem;
     border-top: 1px solid #e9ecef;
@@ -1234,7 +1219,7 @@
     align-items: center;
     position: sticky;
     bottom: 0;
-    background: #fff;
+    background: var(--bg-primary);
 }
 
 .schedule-detail-popup .btn,
@@ -1275,7 +1260,7 @@
         padding: 1rem 16px;
     }
 
-    .page-schedule-management .dashboard-section .schedule-display-area {
+    .page-schedule-management .schedule-display-area {
         width: 100%;
         margin-left: 0;
         margin-right: 0;
@@ -1312,8 +1297,8 @@
         overflow: hidden;
     }
 
-    #calendar-grid .se-day,
-    #calendar-grid .calendar-day {
+    .schedule-calendar-panel:not(.schedule-calendar-panel--mobile-compact) #calendar-grid .se-day,
+    .schedule-calendar-panel:not(.schedule-calendar-panel--mobile-compact) #calendar-grid .calendar-day {
         aspect-ratio: auto;
         min-height: 6rem;
     }
@@ -1447,7 +1432,7 @@
         padding: 0.5rem 12px;
     }
 
-    .page-schedule-management .dashboard-section .schedule-display-area {
+    .page-schedule-management .schedule-display-area {
         width: 100%;
         margin-left: 0;
         margin-right: 0;
@@ -1690,13 +1675,13 @@
 
 .schedule-item-time .time-icon {
   font-size: 1rem;
-  color: #FFD700;
+  color: var(--warning-color);
   filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
 }
 
 .schedule-item-time .time-text {
   font-weight: 700;
-  color: #FFD700;
+  color: var(--warning-color);
   text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
@@ -1791,7 +1776,7 @@
 .schedule-time {
   font-weight: 700;
   min-width: 80px;
-  color: #FFD700;
+  color: var(--warning-color);
   text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
@@ -1827,7 +1812,7 @@ body .schedule-ui-action-area {
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   padding: 1.5rem;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-color);
   display: block;
 }
 
@@ -1836,7 +1821,7 @@ body .schedule-ui-action-area {
   margin: 0 0 1.5rem 0;
   font-size: 1.3rem;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 /* スケジュール操作ボタン - 強制適用 */
@@ -1890,7 +1875,7 @@ body .schedule-btn.btn-create {
 .team-dashboard-container .schedule-btn.btn-edit,
 body .schedule-btn.btn-edit {
   background: var(--secondary-color);
-  color: #333;
+  color: var(--text-primary);
 }
 
 .schedule-btn.btn-delete,
@@ -1908,7 +1893,7 @@ body .schedule-ui-summary-area {
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   padding: 1.5rem;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-color);
   display: block;
 }
 
@@ -1917,7 +1902,7 @@ body .schedule-ui-summary-area {
   margin: 0 0 1.5rem 0;
   font-size: 1.3rem;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .summary-grid,
@@ -1994,7 +1979,7 @@ body .summary-card {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 20px;
   padding: 20px;
-  background: #f8f9fa;
+  background: var(--bg-secondary);
   border-radius: 8px;
   margin-bottom: 20px;
 }
@@ -2008,7 +1993,7 @@ body .summary-card {
 .filter-group label {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #495057;
+  color: var(--text-secondary);
 }
 
 .filter-group .form-control {
@@ -2036,21 +2021,21 @@ body .summary-card {
 .calendar-header {
   margin-bottom: 20px;
   padding-bottom: 15px;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .calendar-header h3 {
   margin: 0;
   font-size: 1.3rem;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 2px;
-  background: #e9ecef;
+  background: var(--bg-secondary);
   border-radius: 16px;
   overflow: hidden;
   padding: 2px;
@@ -2059,11 +2044,11 @@ body .summary-card {
 */
 
 .calendar-day-header {
-  background: #f8f9fa;
+  background: var(--bg-secondary);
   padding: 15px 10px;
   text-align: center;
   font-weight: 700;
-  color: #495057;
+  color: var(--text-secondary);
   font-size: 0.9rem;
   text-shadow: 0 1px 2px rgba(255,255,255,0.8);
   border-radius: 8px;
@@ -2101,7 +2086,7 @@ body .summary-card {
   right: 5px;
   width: 20px;
   height: 20px;
-  background: #28a745;
+  background: var(--success-color);
   color: white;
   border-radius: 50%;
   display: flex;
@@ -2116,20 +2101,20 @@ body .summary-card {
 
 /* スケジュールの種類に応じた色分け */
 .schedule-indicator.match-request {
-  background: #ffc107;
-  color: #212529;
+  background: var(--warning-color);
+  color: var(--text-primary);
 }
 
 .schedule-indicator.match-schedule {
-  background: #dc3545;
+  background: var(--danger-color);
 }
 
 .schedule-indicator.meeting-schedule {
-  background: #17a2b8;
+  background: var(--info-color);
 }
 
 .schedule-indicator.practice-schedule {
-  background: #28a745;
+  background: var(--success-color);
 }
 
 /* 統一CSS (assets/css/schedule.css) に移行済み */
@@ -2141,7 +2126,7 @@ body .summary-card {
 
 .calendar-day.has-schedule:hover {
   background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
-  border-color: #20c997;
+  border-color: var(--success-color);
 }
 
 .calendar-day.selected {
@@ -2154,7 +2139,7 @@ body .summary-card {
 
 .calendar-day.selected .schedule-indicator {
   background: white;
-  color: #007bff;
+  color: var(--primary-color);
 }
 
 .calendar-day.range-start,
@@ -2180,7 +2165,7 @@ body .summary-card {
   font-size: 1rem;
   font-weight: 700;
   margin-bottom: 8px;
-  color: #333;
+  color: var(--text-primary);
   position: relative;
   z-index: 2;
   text-align: center;
@@ -2188,7 +2173,7 @@ body .summary-card {
 }
 
 .calendar-day.other-month .calendar-day-number {
-  color: #adb5bd;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
@@ -2224,9 +2209,9 @@ body .summary-card {
   gap: 16px;
   margin-bottom: 20px;
   padding: 16px;
-  background: #f8f9fa;
+  background: var(--bg-secondary);
   border-radius: 12px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-color);
 }
 
 .legend-item {
@@ -2234,7 +2219,7 @@ body .summary-card {
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #495057;
+  color: var(--text-secondary);
 }
 
 .legend-color {
@@ -2246,11 +2231,11 @@ body .summary-card {
 }
 
 .legend-color.today {
-  background: #ffc107;
+  background: var(--warning-color);
 }
 
 .legend-color.has-schedule {
-  background: #007bff;
+  background: var(--primary-color);
 }
 
 .legend-badge {
@@ -2262,22 +2247,22 @@ body .summary-card {
   justify-content: center;
   font-size: 12px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-on-dark);
   padding: 0 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .legend-badge.planned {
-  background: #fbbc04;
-  color: #202124;
+  background: var(--warning-color);
+  color: var(--text-primary);
 }
 
 .legend-badge.matched {
-  background: #4285f4;
+  background: var(--info-color);
 }
 
 .legend-badge.confirmed {
-  background: #34a853;
+  background: var(--success-color);
 }
 
 /* セル内バッジ */
@@ -2293,23 +2278,23 @@ body .summary-card {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--text-on-dark);
   padding: 0 6px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   z-index: 10;
 }
 
 .cell-badge[data-variant="planned"] {
-  background: #fbbc04;
-  color: #202124;
+  background: var(--warning-color);
+  color: var(--text-primary);
 }
 
 .cell-badge[data-variant="matched"] {
-  background: #4285f4;
+  background: var(--info-color);
 }
 
 .cell-badge[data-variant="confirmed"] {
-  background: #34a853;
+  background: var(--success-color);
 }
 
 /* 統一CSS (assets/css/schedule.css) に移行済み */
@@ -2344,19 +2329,19 @@ body .summary-card {
 
 .schedule-title {
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 2px;
 }
 
 .schedule-time {
   font-size: 10px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .schedule-more {
   text-align: center;
   font-size: 10px;
-  color: #666;
+  color: var(--text-secondary);
   font-weight: 600;
   padding: 2px 6px;
   background: rgba(0,0,0,0.1);
@@ -2408,7 +2393,7 @@ body .summary-card {
 .schedule-type-badge {
   display: inline-block;
   padding: 8px 16px;
-  background: #007bff;
+  background: var(--primary-color);
   color: white;
   border-radius: 20px;
   font-weight: 600;
@@ -2429,12 +2414,12 @@ body .summary-card {
 
 .detail-label {
   font-weight: 600;
-  color: #495057;
+  color: var(--text-secondary);
   min-width: 60px;
 }
 
 .detail-value {
-  color: #212529;
+  color: var(--text-primary);
   flex: 1;
 }
 
@@ -2468,7 +2453,7 @@ body .summary-card {
 
 /* エラーメッセージ */
 .error-message {
-    background: #fef2f2;
+    background: color-mix(in srgb, var(--danger-color) 8%, var(--bg-primary));
     border: 1px solid #fecaca;
     border-radius: 8px;
     padding: 12px 16px;
@@ -2476,7 +2461,7 @@ body .summary-card {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #dc2626;
+    color: var(--danger-color);
     animation: shake 0.3s ease-in-out;
 }
 
@@ -2502,7 +2487,7 @@ body .summary-card {
     border: 2px solid #dc2626;
     border-radius: 8px;
     padding: 8px;
-    background: #fef2f2;
+    background: color-mix(in srgb, var(--danger-color) 8%, var(--bg-primary));
     animation: pulse-error 1s ease-in-out infinite;
 }
 
@@ -2517,7 +2502,7 @@ body .summary-card {
     opacity: 0.5;
     cursor: not-allowed;
     pointer-events: none;
-    background: #9ca3af;
+    background: var(--text-muted);
 }
 
 .btn.disabled:hover,
@@ -2544,7 +2529,7 @@ body .summary-card {
 
 .weekday-selection-label {
     font-size: 14px;
-    color: #666;
+    color: var(--text-secondary);
     font-weight: 500;
 }
 
@@ -2575,18 +2560,6 @@ body .summary-card {
     align-items: center;
 }
 
-/* ボタンスタイル */
-.btn-ghost {
-    background: transparent;
-    color: #6b7280;
-    border: 1px solid #d1d5db;
-}
-
-.btn-ghost:hover {
-    background: #f9fafb;
-    border-color: #9ca3af;
-}
-
 /* カード選択UI */
 .card-selection {
   display: grid;
@@ -2611,6 +2584,25 @@ body .summary-card {
   border-color: var(--primary-color);
   box-shadow: 0 4px 16px var(--schedule-glow-sm, rgba(106, 90, 249, 0.15));
   transform: translateY(-2px);
+}
+
+.selection-card.disabled,
+.selection-card.disabled:hover {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.tab-btn:active {
+  transform: scale(0.95);
+}
+
+button[type="submit"].btn:active,
+.wizard-form button[type="submit"]:active {
+  transform: scale(0.95);
+  opacity: 0.85;
 }
 
 .selection-card.selected {
@@ -2692,37 +2684,8 @@ body .summary-card {
 }
 
 .page-schedule-edit .unified-navigation .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.375rem;
+    gap: var(--spacing-xs);
     line-height: 1.2;
-    min-height: 48px;
-    border-radius: var(--radius-base, 8px);
-}
-
-.page-schedule-edit .unified-navigation .btn-primary {
-    background: var(--schedule-btn-gradient, linear-gradient(135deg, var(--primary-color), var(--primary-dark)));
-    color: var(--text-on-dark, var(--text-light));
-    box-shadow: 0 4px 12px var(--schedule-glow-md, rgba(106, 90, 249, 0.25));
-}
-
-.page-schedule-edit .unified-navigation .btn-primary:hover {
-    filter: brightness(1.05);
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px var(--schedule-glow-lg, rgba(106, 90, 249, 0.35));
-}
-
-.page-schedule-edit .unified-navigation .btn-ghost {
-    background: var(--bg-primary);
-    color: var(--text-secondary);
-    border: 1px solid var(--border-light);
-}
-
-.page-schedule-edit .unified-navigation .btn-ghost:hover {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    border-color: var(--border-color);
 }
 
 .page-schedule-edit .btn-nav-chevron {
@@ -3010,7 +2973,7 @@ body .summary-card {
 }
 
 .warning-message {
-  color: #856404;
+  color: var(--warning-color);
   font-size: 0.9rem;
   line-height: 1.5;
 }
@@ -3092,10 +3055,9 @@ body .summary-card {
 
 /* 時間選択ドロップダウンが親の overflow で切れないようにする（スケジュール登録画面） */
 .page-schedule-edit .wizard-container,
-.page-schedule-edit .dashboard-section.tab-content,
-.page-schedule-edit .dashboard-section.tab-content .main-content-area,
-.page-schedule-edit .dashboard-section.tab-content .main-content-area .form-section,
-.page-schedule-edit .dashboard-section.tab-content .step-content,
+.page-schedule-edit .tab-content,
+.page-schedule-edit .tab-content .form-section,
+.page-schedule-edit .tab-content .step-content,
 .page-schedule-edit .time-settings,
 .page-schedule-edit .time-inputs {
   overflow: visible;
@@ -3107,41 +3069,34 @@ body .summary-card {
   color: var(--text-secondary);
 }
 
-/* ボタンスタイル */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 1rem;
-  min-height: 48px;
+/* スケジュールページ: ボタン見た目は --btn-primary-* トークン（components/button.css） */
+.page-schedule-edit,
+.page-schedule-management,
+.page-my-schedule {
+  --btn-primary-background: var(--schedule-btn-gradient, linear-gradient(135deg, var(--primary-color), var(--primary-dark)));
+  --btn-primary-color: var(--text-on-dark, var(--text-light));
+  --btn-primary-shadow: 0 4px 12px var(--schedule-glow-md, rgba(106, 90, 249, 0.3));
+  --btn-primary-shadow-hover: 0 6px 20px var(--schedule-glow-lg, rgba(106, 90, 249, 0.4));
+  --btn-primary-min-height: 48px;
+  --btn-primary-radius: var(--radius-medium);
+  --btn-primary-hover-filter: none;
 }
 
-.btn-primary {
-  background: var(--schedule-btn-gradient, linear-gradient(135deg, var(--primary-color), var(--primary-dark)));
-  color: var(--text-on-dark, var(--text-light));
-  box-shadow: 0 4px 12px var(--schedule-glow-md, rgba(106, 90, 249, 0.3));
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--schedule-glow-lg, rgba(106, 90, 249, 0.4));
+.page-schedule-edit .unified-navigation {
+  --btn-primary-shadow: 0 4px 12px var(--schedule-glow-md, rgba(106, 90, 249, 0.25));
+  --btn-primary-shadow-hover: 0 6px 16px var(--schedule-glow-lg, rgba(106, 90, 249, 0.35));
+  --btn-primary-hover-filter: brightness(1.05);
+  --btn-primary-hover-transform: translateY(-1px);
 }
 
 /* スケジュール管理：フィルターチップ（すべて・確定・募集・仮） */
-.schedule-filter-bar .filter-chips {
+.page-schedule-management .schedule-filter-bar .filter-chips {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-sm, 0.5rem);
 }
 
-.schedule-filter-bar .filter-chip {
+.page-schedule-management .schedule-filter-bar .filter-chip {
   border-radius: 999px;
   padding: var(--spacing-xs, 0.25rem) var(--spacing-base, 0.8rem);
   font-size: var(--font-size-sm, 0.8rem);
@@ -3154,39 +3109,39 @@ body .summary-card {
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.schedule-filter-bar .filter-chip:hover {
+.page-schedule-management .schedule-filter-bar .filter-chip:hover {
   border-color: var(--primary-color);
   background: var(--schedule-selection-tint, rgba(102, 126, 234, 0.05));
 }
 
-.schedule-filter-bar .filter-chip:focus-visible {
+.page-schedule-management .schedule-filter-bar .filter-chip:focus-visible {
   outline: 2px solid var(--primary-color);
   outline-offset: 2px;
 }
 
-.schedule-filter-bar .filter-chip.active {
+.page-schedule-management .schedule-filter-bar .filter-chip.active {
   color: var(--text-on-dark, var(--text-light));
   box-shadow: 0 2px 8px var(--schedule-glow-sm, rgba(106, 90, 249, 0.15));
 }
 
-.schedule-filter-bar .filter-chip.active[data-filter="all"] {
+.page-schedule-management .schedule-filter-bar .filter-chip.active[data-filter="all"] {
   background: var(--schedule-filter-all-bg, var(--schedule-selection-gradient, var(--primary-color)));
   border-color: transparent;
 }
 
-.schedule-filter-bar .filter-chip.active[data-filter="confirmed"] {
+.page-schedule-management .schedule-filter-bar .filter-chip.active[data-filter="confirmed"] {
   background: var(--schedule-filter-confirmed-bg, var(--primary-color));
   border-color: var(--schedule-filter-confirmed-border, var(--primary-color));
   color: var(--text-primary);
 }
 
-.schedule-filter-bar .filter-chip.active[data-filter="recruit"] {
-  background: var(--schedule-filter-recruit-bg, var(--primary-color));
-  border-color: var(--schedule-filter-recruit-border, var(--primary-color));
-  color: var(--text-primary);
+.page-schedule-management .schedule-filter-bar .filter-chip.active[data-filter="recruit"] {
+  background: var(--schedule-filter-recruit-bg);
+  border-color: var(--schedule-filter-recruit-border);
+  color: var(--schedule-filter-recruit-text, var(--text-primary));
 }
 
-.schedule-filter-bar .filter-chip.active[data-filter="tentative"] {
+.page-schedule-management .schedule-filter-bar .filter-chip.active[data-filter="tentative"] {
   background: var(--schedule-filter-tentative-bg, #fff9c4);
   border-color: var(--schedule-filter-tentative-border, var(--warning-color));
   color: var(--schedule-filter-tentative-text, #5c4a00);
@@ -3226,31 +3181,6 @@ body .summary-card {
 .schedule-visibility-selection .selection-card--visibility.selected .card-icon {
   color: inherit;
   transform: scale(1.1);
-}
-
-.btn-secondary {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-}
-
-.btn-secondary:hover {
-  background: var(--border-color);
-}
-
-.btn-success {
-  background: linear-gradient(135deg, var(--success-color), #1e7e34);
-  color: var(--text-light);
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-}
-
-.btn-success:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
-}
-
-.btn-icon {
-  font-size: 1.1em;
 }
 
 /* レスポンシブ対応 */
@@ -3350,7 +3280,7 @@ body .summary-card {
 .spinner-text {
   font-size: 1.2rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-secondary);
 }
 
 @keyframes spin {
@@ -3390,13 +3320,13 @@ body .summary-card {
 .completion-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #10b981;
+  color: var(--success-color);
   margin-bottom: 1rem;
 }
 
 .completion-text {
   font-size: 1.1rem;
-  color: #6b7280;
+  color: var(--text-muted);
   line-height: 1.6;
 }
 

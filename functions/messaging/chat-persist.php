@@ -248,6 +248,41 @@ function aidunite_chat_write_mm_message_type_meta($post_id, $type_raw) {
 }
 
 /**
+ * @param int    $room_id
+ * @param int    $user_id
+ * @param string $role member|admin
+ * @return bool 新規登録した場合 true
+ */
+function aidunite_chat_persist_ensure_participant($room_id, $user_id, $role = 'member') {
+    global $wpdb;
+    $room_id = (int) $room_id;
+    $user_id = (int) $user_id;
+    if ($room_id < 1 || $user_id < 1) {
+        return false;
+    }
+    $role = sanitize_key($role);
+    if ($role === '') {
+        $role = 'member';
+    }
+    $table = $wpdb->prefix . 'chat_participants';
+    $existing = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM {$table} WHERE room_id = %d AND user_id = %d",
+        $room_id,
+        $user_id
+    ));
+    if ($existing > 0) {
+        return false;
+    }
+    $wpdb->insert($table, [
+        'room_id' => $room_id,
+        'user_id' => $user_id,
+        'role' => $role,
+    ], ['%d', '%d', '%s']);
+
+    return true;
+}
+
+/**
  * @param int $room_id
  * @return array<string, mixed>
  */

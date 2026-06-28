@@ -37,11 +37,11 @@ add_action('template_redirect', function() {
         $my_schedule_id = (int) get_post_meta($match_id, 'my_schedule_id', true);
         $target_schedule_id = $to_schedule_id ?: $my_schedule_id;
         $match_date = null;
-        if ($target_schedule_id) {
-            $match_date = get_post_meta($target_schedule_id, 'schedule_date', true);
+        if ($target_schedule_id && function_exists('aidunite_schedule_read_normalized_date')) {
+            $match_date = aidunite_schedule_read_normalized_date((int) $target_schedule_id);
         }
-        if (!$match_date && $my_schedule_id) {
-            $match_date = get_post_meta($my_schedule_id, 'schedule_date', true);
+        if (!$match_date && $my_schedule_id && function_exists('aidunite_schedule_read_normalized_date')) {
+            $match_date = aidunite_schedule_read_normalized_date((int) $my_schedule_id);
         }
         if ($from_team_id && $to_team_id) {
             $room_id = aidunite_create_or_extend_match_chat($match_id, $from_team_id, $to_team_id, $target_schedule_id, $match_date);

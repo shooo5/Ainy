@@ -1,0 +1,245 @@
+/**
+ * page-cookie-policy.php
+ */
+.cookie-container {
+  max-width: 900px;
+  margin: 0 auto;
+  line-height: 1.8;
+}
+
+.cookie-intro {
+  background: var(--bg-secondary);
+  padding: 25px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  border-left: 4px solid var(--primary-color);
+}
+
+.cookie-intro p {
+  margin: 0 0 15px 0;
+  color: var(--text-primary);
+}
+
+.cookie-date {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.cookie-section {
+  margin-bottom: 35px;
+  padding-bottom: 25px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.cookie-section:last-of-type {
+  border-bottom: none;
+}
+
+.cookie-section h3 {
+  color: var(--text-primary);
+  font-size: 1.3rem;
+  margin-bottom: 15px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--border-light);
+}
+
+.cookie-section h4 {
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  margin: 20px 0 10px 0;
+}
+
+.cookie-section h5 {
+  color: var(--text-primary);
+  font-size: 1rem;
+  margin: 15px 0 10px 0;
+}
+
+.cookie-section p {
+  color: var(--text-primary);
+  margin-bottom: 15px;
+}
+
+.cookie-section ul {
+  margin: 15px 0;
+  padding-left: 20px;
+}
+
+.cookie-section li {
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.cookie-section strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.cookie-type {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.cookie-table {
+  margin-top: 15px;
+  overflow-x: auto;
+}
+
+.cookie-table table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.cookie-table th {
+  background: var(--primary-color);
+  color: var(--text-light);
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.cookie-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.cookie-table tr:last-child td {
+  border-bottom: none;
+}
+
+.cookie-table tr:hover {
+  background: var(--bg-secondary);
+}
+
+.management-method {
+  margin-bottom: 25px;
+  padding: 20px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.browser-guide {
+  margin-top: 15px;
+}
+
+.browser-list {
+  margin-top: 10px;
+}
+
+.browser-item {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.browser-item:last-child {
+  border-bottom: none;
+}
+
+.browser-item strong {
+  color: var(--primary-color);
+}
+
+.contact-info {
+  background: var(--bg-secondary);
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 15px;
+}
+
+.contact-info p {
+  margin: 0 0 8px 0;
+}
+
+.contact-info a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.contact-info a:hover {
+  text-decoration: underline;
+}
+
+.related-links {
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 2px solid var(--border-light);
+}
+
+.related-links h3 {
+  color: var(--text-primary);
+  font-size: 1.3rem;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.links-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.link-card {
+  display: flex;
+  align-items: center;
+  padding: 15px 20px;
+  background: var(--bg-primary);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-base, 8px);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+.link-card:hover {
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.link-icon {
+  font-size: 1.5rem;
+  margin-right: 12px;
+}
+
+.link-text {
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .cookie-container {
+    padding: 0 10px;
+  }
+
+  .cookie-intro {
+    padding: 20px;
+  }
+
+  .cookie-section h3 {
+    font-size: 1.2rem;
+  }
+
+  .cookie-table {
+    font-size: 0.9rem;
+  }
+
+  .cookie-table th,
+  .cookie-table td {
+    padding: 8px;
+  }
+
+  .links-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .link-card {
+    padding: 12px 15px;
+  }
+}

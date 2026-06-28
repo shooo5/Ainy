@@ -1,0 +1,17 @@
+/**
+ * team-activity-options.php — wp-admin メタボックス用
+ */
+.aidunite-team-activity-fields--wp-admin .aidunite-team-activity-fields__row {
+  margin-bottom: 12px;
+}
+
+.aidunite-team-activity-fields--wp-admin .aidunite-team-activity-fields__row label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.aidunite-team-activity-fields--wp-admin select {
+  width: 100%;
+  max-width: 320px;
+}

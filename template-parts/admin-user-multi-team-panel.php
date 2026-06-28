@@ -55,7 +55,7 @@ if (!isset($user_id)) {
             }
             $lt_leader = function_exists('aidunite_team_resolve_leader_user_id')
                 ? aidunite_team_resolve_leader_user_id($ltid)
-                : (int) get_post_meta($ltid, 'team_leader_id', true);
+                : 0;
             ?>
           <li><strong>ID <?php echo esc_html((string) $ltid); ?></strong> — <?php echo esc_html($lt->post_title); ?>
             <span style="color:var(--text-secondary);">(<?php echo esc_html($lt->post_status); ?>, author:<?php echo esc_html((string) $lt->post_author); ?>, leader:<?php echo esc_html((string) $lt_leader); ?>)</span></li>

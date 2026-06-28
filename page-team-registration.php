@@ -15,10 +15,9 @@ if (function_exists('aidunite_user_has_pending_team_application')
 }
 
 $current_user = wp_get_current_user();
-$rep_phone = (string) get_user_meta($current_user->ID, 'phone', true);
-if ($rep_phone === '') {
-    $rep_phone = (string) get_user_meta($current_user->ID, 'user_phone', true);
-}
+$rep_phone = function_exists('aidunite_user_read_contact_phone')
+    ? aidunite_user_read_contact_phone((int) $current_user->ID)
+    : '';
 
 $team_reg_css = get_stylesheet_directory() . '/assets/css/pages/team-registration.css';
 $team_reg_js = get_stylesheet_directory() . '/assets/js/team/team-registration-wizard.js';
@@ -29,6 +28,16 @@ wp_enqueue_style(
     ['aidunite-style'],
     is_readable($team_reg_css) ? (string) filemtime($team_reg_css) : '1.0.0'
 );
+
+$team_profile_css = get_stylesheet_directory() . '/assets/css/components/team-public-profile.css';
+if (is_readable($team_profile_css)) {
+    wp_enqueue_style(
+        'team-public-profile-style',
+        get_stylesheet_directory_uri() . '/assets/css/components/team-public-profile.css',
+        ['team-registration-style'],
+        (string) filemtime($team_profile_css)
+    );
+}
 
 $team_logo_js = get_stylesheet_directory() . '/assets/js/team/team-logo-upload.js';
 
@@ -94,39 +103,16 @@ $mypage_url = home_url('/mypage/');
   </div>
 
   <div class="team-reg-container">
-    <header class="team-reg-hero">
-      <h1 class="team-reg-title">チーム作成</h1>
-      <p class="team-reg-note">男子・女子は<strong>別チーム</strong>として登録されます。男女両方は<strong>1回の申請</strong>でまとめて送れます。</p>
-    </header>
-
-    <ol class="team-reg-progress" aria-label="申請の進捗" data-team-reg-progress>
-      <li class="team-reg-progress__item is-active" data-progress-slot="0">
-        <span class="team-reg-progress__dot" aria-hidden="true"></span>
-        <span class="team-reg-progress__label" data-progress-label>申請種別・共通</span>
-      </li>
-      <li class="team-reg-progress__connector" aria-hidden="true"></li>
-      <li class="team-reg-progress__item" data-progress-slot="1">
-        <span class="team-reg-progress__dot" aria-hidden="true"></span>
-        <span class="team-reg-progress__label" data-progress-label>活動・連絡</span>
-      </li>
-      <li class="team-reg-progress__connector" aria-hidden="true"></li>
-      <li class="team-reg-progress__item" data-progress-slot="2">
-        <span class="team-reg-progress__dot" aria-hidden="true"></span>
-        <span class="team-reg-progress__label" data-progress-label>チーム詳細</span>
-      </li>
-      <li class="team-reg-progress__connector" aria-hidden="true" data-progress-connector-extra></li>
-      <li class="team-reg-progress__item" data-progress-slot="3" hidden>
-        <span class="team-reg-progress__dot" aria-hidden="true"></span>
-        <span class="team-reg-progress__label" data-progress-label>女子チーム</span>
-      </li>
-      <li class="team-reg-progress__connector" aria-hidden="true"></li>
-      <li class="team-reg-progress__item" data-progress-slot="4">
-        <span class="team-reg-progress__dot" aria-hidden="true"></span>
-        <span class="team-reg-progress__label" data-progress-label>確認・申請</span>
-      </li>
-    </ol>
-
     <div class="team-reg-card">
+      <div class="team-reg-card-intro">
+        <div class="team-reg-card-intro-icon" aria-hidden="true">
+          <?php echo aidunite_get_theme_icon_svg('group', ['width' => '48', 'height' => '48']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        </div>
+        <h1 class="team-reg-title ainy-title-accent">チーム作成</h1>
+        <p class="team-reg-note">1チームごとに申請が必要です。<br>男子・女子がある場合は、まとめて申請できます。<br>※登録は別チームになります。
+      </p>
+      </div>
+
       <form method="post" id="team-registration-form" class="team-reg-form" novalidate enctype="multipart/form-data">
         <?php wp_nonce_field('save_team_metabox', 'team_metabox_nonce'); ?>
 
@@ -152,13 +138,9 @@ $mypage_url = home_url('/mypage/');
         <input type="hidden" id="team_female_logo_zoom" name="team_female_logo_zoom" value="100">
 
         <!-- STEP 1: 申請種別・共通 -->
-        <section class="team-reg-step is-active" data-step="1" aria-labelledby="team-reg-step-1-title">
-          <div class="team-reg-step-head team-reg-step-head--compact">
-            <h2 id="team-reg-step-1-title" class="team-reg-step-title">どのチームを登録しますか？</h2>
-          </div>
-
+        <section class="team-reg-step is-active" data-step="1" aria-labelledby="team-reg-scope-legend">
           <fieldset class="team-reg-scope" data-team-reg-scope>
-            <legend class="team-reg-label">申請するチーム <span class="team-reg-required" aria-hidden="true">*</span></legend>
+            <legend id="team-reg-scope-legend" class="team-reg-label">申請するチームの性別 <span class="team-reg-required" aria-hidden="true">*</span></legend>
             <div class="team-reg-scope__options">
               <label class="team-reg-scope__option">
                 <input type="radio" name="registration_scope_radio" value="male" class="team-reg-scope__input" required>
@@ -170,13 +152,13 @@ $mypage_url = home_url('/mypage/');
               </label>
               <label class="team-reg-scope__option">
                 <input type="radio" name="registration_scope_radio" value="both" class="team-reg-scope__input">
-                <span class="team-reg-scope__card">男女両方</span>
+                <span class="team-reg-scope__card">男女とも</span>
               </label>
             </div>
           </fieldset>
 
-          <div class="team-reg-step-head team-reg-step-head--compact">
-            <h3 class="team-reg-step-subtitle">共通情報</h3>
+          <div class="team-reg-step-head team-reg-step-head--compact" data-team-reg-common-head hidden>
+            <h2 class="team-reg-step-subtitle">共通情報</h2>
           </div>
 
           <div class="team-reg-fields-grid">
@@ -184,7 +166,7 @@ $mypage_url = home_url('/mypage/');
               <div class="team-reg-field">
                 <label for="team_name_base" class="team-reg-label">学校名・クラブ名（ベース） <span class="team-reg-required" aria-hidden="true">*</span></label>
                 <input type="text" id="team_name_base" name="team_name_base" class="team-reg-input" required autocomplete="organization" placeholder="例：○○中学校">
-                <p class="team-reg-field-hint" data-team-name-hint>男子・女子は別チーム名で登録されます（「 男子」「 女子」を付与）。</p>
+                <p class="team-reg-field-hint" data-team-name-hint hidden>男子・女子は別チーム名で登録されます。STEP3・4でそれぞれ入力してください。</p>
               </div>
             </div>
             <div class="team-reg-fields-grid__cell">
@@ -319,7 +301,7 @@ $mypage_url = home_url('/mypage/');
 
           <div class="team-reg-field">
             <label for="team_male_name" class="team-reg-label">チーム名 <span class="team-reg-required" aria-hidden="true">*</span></label>
-            <input type="text" id="team_male_name" name="team_male_name" class="team-reg-input" data-auto-team-name="male">
+            <input type="text" id="team_male_name" name="team_male_name" class="team-reg-input">
           </div>
 
           <div class="team-reg-field team-reg-field--full">
@@ -348,7 +330,7 @@ $mypage_url = home_url('/mypage/');
 
           <div class="team-reg-field">
             <label for="team_female_name" class="team-reg-label">チーム名 <span class="team-reg-required" aria-hidden="true">*</span></label>
-            <input type="text" id="team_female_name" name="team_female_name" class="team-reg-input" data-auto-team-name="female">
+            <input type="text" id="team_female_name" name="team_female_name" class="team-reg-input">
           </div>
 
           <div class="team-reg-field team-reg-field--full">
@@ -365,20 +347,21 @@ $mypage_url = home_url('/mypage/');
         <!-- STEP 5: 確認 -->
         <section class="team-reg-step" data-step="5" data-confirm-step aria-labelledby="team-reg-step-5-title" hidden>
           <div class="team-reg-step-head team-reg-step-head--compact">
-            <h2 id="team-reg-step-5-title" class="team-reg-step-title">確認・申請</h2>
+            <h2 id="team-reg-step-5-title" class="team-reg-step-title">申請内容の確認</h2>
           </div>
+
+          <p class="team-reg-confirm-pricing-note">
+            チーム申請は無料です。承認後から Match プラン2ヶ月無料が始まり、試合募集などをご利用いただけます。
+            <a href="<?php echo esc_url(home_url('/service/')); ?>">利用料金</a>
+          </p>
 
           <div id="team-reg-summary-root" class="team-reg-summary-root"></div>
 
-          <div class="team-reg-submit-wrap">
-            <button type="submit" class="team-reg-btn team-reg-btn--submit" id="team-reg-submit">
-              チーム登録を申請する
-            </button>
-            <p class="team-reg-submit-note">承認後すぐに、<br>練習試合募集やスケジュール共有を始められます。</p>
-          </div>
-
-          <div class="team-reg-actions team-reg-actions--confirm">
+          <div class="team-reg-actions">
             <button type="button" class="team-reg-btn team-reg-btn--ghost" data-action="prev">戻る</button>
+            <button type="submit" class="team-reg-btn team-reg-btn--primary" id="team-reg-submit">
+              チームを申請する
+            </button>
           </div>
         </section>
       </form>

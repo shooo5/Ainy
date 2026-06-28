@@ -1,0 +1,342 @@
+/**
+ * page-regulation.php
+ */
+.regulation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.regulation-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.regulation-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.regulation-card-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.regulation-card-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.2rem;
+}
+
+.regulation-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.regulation-badge.terms {
+  background: rgba(23, 162, 184, 0.1);
+  color: var(--info-color);
+}
+
+.regulation-badge.privacy {
+  background: rgba(177, 108, 234, 0.1);
+  color: var(--secondary-color);
+}
+
+.regulation-badge.guidelines {
+  background: rgba(40, 167, 69, 0.1);
+  color: var(--success-color);
+}
+
+.regulation-badge.safety {
+  background: rgba(255, 193, 7, 0.1);
+  color: var(--warning-color);
+}
+
+.regulation-badge.payment {
+  background: rgba(220, 53, 69, 0.1);
+  color: var(--danger-color);
+}
+
+.regulation-card-body {
+  padding: 20px;
+}
+
+.regulation-card-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.regulation-card-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.regulation-card-info-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.regulation-card-info-value {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.regulation-card-description {
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.regulation-card-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-view-details,
+.btn-download {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-view-details {
+  background: var(--primary-color);
+  color: white;
+}
+
+.btn-view-details:hover {
+  background: var(--primary-dark);
+}
+
+.btn-download {
+  background: var(--success-color);
+  color: white;
+}
+
+.btn-download:hover {
+  background: var(--success-color);
+}
+
+/* 検索・フィルター */
+.search-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.regulation-filters {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+}
+
+.filter-row {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.filter-group label {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.filter-group select,
+.filter-group input {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+/* ダウンロード */
+.downloads-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.section-description {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+.download-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.download-option {
+  background: var(--bg-secondary);
+  padding: 2rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  text-align: center;
+}
+
+.download-option h3 {
+  margin: 0 0 1rem 0;
+  color: var(--text-primary);
+}
+
+.download-option p {
+  margin: 0 0 1.5rem 0;
+  color: var(--text-secondary);
+}
+
+.download-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* モーダル */
+.regulation-modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+}
+
+.regulation-modal-content {
+  background-color: white;
+  margin: 5% auto;
+  padding: 0;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.regulation-modal-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+}
+
+.regulation-modal-header h2 {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  color: var(--text-primary);
+}
+
+.regulation-modal-body {
+  padding: 20px;
+  line-height: 1.6;
+}
+
+.regulation-modal-body h3 {
+  color: var(--text-primary);
+  margin: 1.5rem 0 0.5rem 0;
+  border-bottom: 2px solid var(--primary-color);
+  padding-bottom: 0.5rem;
+}
+
+.regulation-modal-body h3:first-child {
+  margin-top: 0;
+}
+
+.regulation-modal-body p {
+  margin: 0.5rem 0;
+  color: var(--text-secondary);
+}
+
+.regulation-modal-body ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.regulation-modal-body li {
+  margin-bottom: 0.25rem;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .regulation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .regulation-card-info {
+    grid-template-columns: 1fr;
+  }
+
+  .regulation-card-actions {
+    flex-direction: column;
+  }
+
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .download-options {
+    grid-template-columns: 1fr;
+  }
+
+  .regulation-modal-content {
+    width: 95%;
+    margin: 10% auto;
+  }
+}

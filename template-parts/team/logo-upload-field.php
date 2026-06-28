@@ -32,7 +32,8 @@ $logo_max_label = function_exists('aidunite_get_team_logo_max_upload_label')
     ? aidunite_get_team_logo_max_upload_label()
     : '10MB';
 
-$has_initial = $initial_url !== '' && filter_var($initial_url, FILTER_VALIDATE_URL);
+$has_initial = $initial_url !== '' && function_exists('aidunite_team_logo_is_displayable')
+    && aidunite_team_logo_is_displayable($initial_url);
 
 if ($variant === 'settings') {
     $file_id = 'team_settings_logo_file';

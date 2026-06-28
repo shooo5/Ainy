@@ -1,0 +1,29 @@
+/**
+ * 管理用売上・見込み（/admin-payment-revenue）
+ */
+
+.page-admin-payment-revenue .admin-payment-revenue__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-base);
+  margin-bottom: var(--spacing-base);
+}
+
+.page-admin-payment-revenue .admin-payment-revenue__kpi-grid {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.page-admin-payment-revenue .admin-payment-revenue__table-wrap {
+  overflow-x: auto;
+}
+
+.page-admin-payment-revenue .admin-payment-revenue__table .is-current-month {
+  background: rgba(var(--primary-color-rgb, 102, 126, 234), 0.06);
+}
+
+.page-admin-payment-revenue .admin-payment-revenue__stripe-warning {
+  border-left: 3px solid var(--warning-color, #f0ad4e);
+  padding-left: var(--spacing-sm);
+}

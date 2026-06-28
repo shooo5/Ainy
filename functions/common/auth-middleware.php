@@ -13,6 +13,66 @@ if (!defined('ABSPATH')) {
 require_once get_stylesheet_directory() . '/functions/common/error-handler.php';
 
 /**
+ * WordPress システム管理者または Ainy 管理者（aidunite_role / user_type）か
+ *
+ * @param int|null $user_id
+ * @return bool
+ */
+function aidunite_user_is_privileged_admin($user_id = null) {
+    $user_id = $user_id === null ? get_current_user_id() : (int) $user_id;
+    if ($user_id <= 0) {
+        return false;
+    }
+
+    if (user_can($user_id, 'administrator') || user_can($user_id, 'manage_options')) {
+        return true;
+    }
+
+    $aidunite_role = (string) get_user_meta($user_id, 'aidunite_role', true);
+    if ($aidunite_role === 'administrator') {
+        return true;
+    }
+
+    $user_type = (string) get_user_meta($user_id, 'user_type', true);
+
+    return $user_type === 'administrator';
+}
+
+/**
+ * 管理者閲覧用のチーム ID（クエリ → 先頭チーム）
+ *
+ * @param int|null             $user_id
+ * @param array<string, mixed> $sources team_id 等
+ * @return int
+ */
+function aidunite_user_resolve_admin_team_id($user_id = null, array $sources = []) {
+    $user_id = $user_id === null ? get_current_user_id() : (int) $user_id;
+    if (!aidunite_user_is_privileged_admin($user_id)) {
+        return 0;
+    }
+
+    foreach (['team_id', 'post_team_id'] as $key) {
+        if (!empty($sources[$key])) {
+            $team_id = (int) $sources[$key];
+            if ($team_id > 0) {
+                return $team_id;
+            }
+        }
+    }
+
+    $teams = get_posts([
+        'post_type' => 'team',
+        'post_status' => ['publish', 'pending', 'draft'],
+        'posts_per_page' => 1,
+        'orderby' => 'date',
+        'order' => 'DESC',
+        'fields' => 'ids',
+    ]);
+
+    return !empty($teams) ? (int) $teams[0] : 0;
+}
+
+/**
  * 認証・権限チェック結果クラス
  */
 class AidUniteAuthResult {
@@ -80,6 +140,9 @@ class AidUniteAuthMiddleware {
         $result->is_authenticated = true;
         $result->user_id = get_current_user_id();
         $result->user_role = aidunite_get_user_role($result->user_id);
+        if (aidunite_user_is_privileged_admin($result->user_id)) {
+            $result->is_authorized = true;
+        }
 
         return $result;
     }
@@ -102,13 +165,23 @@ class AidUniteAuthMiddleware {
         $managed = function_exists('aidunite_get_managed_team_ids') ? aidunite_get_managed_team_ids($uid) : [];
         $legacy = (int) get_user_meta($uid, 'team_id', true);
         $has_any_team = !empty($managed) || $legacy > 0;
+        if (!$has_any_team && function_exists('aidunite_parent_user_has_any_team_affiliation')) {
+            $has_any_team = aidunite_parent_user_has_any_team_affiliation($uid);
+        }
 
-        // 管理者の場合はチーム登録チェックをスキップ（テスト・確認用）
-        if (current_user_can('administrator')) {
+        // システム管理者・Ainy 管理者はチーム未所属でも閲覧可
+        if (aidunite_user_is_privileged_admin($uid)) {
             $result->is_authorized = true;
-            $result->team_id = function_exists('aidunite_get_current_team_id')
+            $resolved_team = function_exists('aidunite_get_current_team_id')
                 ? (int) aidunite_get_current_team_id($uid)
-                : ($legacy > 0 ? $legacy : 0);
+                : 0;
+            if ($resolved_team <= 0) {
+                $resolved_team = $legacy > 0 ? $legacy : 0;
+            }
+            if ($resolved_team <= 0) {
+                $resolved_team = aidunite_user_resolve_admin_team_id($uid, $_GET);
+            }
+            $result->team_id = $resolved_team;
             return $result;
         }
 
@@ -177,8 +250,8 @@ class AidUniteAuthMiddleware {
             return $result;
         }
 
-        // 管理者は常に許可
-        if (current_user_can('administrator')) {
+        // システム管理者・Ainy 管理者は常に許可
+        if (aidunite_user_is_privileged_admin($result->user_id)) {
             $result->is_authorized = true;
             return $result;
         }
@@ -225,8 +298,9 @@ class AidUniteAuthMiddleware {
             return $result;
         }
 
-        // 管理者は常に許可
-        if (current_user_can('administrator')) {
+        // システム管理者・Ainy 管理者は常に許可
+        if (aidunite_user_is_privileged_admin($result->user_id)) {
+            $result->is_authorized = true;
             return $result;
         }
 
@@ -494,8 +568,8 @@ class AidUniteAuthMiddleware {
             return $result;
         }
 
-        // 管理者は常に許可
-        if (current_user_can('administrator')) {
+        // システム管理者・Ainy 管理者は常に許可
+        if (aidunite_user_is_privileged_admin($result->user_id)) {
             $result->is_authorized = true;
             return $result;
         }
@@ -560,12 +634,7 @@ class AidUniteAuthMiddleware {
             return $result;
         }
 
-        // 管理者権限チェック（WordPressのadministrator権限またはaidunite_roleがadministrator）
-        $is_admin = current_user_can('administrator');
-        $aidunite_role = get_user_meta($result->user_id, 'aidunite_role', true);
-        $is_admin_role = ($aidunite_role === 'administrator');
-
-        if (!$is_admin && !$is_admin_role) {
+        if (!aidunite_user_is_privileged_admin($result->user_id)) {
             $result->set_error(
                 '管理者権限が必要です',
                 'admin_required',
@@ -608,10 +677,19 @@ function aidunite_get_user_role($user_id = null) {
 
     // aidunite_roleを取得
     $aidunite_role = get_user_meta($user_id, 'aidunite_role', true);
-    $allowed_roles = ['team_leader', 'parent', 'player', 'supporter', 'match', 'public', 'general'];
+    $allowed_roles = ['team_leader', 'parent', 'player', 'supporter', 'match', 'public', 'general', 'administrator'];
+
+    if ($aidunite_role === 'administrator') {
+        return 'administrator';
+    }
 
     if (in_array($aidunite_role, $allowed_roles, true)) {
         return $aidunite_role;
+    }
+
+    $user_type = (string) get_user_meta($user_id, 'user_type', true);
+    if ($user_type === 'administrator') {
+        return 'administrator';
     }
 
     return 'general';

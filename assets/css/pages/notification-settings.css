@@ -1,0 +1,157 @@
+/**
+ * 通知設定ページ（page-notification-settings.php）
+ * レイアウト・配置のみ（トグルは toggle-switch.css）
+ */
+
+.ainy-notification-settings {
+  max-width: 40rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding: var(--spacing-base) var(--spacing-sm) var(--spacing-lg);
+}
+
+.ainy-notification-settings__title {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  margin: 0 0 var(--spacing-sm);
+  color: var(--text-primary);
+}
+
+.ainy-notification-settings__nav-top {
+  margin: 0 0 var(--spacing-base);
+  font-size: var(--font-size-sm);
+}
+
+.ainy-notification-settings__nav-top a {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+.ainy-notification-settings__nav-top a:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.ainy-notification-settings__lead {
+  margin: 0 0 var(--spacing-base);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.ainy-notification-settings__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-base);
+}
+
+.ainy-notification-settings__card {
+  margin: 0;
+  padding: var(--spacing-base);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-base);
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.ainy-notification-settings__row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.ainy-notification-settings__label {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ainy-notification-settings__desc {
+  margin: var(--spacing-sm) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.ainy-notification-settings__switch-cell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.ainy-notification-settings__badge {
+  display: inline-block;
+  padding: var(--spacing-xs) 0.65rem;
+  border-radius: var(--radius-small);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.ainy-notification-settings__badge--on {
+  background: rgba(40, 167, 69, 0.12);
+  color: var(--success-color);
+  border: 1px solid rgba(40, 167, 69, 0.35);
+}
+
+.ainy-notification-settings__badge--soon {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.ainy-notification-settings__actions {
+  margin-top: var(--spacing-lg);
+  text-align: center;
+}
+
+.ainy-notification-settings__submit:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.ainy-notification-settings__admin {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-base);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-base);
+  background: var(--bg-secondary);
+}
+
+.ainy-notification-settings__admin-summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.ainy-notification-settings__admin-summary:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.ainy-notification-settings__admin-body {
+  margin-top: var(--spacing-sm);
+}
+
+.ainy-notification-settings__test-result {
+  margin-left: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+}
+
+.ainy-notification-settings__test-result.is-success {
+  color: var(--success-color);
+}
+
+.ainy-notification-settings__test-result.is-error {
+  color: var(--danger-color);
+}
+
+@media (min-width: 481px) {
+  .ainy-notification-settings {
+    padding-left: var(--spacing-base);
+    padding-right: var(--spacing-base);
+  }
+}

@@ -12,6 +12,8 @@
 
     let detailModalLastFocus = null;
 
+    let previousUnreadTabCount = null;
+
 
 
     function clearFocusedNotificationCard() {
@@ -33,6 +35,12 @@
         const unread = $('.ainy-notification-card.unread').length;
 
         const $badge = $('[data-tab-count="unread"]');
+
+        if (previousUnreadTabCount !== null && unread !== previousUnreadTabCount && typeof aidunitePulseElement === 'function') {
+            aidunitePulseElement($badge);
+        }
+
+        previousUnreadTabCount = unread;
 
         $badge.text(unread > 0 ? String(unread) : '').attr('data-count', unread);
 
@@ -416,26 +424,27 @@
 
 
 
-        $('.ainy-notifications-filter-tabs button').on('click', function () {
+        const filterNav = document.querySelector('.ainy-notifications-filter-tabs[data-aidunite-tabs="filter"]');
 
-            const filter = $(this).data('filter') || 'unread';
-
+        if (filterNav && typeof aiduniteInitFilterTabGroup === 'function') {
+            aiduniteInitFilterTabGroup(filterNav, {
+                onChange: function (filter) {
+                    clearFocusedNotificationCard();
+                    applyFilter(filter);
+                }
+            });
             clearFocusedNotificationCard();
-
-            $('.ainy-notifications-filter-tabs button').removeClass('active').attr('aria-selected', 'false');
-
-            $(this).addClass('active').attr('aria-selected', 'true');
-
-            applyFilter(filter);
-
-        });
-
-
-
-        clearFocusedNotificationCard();
-
-        applyFilter($('.ainy-notifications-filter-tabs button.active').data('filter') || 'unread');
-
+        } else {
+            $('.ainy-notifications-filter-tabs button').on('click', function () {
+                const filter = $(this).data('filter') || 'unread';
+                clearFocusedNotificationCard();
+                $('.ainy-notifications-filter-tabs button').removeClass('active').attr('aria-selected', 'false');
+                $(this).addClass('active').attr('aria-selected', 'true');
+                applyFilter(filter);
+            });
+            clearFocusedNotificationCard();
+            applyFilter($('.ainy-notifications-filter-tabs button.active').data('filter') || 'unread');
+        }
 
 
         function onCardActivate($card) {
@@ -520,7 +529,7 @@
 
             if (ids.length === 0) {
 
-                window.alert(cfg.i18n?.noUnread || '既読にする通知がありません。');
+                aiduniteToast(cfg.i18n?.noUnread || '既読にする通知がありません。', 'info');
 
                 return;
 
@@ -556,7 +565,7 @@
 
                     applyFilter($('.ainy-notifications-filter-tabs button.active').data('filter') || 'unread');
 
-                    window.alert(cfg.i18n?.markedAll || 'すべて既読にしました。');
+                    aiduniteToast(cfg.i18n?.markedAll || 'すべて既読にしました。', 'success');
 
                 },
 
@@ -564,7 +573,7 @@
 
                     console.error('[NOTIFICATIONS] mark-all failed', xhr);
 
-                    window.alert(cfg.i18n?.error || 'エラーが発生しました。');
+                    aiduniteToast(cfg.i18n?.error || 'エラーが発生しました。', 'error');
 
                 }
 
@@ -576,89 +585,95 @@
 
         $('#ainy-delete-read').on('click', function () {
 
-            if (!window.confirm(cfg.i18n?.confirmDelete || '既読の通知をすべて削除しますか？')) {
+            aiduniteConfirm({
 
-                return;
+                message: cfg.i18n?.confirmDelete || '既読の通知をすべて削除しますか？',
 
-            }
+                confirmLabel: '削除する',
 
+                confirmVariant: 'danger',
 
+                onConfirm: function () {
 
-            const readItems = $('.ainy-notification-card.read');
+                    const readItems = $('.ainy-notification-card.read');
 
-            const ids = readItems.map(function () {
+                    const ids = readItems.map(function () {
 
-                return parseInt($(this).data('id'), 10);
+                        return parseInt($(this).data('id'), 10);
 
-            }).get().filter(function (id) {
+                    }).get().filter(function (id) {
 
-                return !isNaN(id) && id > 0;
+                        return !isNaN(id) && id > 0;
 
-            });
-
-
-
-            if (ids.length === 0) {
-
-                window.alert(cfg.i18n?.noReadToDelete || '削除する既読通知がありません。');
-
-                return;
-
-            }
+                    });
 
 
 
-            $.ajax({
+                    if (ids.length === 0) {
 
-                url: cfg.restDelete || '',
+                        aiduniteToast(cfg.i18n?.noReadToDelete || '削除する既読通知がありません。', 'info');
 
-                method: 'POST',
-
-                contentType: 'application/json',
-
-                data: JSON.stringify({ ids: ids }),
-
-                timeout: 15000,
-
-                beforeSend: function (xhr) {
-
-                    if (cfg.restNonce) {
-
-                        xhr.setRequestHeader('X-WP-Nonce', cfg.restNonce);
+                        return;
 
                     }
 
-                },
 
-                success: function (res) {
 
-                    if (res && res.success) {
+                    $.ajax({
 
-                        readItems.fadeOut(300, function () {
+                        url: cfg.restDelete || '',
 
-                            $(this).remove();
+                        method: 'POST',
 
-                            updateUnreadTabCount();
+                        contentType: 'application/json',
 
-                            applyFilter($('.ainy-notifications-filter-tabs button.active').data('filter') || 'unread');
+                        data: JSON.stringify({ ids: ids }),
 
-                        });
+                        timeout: 15000,
 
-                        window.alert(res.message || cfg.i18n?.deleted || '既読通知を削除しました。');
+                        beforeSend: function (xhr) {
 
-                    } else {
+                            if (cfg.restNonce) {
 
-                        window.alert(cfg.i18n?.deleteFailed || '削除に失敗しました。');
+                                xhr.setRequestHeader('X-WP-Nonce', cfg.restNonce);
 
-                    }
+                            }
 
-                },
+                        },
 
-                error: function (xhr) {
+                        success: function (res) {
 
-                    console.error('[NOTIFICATIONS] delete failed', xhr);
+                            if (res && res.success) {
 
-                    window.alert(cfg.i18n?.deleteFailed || '削除に失敗しました。');
+                                readItems.fadeOut(300, function () {
+
+                                    $(this).remove();
+
+                                    updateUnreadTabCount();
+
+                                    applyFilter($('.ainy-notifications-filter-tabs button.active').data('filter') || 'unread');
+
+                                });
+
+                                aiduniteToast(res.message || cfg.i18n?.deleted || '既読通知を削除しました。', 'success');
+
+                            } else {
+
+                                aiduniteToast(cfg.i18n?.deleteFailed || '削除に失敗しました。', 'error');
+
+                            }
+
+                        },
+
+                        error: function (xhr) {
+
+                            console.error('[NOTIFICATIONS] delete failed', xhr);
+
+                            aiduniteToast(cfg.i18n?.deleteFailed || '削除に失敗しました。', 'error');
+
+                        }
+
+                    });
 
                 }
 

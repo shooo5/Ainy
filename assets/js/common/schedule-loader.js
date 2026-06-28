@@ -278,7 +278,7 @@ class AidUniteScheduleLoader {
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
                             <span style="font-weight:600;color:#495057;">${formattedDate}</span>
                             <div style="display:flex;gap:0.5rem;">
-                                <a href="${window.location.origin}/schedule-edit?date=${schedule.date}" class="btn btn-sm btn-primary">編集</a>
+                                <a href="${window.location.origin}/schedule-management/?edit_schedule=${encodeURIComponent(schedule.id || schedule.schedule_id || '')}" class="btn btn-sm btn-primary">編集</a>
                             </div>
                         </div>
                         <div style="font-weight:600;color:#212529;margin-bottom:0.5rem;">${schedule.type}</div>
@@ -544,16 +544,25 @@ class AidUniteScheduleLoader {
                     ? payload.data
                     : (Array.isArray(payload) ? payload : []);
                 window.schedules = {};
-                schedules.forEach(schedule => {
-                    if (schedule && !schedule.id && (schedule.post_id || schedule.schedule_id)) {
-                        schedule.id = schedule.post_id || schedule.schedule_id;
-                    }
-                    const raw = schedule.date || schedule.schedule_date || schedule.start_date;
-                    const dateKey = raw ? String(raw).trim().substring(0, 10) : '';
+                schedules.forEach(rawSchedule => {
+                    const schedule = (typeof AidUniteScheduleUtils !== 'undefined' && AidUniteScheduleUtils.normalizeScheduleRecord)
+                        ? AidUniteScheduleUtils.normalizeScheduleRecord(rawSchedule)
+                        : rawSchedule;
+                    const dateKey = schedule && schedule.date ? String(schedule.date).trim().substring(0, 10) : '';
                     if (dateKey && /^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
                         if (!window.schedules[dateKey]) window.schedules[dateKey] = [];
                         window.schedules[dateKey].push(schedule);
                     }
+                });
+                window.scheduleDissolutionMarkers = {};
+                const markers = (payload && Array.isArray(payload.dissolution_markers)) ? payload.dissolution_markers : [];
+                markers.forEach(function(marker) {
+                    if (!marker || !marker.date) return;
+                    const dateKey = String(marker.date).substring(0, 10);
+                    if (!window.scheduleDissolutionMarkers[dateKey]) {
+                        window.scheduleDissolutionMarkers[dateKey] = [];
+                    }
+                    window.scheduleDissolutionMarkers[dateKey].push(marker);
                 });
             });
     }

@@ -18,6 +18,15 @@ function aidunite_payment_user_flows_enabled() {
 }
 
 /**
+ * 保護者向け月謝導線（マイページやること・メニュー）を有効化するか
+ *
+ * aidunite_payment_user_flows_enabled とは独立。月謝のみ先に有効化可能。
+ */
+function aidunite_payment_parent_tuition_flows_enabled() {
+    return true;
+}
+
+/**
  * 支払い制限チェック
  */
 function aidunite_check_payment_restrictions() {
@@ -48,12 +57,12 @@ function aidunite_check_payment_restrictions() {
         return;
     }
 
-    $status = aidunite_get_payment_status($user_id);
+    $billing = aidunite_payment_read_user_team_billing_context($user_id);
+    $status = (string) ($billing['payment_status'] ?? '');
 
     // 未払いの場合
     if ($status === 'unpaid') {
-        // 最終支払い日を取得
-        $last_paid_date = get_user_meta($user_id, 'payment_status_updated', true);
+        $last_paid_date = (string) ($billing['status_updated'] ?? '');
 
         if (!empty($last_paid_date)) {
             $days_unpaid = (time() - strtotime($last_paid_date)) / (24 * 60 * 60);
@@ -70,7 +79,7 @@ function aidunite_check_payment_restrictions() {
         // 機能制限（即座に適用）
         // 支払い必要ページへリダイレクト（特定のページを除く）
         $current_page = get_queried_object();
-        $allowed_pages = ['payment-required', 'payment-setup', 'mypage', 'notifications', 'login', 'profile-edit'];
+        $allowed_pages = ['payment-required', 'payment-setup', 'payment-checkout', 'mypage', 'notifications', 'login', 'profile-edit'];
 
         if ($current_page && !in_array($current_page->post_name, $allowed_pages)) {
             wp_redirect(home_url('/payment-required'));
@@ -106,9 +115,8 @@ function aidunite_check_first_login_plan_selection() {
     }
 
     $user_id = $auth_result->user_id;
-    $team_id = function_exists('aidunite_get_current_team_id')
-        ? (int) aidunite_get_current_team_id($user_id)
-        : (int) get_user_meta($user_id, 'team_id', true);
+    $billing = aidunite_payment_read_user_team_billing_context($user_id);
+    $team_id = (int) ($billing['team_id'] ?? 0);
 
     if ($team_id <= 0) {
         return;
@@ -143,35 +151,6 @@ function aidunite_check_first_login_plan_selection() {
 
     if (!empty($selected_plan)) {
         return; // 既に選択済み
-    }
-
-    // プランが未設定の場合、デフォルトプランを自動適用
-    $team_type = aidunite_get_team_type($team_id);
-    $payment_mode = aidunite_get_team_payment_mode($team_id);
-
-    // 教育委員会契約の場合はデフォルトプランを適用
-    if ($payment_mode === 'board') {
-        $config = aidunite_get_payment_config();
-        $config_key = function_exists('aidunite_team_type_payment_config_key')
-            ? aidunite_team_type_payment_config_key($team_id)
-            : ($team_type === 'club' ? 'club' : 'school');
-        $plans = $config[$config_key]['plans'];
-
-        foreach ($plans as $plan) {
-            if (!empty($plan['is_default'])) {
-                aidunite_set_selected_plan_id($team_id, $plan['id']);
-                $trial_start = aidunite_get_trial_start_date($team_id);
-                if (empty($trial_start)) {
-                    aidunite_set_trial_start_date($team_id);
-                }
-                $current_status = aidunite_get_payment_status($user_id);
-                if (empty($current_status)) {
-                    aidunite_set_payment_status($user_id, 'trial');
-                }
-                return;
-            }
-        }
-        return;
     }
 
     // プラン未選択の場合、支払い設定ページ（統合ページ）へリダイレクト
@@ -232,5 +211,17 @@ function aidunite_check_feature_restriction($feature_name = '') {
 
 // ページ読み込み時に制限チェック
 add_action('template_redirect', 'aidunite_check_payment_restrictions', 1);
+
+/**
+ * 旧 plan-selection 固定ページ → /payment-setup へ恒久リダイレクト
+ */
+add_action('template_redirect', function () {
+    if (!is_page('plan-selection')) {
+        return;
+    }
+    wp_safe_redirect(home_url('/payment-setup'), 301);
+    exit;
+}, 5);
+
 // 初回プラン選択→支払い設定への強制リダイレクトは当面無効（承認後は /mypage/ 等へそのまま遷移）
 // add_action('template_redirect', 'aidunite_check_first_login_plan_selection', 2);

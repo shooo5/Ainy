@@ -1,0 +1,182 @@
+/** footer.php */
+/* Ainy Unite フッターデザイン - ヘッダーと統一感のあるミニマルでクリーンなデザイン */
+.ainy-footer {
+  background: #f8f9fa;
+  color: #343a40;
+  padding: 4rem 0 2rem;
+  margin-top: 4rem;
+  border-top: 1px solid #e9ecef;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.ainy-footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.ainy-footer-content {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 3rem;
+  margin-bottom: 3rem;
+}
+
+/* フッターロゴセクション */
+.ainy-footer-logo {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.ainy-footer-logo-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 800;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.ainy-footer-logo-text h3 {
+  color: #1a1a1a;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.02em;
+}
+
+.ainy-footer-logo-text p {
+  color: #6c757d;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 300px;
+}
+
+/* SNSアイコン */
+.ainy-footer-social {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.ainy-social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  color: #6c757d;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.ainy-social-link:hover {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* フッターセクション */
+.ainy-footer-section h3 {
+  color: #1a1a1a;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 1.5rem 0;
+  letter-spacing: -0.01em;
+}
+
+.ainy-footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.ainy-footer-links li {
+  margin-bottom: 0.75rem;
+}
+
+.ainy-footer-links a {
+  color: #6c757d;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  display: inline-block;
+}
+
+.ainy-footer-links a:hover {
+  color: #3b82f6;
+  transform: translateX(4px);
+}
+
+/* フッターボトム */
+.ainy-footer-bottom {
+  border-top: 1px solid #e9ecef;
+  padding-top: 2rem;
+  text-align: center;
+}
+
+.ainy-footer-bottom p {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 900px) {
+  .ainy-footer-content {
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  .ainy-footer-logo {
+    grid-column: 1 / -1;
+    margin-bottom: 2rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .ainy-footer {
+    padding: 3rem 0 1.5rem;
+  }
+
+  .ainy-footer-container {
+    padding: 0 16px;
+  }
+
+  .ainy-footer-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .ainy-footer-logo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .ainy-footer-logo-text p {
+    max-width: none;
+  }
+
+  .ainy-footer-social {
+    margin-top: 1rem;
+  }
+
+  .ainy-footer-bottom {
+    padding-top: 1.5rem;
+  }
+
+}

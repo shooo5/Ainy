@@ -75,6 +75,29 @@ function aidunite_notification_write_post_meta($notification_id, array $meta) {
 }
 
 /**
+ * ユーザー通知設定（notification_settings usermeta）の保存
+ *
+ * @param int                  $user_id
+ * @param array<string, mixed> $settings
+ * @return bool
+ */
+function aidunite_notification_persist_user_settings($user_id, array $settings) {
+    $user_id = (int) $user_id;
+    if ($user_id <= 0 || $settings === []) {
+        return false;
+    }
+
+    $normalized = $settings;
+    if (function_exists('aidunite_normalize_notification_payload')) {
+        $normalized = aidunite_normalize_notification_payload($settings);
+    }
+
+    update_user_meta($user_id, 'notification_settings', $normalized);
+
+    return true;
+}
+
+/**
  * 既読フラグを更新
  *
  * @param int  $notification_id

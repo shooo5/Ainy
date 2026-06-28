@@ -85,11 +85,11 @@
     margin-top: var(--spacing-lg);
 }
 
-.form-group {
+.match-invite-container .form-group {
     margin-bottom: var(--spacing-md);
 }
 
-.form-group label {
+.match-invite-container .form-group label {
     display: block;
     margin-bottom: var(--spacing-sm);
     font-weight: bold;
@@ -97,11 +97,11 @@
     font-size: var(--font-size-base);
 }
 
-.form-group .required {
+.match-invite-container .form-group .required {
     color: var(--danger-color);
 }
 
-.form-control {
+.match-invite-container .form-control {
     width: 100%;
     padding: var(--spacing-sm) var(--spacing-base);
     border: 1px solid var(--border-color);
@@ -111,23 +111,23 @@
     box-sizing: border-box;
 }
 
-.form-control:focus {
+.match-invite-container .form-control:focus {
     outline: 2px solid var(--primary-color);
     outline-offset: 2px;
     border-color: var(--primary-color);
 }
 
-.form-control::placeholder {
+.match-invite-container .form-control::placeholder {
     color: var(--text-muted);
 }
 
-.form-actions {
+.match-invite-container .form-actions {
     display: flex;
     gap: var(--spacing-base);
     margin-top: var(--spacing-lg);
 }
 
-.btn {
+.match-invite-container .btn {
     flex: 1;
     padding: var(--spacing-sm) var(--spacing-base);
     border: none;
@@ -139,48 +139,48 @@
     transition: all 0.2s ease;
 }
 
-.btn:focus-visible {
+.match-invite-container .btn:focus-visible {
     outline: 2px solid var(--primary-color);
     outline-offset: 2px;
 }
 
-.btn-approve {
+.match-invite-container .btn-approve {
     background: var(--success-color);
     color: var(--text-light);
 }
 
-.btn-approve:hover {
+.match-invite-container .btn-approve:hover {
     background: #218838;
 }
 
-.btn-approve:active {
+.match-invite-container .btn-approve:active {
     background: #1e7e34;
 }
 
-.btn-approve:disabled {
+.match-invite-container .btn-approve:disabled {
     background: var(--text-muted);
     cursor: not-allowed;
 }
 
-.btn-reject {
+.match-invite-container .btn-reject {
     background: var(--danger-color);
     color: var(--text-light);
 }
 
-.btn-reject:hover {
+.match-invite-container .btn-reject:hover {
     background: #c82333;
 }
 
-.btn-reject:active {
+.match-invite-container .btn-reject:active {
     background: #bd2130;
 }
 
-.btn-reject:disabled {
+.match-invite-container .btn-reject:disabled {
     background: var(--text-muted);
     cursor: not-allowed;
 }
 
-.result-message {
+.match-invite-container .result-message {
     margin-top: var(--spacing-md);
     padding: var(--spacing-base);
     border-radius: var(--radius-base);
@@ -188,13 +188,13 @@
     font-weight: bold;
 }
 
-.result-message.success {
+.match-invite-container .result-message.success {
     background: rgba(40, 167, 69, 0.1);
     color: var(--success-color);
     border: 1px solid var(--success-color);
 }
 
-.result-message.error {
+.match-invite-container .result-message.error {
     background: rgba(220, 53, 69, 0.1);
     color: var(--danger-color);
     border: 1px solid var(--danger-color);
@@ -229,26 +229,9 @@
     margin-top: var(--spacing-base);
 }
 
-.btn-primary {
-    background: var(--primary-color);
-    color: var(--text-light);
-    padding: var(--spacing-sm) var(--spacing-lg);
-    border-radius: var(--radius-base);
-    text-decoration: none;
-    display: inline-block;
+/* ボタン見た目は components/button.css。配置のみ */
+.match-invite-container .btn-primary {
     margin-top: var(--spacing-md);
-    min-height: 48px;
-    line-height: 48px;
-    text-align: center;
-}
-
-.btn-primary:hover {
-    background: var(--primary-dark);
-}
-
-.btn-primary:focus-visible {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
 }
 
 /* レスポンシブ対応 */
@@ -265,11 +248,11 @@
         font-size: var(--font-size-2xl);
     }
 
-    .form-actions {
+    .match-invite-container .form-actions {
         flex-direction: column;
     }
 
-    .btn {
+    .match-invite-container .btn {
         width: 100%;
     }
 }

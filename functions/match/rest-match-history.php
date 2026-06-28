@@ -75,7 +75,9 @@ function aidunite_get_match_history($request) {
         ? aidunite_get_managed_team_ids($current_user_id)
         : [];
     if (empty($team_scope)) {
-        $legacy = (int) get_user_meta($current_user_id, 'team_id', true);
+        $legacy = function_exists('aidunite_user_read_primary_team_id')
+            ? aidunite_user_read_primary_team_id((int) $current_user_id)
+            : 0;
         if ($legacy > 0) {
             $team_scope = [$legacy];
         }
@@ -206,8 +208,12 @@ function aidunite_get_match_history($request) {
             ]);
 
             // 自分自身からの申請を除外（自チームが申請元の行）
-            $received_requests = array_filter($received_requests, function($request) use ($team_scope) {
-                $from_team_id = (int) get_post_meta($request->ID, 'from_team_id', true);
+            $received_requests = array_filter($received_requests, function ($request) use ($team_scope) {
+                $canonical = function_exists('aidunite_match_request_get_canonical_meta')
+                    ? aidunite_match_request_get_canonical_meta((int) $request->ID)
+                    : [];
+                $from_team_id = (int) ($canonical['from_team_id'] ?? 0);
+
                 return !in_array($from_team_id, $team_scope, true);
             });
 
@@ -259,37 +265,43 @@ function aidunite_get_match_history($request) {
  */
 function aidunite_format_match_history_item($request, $type, $current_user_team_id) {
     $request_id = $request->ID;
-    $status = get_post_meta($request_id, 'status', true) ?: '申請中';
+    $canonical = function_exists('aidunite_match_request_get_canonical_meta')
+        ? aidunite_match_request_get_canonical_meta((int) $request_id)
+        : [];
+    $status = (string) ($canonical['status'] ?? '申請中');
+    if ($status === '') {
+        $status = '申請中';
+    }
 
     // スケジュールIDを取得
-    $other_schedule_id = get_post_meta($request_id, 'to_schedule_id', true);
-    $my_schedule_id = get_post_meta($request_id, 'my_schedule_id', true);
-    if (!$my_schedule_id) {
-        $my_schedule_id = get_post_meta($request_id, 'from_schedule_id', true);
+    $other_schedule_id = (int) ($canonical['to_schedule_id'] ?? $canonical['target_schedule_id'] ?? 0);
+    $my_schedule_id = (int) ($canonical['my_schedule_id'] ?? 0);
+    if ($my_schedule_id <= 0) {
+        $my_schedule_id = (int) ($canonical['from_schedule_id'] ?? 0);
     }
 
     // チームIDを取得
-    $from_team_id = get_post_meta($request_id, 'from_team_id', true);
-    $to_team_id = get_post_meta($request_id, 'to_team_id', true);
+    $from_team_id = (int) ($canonical['from_team_id'] ?? $canonical['request_team_id'] ?? 0);
+    $to_team_id = (int) ($canonical['to_team_id'] ?? 0);
 
     // 相手チーム名を取得
     $opponent_team_id = ($type === 'sent') ? $to_team_id : $from_team_id;
     $opponent_team_name = $opponent_team_id ? get_the_title($opponent_team_id) : '（不明）';
 
-    // スケジュール情報を取得
+    // スケジュール情報を取得（canonical 読取）
     $schedule_id = ($type === 'sent') ? $other_schedule_id : $my_schedule_id;
-    $schedule_date = $schedule_id ? get_post_meta($schedule_id, 'schedule_date', true) : null;
-    $schedule_start = $schedule_id ? get_post_meta($schedule_id, 'schedule_start_time', true) : '';
-    $schedule_end = $schedule_id ? get_post_meta($schedule_id, 'schedule_end_time', true) : '';
+    $sched_api = ($schedule_id && function_exists('aidunite_schedule_get_api_display_fields'))
+        ? aidunite_schedule_get_api_display_fields((int) $schedule_id)
+        : [];
+    $schedule_date = $schedule_id ? ((string) ($sched_api['date'] ?? '') ?: null) : null;
+    $schedule_start = $schedule_id ? (string) ($sched_api['start_time'] ?? '') : '';
+    $schedule_end = $schedule_id ? (string) ($sched_api['end_time'] ?? '') : '';
 
     // 会場情報を取得
-    $venue = $schedule_id ? get_post_meta($schedule_id, 'schedule_place', true) : '';
-    if (!$venue) {
-        $venue = $schedule_id ? get_post_meta($schedule_id, 'schedule_place_option', true) : '';
-    }
+    $venue = $schedule_id ? (string) ($sched_api['place'] ?? '') : '';
 
     // 申請メッセージを取得
-    $request_message = get_post_meta($request_id, 'request_message', true) ?: '';
+    $request_message = (string) ($canonical['request_message'] ?? '');
 
     // 作成日時
     $created_at = get_the_date('Y-m-d H:i:s', $request_id);

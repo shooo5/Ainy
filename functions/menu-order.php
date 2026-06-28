@@ -5,7 +5,7 @@ function au_menu_priority_map_by_slug() {
     'team_message'       => 10, // チームメッセージ
     'practice_schedule'  => 20, // 練習スケジュール
     'match_room'         => 30, // 試合一覧
-    'attendance'         => 40, // 出欠管理
+    'attendance'         => 40, // 出欠管理（legacy CPT — UI 非表示）
     'membership_fee'     => 50, // チーム月謝管理
     'match_results'      => 60, // 試合結果管理
     'member_list'        => 65, // メンバー一覧

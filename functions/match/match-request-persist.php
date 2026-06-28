@@ -66,63 +66,67 @@ function aidunite_match_request_normalize_input(array $raw, $for_save = true) {
 }
 
 /**
- * 表示・API 用: メタを1本化（旧キーはフォールバックのみ）
+ * キャンセル操作チーム ID を保存
  *
  * @param int $match_request_id
- * @return array<string, mixed>
+ * @param int $team_id
  */
-function aidunite_match_request_get_canonical_meta($match_request_id) {
+function aidunite_match_request_persist_canceled_by_team_id($match_request_id, $team_id) {
     $match_request_id = (int) $match_request_id;
-    if ($match_request_id < 1 || get_post_type($match_request_id) !== 'match_request') {
+    $team_id = (int) $team_id;
+    if ($match_request_id < 1 || $team_id < 1) {
+        return;
+    }
+    update_post_meta($match_request_id, 'canceled_by_team_id', $team_id);
+}
+
+/**
+ * マッチ申請・スケジュールへのチャットルーム ID リンク
+ *
+ * @param int $match_request_id
+ * @param int $chat_room_id
+ * @param int $schedule_id
+ */
+function aidunite_match_request_persist_chat_room_link($match_request_id, $chat_room_id, $schedule_id = 0) {
+    $match_request_id = (int) $match_request_id;
+    $chat_room_id = (int) $chat_room_id;
+    $schedule_id = (int) $schedule_id;
+    if ($match_request_id < 1 || $chat_room_id < 1) {
+        return;
+    }
+    update_post_meta($match_request_id, 'chat_room_id', $chat_room_id);
+    if ($schedule_id > 0) {
+        update_post_meta($schedule_id, 'active_match_chat_room_id', $chat_room_id);
+    }
+}
+
+/**
+ * ログインユーザーの managed team スコープ（REST 用）
+ *
+ * @param int $user_id
+ * @return int[]
+ */
+function aidunite_match_resolve_user_team_scope($user_id) {
+    $user_id = (int) $user_id;
+    if ($user_id <= 0) {
         return [];
     }
 
-    $post = get_post($match_request_id);
-    $post_status = $post ? (string) $post->post_status : '';
+    $team_scope = function_exists('aidunite_get_managed_team_ids')
+        ? aidunite_get_managed_team_ids($user_id)
+        : [];
+    if (!empty($team_scope)) {
+        return array_values(array_map('intval', $team_scope));
+    }
 
-    $status_raw = (string) (get_post_meta($match_request_id, 'status', true)
-        ?: get_post_meta($match_request_id, 'request_status', true));
-    $status = function_exists('aidunite_normalize_match_request_status')
-        ? (string) aidunite_normalize_match_request_status($status_raw, $post_status)
-        : strtolower($status_raw);
+    if (function_exists('aidunite_user_read_primary_team_id')) {
+        $legacy = aidunite_user_read_primary_team_id($user_id);
+        if ($legacy > 0) {
+            return [$legacy];
+        }
+    }
 
-    $place = (string) (get_post_meta($match_request_id, 'selected_place', true)
-        ?: get_post_meta($match_request_id, 'preferred_place', true));
-    $gender_raw = (string) (get_post_meta($match_request_id, 'selected_gender', true)
-        ?: get_post_meta($match_request_id, 'preferred_gender', true));
-    $gender = function_exists('aidunite_normalize_gender_canonical')
-        ? aidunite_normalize_gender_canonical($gender_raw)
-        : $gender_raw;
-
-    $cancel_code = (string) (get_post_meta($match_request_id, 'cancel_reason_code', true)
-        ?: get_post_meta($match_request_id, 'canceled_reason', true)
-        ?: get_post_meta($match_request_id, 'aidunite_cancel_reason', true));
-
-    return [
-        'match_request_id' => $match_request_id,
-        'post_status' => $post_status,
-        'status' => $status,
-        'from_team_id' => (int) get_post_meta($match_request_id, 'from_team_id', true),
-        'to_team_id' => (int) get_post_meta($match_request_id, 'to_team_id', true),
-        'other_team_id' => (int) get_post_meta($match_request_id, 'other_team_id', true),
-        'request_team_id' => (int) get_post_meta($match_request_id, 'request_team_id', true),
-        'to_schedule_id' => (int) get_post_meta($match_request_id, 'to_schedule_id', true),
-        'my_schedule_id' => (int) get_post_meta($match_request_id, 'my_schedule_id', true),
-        'selected_start_time' => (string) (get_post_meta($match_request_id, 'selected_start_time', true)
-            ?: get_post_meta($match_request_id, 'preferred_start', true)),
-        'selected_end_time' => (string) (get_post_meta($match_request_id, 'selected_end_time', true)
-            ?: get_post_meta($match_request_id, 'preferred_end', true)),
-        'selected_place' => $place,
-        'selected_gender' => $gender,
-        'cancel_reason_code' => $cancel_code,
-        'mr_outcome_code' => (string) get_post_meta($match_request_id, 'mr_outcome_code', true),
-        'requires_reconfirm' => (int) get_post_meta($match_request_id, 'requires_reconfirm', true),
-        'match_game_id' => (int) (get_post_meta($match_request_id, 'match_game_id', true)
-            ?: (function_exists('aidunite_resolve_match_game_id_for_match_request')
-                ? aidunite_resolve_match_game_id_for_match_request($match_request_id)
-                : 0)),
-        'established_at' => (string) get_post_meta($match_request_id, 'established_at', true),
-    ];
+    return [];
 }
 
 /**
@@ -698,4 +702,155 @@ function aidunite_cleanup_match_request_legacy_meta_keys() {
     }
 
     return $results;
+}
+
+/**
+ * 成立時の申請側選択値を永続化（match-state-sync 用）
+ *
+ * @param int                  $match_request_id
+ * @param array<string, mixed> $fields
+ */
+function aidunite_match_request_persist_established_selection($match_request_id, array $fields) {
+    $match_request_id = (int) $match_request_id;
+    if ($match_request_id < 1 || $fields === []) {
+        return;
+    }
+
+    $application = [];
+    foreach (['selected_start_time', 'selected_end_time', 'selected_place', 'selected_gender'] as $key) {
+        if (array_key_exists($key, $fields)) {
+            $application[$key] = $fields[$key];
+        }
+    }
+    if ($application !== []) {
+        aidunite_match_request_write_application_meta($match_request_id, $application);
+    }
+
+    if (array_key_exists('established_gender_slot', $fields) && (string) $fields['established_gender_slot'] !== '') {
+        update_post_meta($match_request_id, 'established_gender_slot', (string) $fields['established_gender_slot']);
+    }
+}
+
+/**
+ * 再確認待ちメタを永続化（match-state-sync 用）
+ *
+ * @param int                  $match_request_id
+ * @param int                  $winner_request_id
+ * @param string               $reason
+ * @param array<string, mixed> $before
+ */
+function aidunite_match_request_persist_reconfirm_required($match_request_id, $winner_request_id, $reason, array $before = []) {
+    $match_request_id = (int) $match_request_id;
+    if ($match_request_id < 1) {
+        return;
+    }
+
+    aidunite_match_request_write_normalized_meta($match_request_id, [
+        'requires_reconfirm' => 1,
+    ]);
+    update_post_meta($match_request_id, 'reconfirm_reason', sanitize_text_field((string) $reason));
+    update_post_meta($match_request_id, 'reconfirm_detected_at', current_time('mysql'));
+    update_post_meta($match_request_id, 'superseded_by_request_id', (int) $winner_request_id);
+
+    $map = [
+        'reconfirm_before_schedule_place' => 'before_place',
+        'reconfirm_before_schedule_gender' => 'before_gender',
+        'reconfirm_before_male_slots' => 'male',
+        'reconfirm_before_female_slots' => 'female',
+        'reconfirm_before_place_lock' => 'place_lock',
+    ];
+    foreach ($map as $meta_key => $before_key) {
+        if (!array_key_exists($before_key, $before)) {
+            continue;
+        }
+        update_post_meta($match_request_id, $meta_key, $before[$before_key]);
+    }
+}
+
+/**
+ * 試合結果コードを永続化
+ */
+function aidunite_match_request_persist_outcome_code($match_request_id, $outcome) {
+    $match_request_id = (int) $match_request_id;
+    if ($match_request_id < 1) {
+        return;
+    }
+    $outcome = sanitize_text_field((string) $outcome);
+    if ($outcome === '') {
+        delete_post_meta($match_request_id, 'mr_outcome_code');
+        delete_post_meta($match_request_id, 'mr_outcome_updated_at');
+        return;
+    }
+    update_post_meta($match_request_id, 'mr_outcome_code', $outcome);
+    update_post_meta($match_request_id, 'mr_outcome_updated_at', current_time('mysql'));
+}
+
+/**
+ * 他申請成立による自動キャンセルメタ
+ */
+function aidunite_match_request_persist_superseded_cancel($match_request_id, $winner_request_id, $reason_code, $legacy_message = '') {
+    $match_request_id = (int) $match_request_id;
+    if ($match_request_id < 1) {
+        return;
+    }
+
+    update_post_meta($match_request_id, 'canceled_at', current_time('mysql'));
+    delete_post_meta($match_request_id, 'canceled_by_team_id');
+    aidunite_match_request_update_cancel_reason_meta($match_request_id, (string) $reason_code, (string) $legacy_message);
+    update_post_meta($match_request_id, 'superseded_by_request_id', (int) $winner_request_id);
+    if ($reason_code === 'superseded_established') {
+        update_post_meta($match_request_id, 'aidunite_superseded_by_request_id', (int) $winner_request_id);
+    }
+    if ($reason_code === 'mirror_established') {
+        update_post_meta($match_request_id, 'canceled_by_system', '1');
+    }
+}
+
+/**
+ * 承認滞留リマインド送信済みフラグ
+ */
+function aidunite_match_request_persist_reminder_sent($match_request_id) {
+    $match_request_id = (int) $match_request_id;
+    if ($match_request_id < 1) {
+        return;
+    }
+    update_post_meta($match_request_id, 'reminder_sent_at', current_time('mysql'));
+}
+
+/**
+ * 管理画面用: match_request を完全削除（postmeta 含む）
+ *
+ * @param int $match_request_id
+ * @return bool
+ */
+function aidunite_match_request_persist_admin_delete($match_request_id) {
+    $match_request_id = (int) $match_request_id;
+    if ($match_request_id < 1 || get_post_type($match_request_id) !== 'match_request') {
+        return false;
+    }
+
+    return (bool) wp_delete_post($match_request_id, true);
+}
+
+/**
+ * 管理画面用: 全 match_request を削除
+ *
+ * @return int 削除件数
+ */
+function aidunite_match_request_persist_admin_delete_all() {
+    $ids = get_posts([
+        'post_type' => 'match_request',
+        'post_status' => 'any',
+        'posts_per_page' => -1,
+        'fields' => 'ids',
+    ]);
+
+    $deleted = 0;
+    foreach ($ids ?: [] as $match_request_id) {
+        if (aidunite_match_request_persist_admin_delete((int) $match_request_id)) {
+            $deleted++;
+        }
+    }
+
+    return $deleted;
 }

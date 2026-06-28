@@ -590,7 +590,9 @@ function aidunite_e2e_test_data_setup($request) {
             update_post_meta($from_schedule_id, 'intent', 'confirmed');
 
             if ($create_chat && function_exists('aidunite_create_or_extend_match_chat')) {
-                $match_date = get_post_meta($to_schedule_id, 'schedule_date', true);
+                $match_date = function_exists('aidunite_schedule_read_normalized_date')
+                    ? aidunite_schedule_read_normalized_date((int) $to_schedule_id)
+                    : '';
                 $chat_room_id = aidunite_create_or_extend_match_chat(
                     $match_request_id,
                     (int) $team_b['team_id'],

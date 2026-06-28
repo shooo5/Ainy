@@ -8,6 +8,19 @@ body.web-app-integrated-ui .ainy-header {
   display: none;
 }
 
+/* ヒーローシェル（integrated / hero）— body_class 未付与時のフォールバック */
+body:has(.ainy-webapp-hero) .ainy-header {
+  display: none;
+}
+
+body:has(.ainy-webapp-hero) #main.site-main,
+body:has(.ainy-webapp-hero) .full-container,
+body:has(.ainy-webapp-hero) .site-content {
+  margin-top: 0;
+  padding-top: 0;
+  min-height: 0;
+}
+
 body.web-app-integrated-ui #main.site-main,
 body.web-app-integrated-ui .full-container,
 body.web-app-integrated-ui .site-content {
@@ -137,30 +150,38 @@ body.web-app-integrated-ui .team-dashboard-container.ainy-webapp-page {
   font-size: var(--font-size-xs, 0.75rem);
 }
 
-.ainy-webapp-hero-actions .ainy-webapp-hero-icon-link.ainy-header-icon-link,
-.ainy-webapp-hero-actions .mypage-v2-hero-icon-link.ainy-header-icon-link,
-.mypage-v2-hero-actions .mypage-v2-hero-icon-link.ainy-header-icon-link {
+/* ainy-header.css の body #page .ainy-header-icon-link より詳細度を上げてヒーロー内を半透明に */
+body.web-app-integrated-ui #page .ainy-webapp-hero-actions .ainy-webapp-hero-icon-link.ainy-header-icon-link,
+body.web-app-integrated-ui #page .ainy-webapp-hero-actions .mypage-v2-hero-icon-link.ainy-header-icon-link,
+body.web-app-integrated-ui #page .mypage-v2-hero-actions .mypage-v2-hero-icon-link.ainy-header-icon-link {
   background: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.2);
   box-shadow: none;
 }
 
-.ainy-webapp-hero-actions .ainy-webapp-hero-icon-link.ainy-header-icon-link:hover,
-.ainy-webapp-hero-actions .mypage-v2-hero-icon-link.ainy-header-icon-link:hover,
-.mypage-v2-hero-actions .mypage-v2-hero-icon-link.ainy-header-icon-link:hover {
+body.web-app-integrated-ui #page .ainy-webapp-hero-actions .ainy-webapp-hero-icon-link.ainy-header-icon-link:hover,
+body.web-app-integrated-ui #page .ainy-webapp-hero-actions .mypage-v2-hero-icon-link.ainy-header-icon-link:hover,
+body.web-app-integrated-ui #page .mypage-v2-hero-actions .mypage-v2-hero-icon-link.ainy-header-icon-link:hover {
   background: rgba(255, 255, 255, 0.16);
   transform: none;
 }
 
-.ainy-webapp-hero-actions .ainy-webapp-hero-icon-link.is-active,
-.ainy-webapp-hero-actions .mypage-v2-hero-icon-link.is-active,
-.mypage-v2-hero-actions .mypage-v2-hero-icon-link.is-active {
+body.web-app-integrated-ui #page .ainy-webapp-hero-actions .ainy-webapp-hero-icon-link.ainy-header-icon-link:active,
+body.web-app-integrated-ui #page .ainy-webapp-hero-actions .mypage-v2-hero-icon-link.ainy-header-icon-link:active,
+body.web-app-integrated-ui #page .mypage-v2-hero-actions .mypage-v2-hero-icon-link.ainy-header-icon-link:active {
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: none;
+}
+
+body.web-app-integrated-ui #page .ainy-webapp-hero-actions .ainy-webapp-hero-icon-link.is-active,
+body.web-app-integrated-ui #page .ainy-webapp-hero-actions .mypage-v2-hero-icon-link.is-active,
+body.web-app-integrated-ui #page .mypage-v2-hero-actions .mypage-v2-hero-icon-link.is-active {
   background: rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.35);
 }
 
-.ainy-webapp-hero-hamburger.ainy-hamburger,
-.mypage-v2-hero-hamburger.ainy-hamburger {
+body.web-app-integrated-ui #page .ainy-webapp-hero-hamburger.ainy-hamburger,
+body.web-app-integrated-ui #page .mypage-v2-hero-hamburger.ainy-hamburger {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: var(--radius-base, 8px);
@@ -169,18 +190,18 @@ body.web-app-integrated-ui .team-dashboard-container.ainy-webapp-page {
   padding: var(--spacing-sm, 0.5rem);
 }
 
-.ainy-webapp-hero-hamburger .ainy-hamburger-icon span,
-.mypage-v2-hero-hamburger .ainy-hamburger-icon span {
+body.web-app-integrated-ui #page .ainy-webapp-hero-hamburger .ainy-hamburger-icon span,
+body.web-app-integrated-ui #page .mypage-v2-hero-hamburger .ainy-hamburger-icon span {
   background: var(--text-on-dark, #fff);
 }
 
-.ainy-webapp-hero-hamburger:hover,
-.mypage-v2-hero-hamburger:hover {
+body.web-app-integrated-ui #page .ainy-webapp-hero-hamburger:hover,
+body.web-app-integrated-ui #page .mypage-v2-hero-hamburger:hover {
   background: rgba(255, 255, 255, 0.16);
 }
 
-.ainy-webapp-hero-hamburger:focus-visible,
-.mypage-v2-hero-hamburger:focus-visible {
+body.web-app-integrated-ui #page .ainy-webapp-hero-hamburger:focus-visible,
+body.web-app-integrated-ui #page .mypage-v2-hero-hamburger:focus-visible {
   outline: 2px solid var(--focus-ring-color, var(--theme-accent));
   outline-offset: 2px;
 }
@@ -521,39 +542,62 @@ body.web-app-integrated-ui .page-match-board-own .dashboard-header--replaced {
   display: none;
 }
 
-/* ========================================
-   ボトムナビ：ページシェル幅に合わせる（全幅 fixed をやめる）
-   ======================================== */
-body.ainy-bottom-nav-unified {
-  --ainy-webapp-shell-max-width: 1200px;
-  --nav-app-box-shadow: 0 -8px 28px rgba(8, 24, 39, 0.35);
+/* 試合一覧：ainy-webapp-content の白カード（上角丸・被せ）をやめ、一覧カードのみ残す */
+body.web-app-integrated-ui .page-match-board-own .ainy-webapp-content,
+body.web-app-integrated-ui .ainy-webapp-content--match-board {
+  margin-top: 0;
+  background: transparent;
+  border-radius: 0;
+  /* 横余白は他ページの .ainy-webapp-content と同じ --spacing-md */
+  padding: var(--spacing-base, 1rem) var(--spacing-md, 1.5rem) var(--spacing-lg, 2rem);
+  padding-left: max(var(--spacing-md, 1.5rem), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--spacing-md, 1.5rem), env(safe-area-inset-right, 0px));
 }
 
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav {
+body.web-app-integrated-ui .page-match-board-own .main-content-area,
+body.web-app-integrated-ui .page-match-board-own .match-candidates-container.main-content-area {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* ========================================
+   ボトムナビ（統一ダーク・シェル幅・ainy-has-bottom-nav のみ）
+   ======================================== */
+body.ainy-has-bottom-nav {
+  --ainy-webapp-shell-max-width: 1200px;
+  --nav-app-box-shadow: 0 -8px 28px rgba(8, 24, 39, 0.35);
+  --ainy-bottom-nav-offset: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: var(--ainy-bottom-nav-offset);
+}
+
+body.ainy-has-bottom-nav nav.ainy-bottom-nav {
+  position: fixed;
+  bottom: 0;
   left: 50%;
   right: auto;
+  z-index: 1000;
   width: 100%;
   max-width: var(--ainy-webapp-shell-max-width, 1200px);
   transform: translateX(-50%);
   box-sizing: border-box;
-  border-top-left-radius: var(--radius-large, 22px);
-  border-top-right-radius: var(--radius-large, 22px);
-  justify-content: center;
-}
-
-/* 統一5リンクナビ（ダーク） */
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app {
   display: block;
   background: var(--nav-dark-gradient, linear-gradient(180deg, #1a3a5c 0%, #0f2840 100%));
   border-top: none;
+  border-top-left-radius: var(--radius-large, 22px);
+  border-top-right-radius: var(--radius-large, 22px);
   padding-top: var(--spacing-sm, 0.5rem);
   padding-left: var(--spacing-sm, 0.75rem);
   padding-right: var(--spacing-sm, 0.75rem);
   padding-bottom: calc(var(--spacing-sm, 0.5rem) + env(safe-area-inset-bottom, 0px));
-  box-shadow: var(--nav-app-box-shadow, 0 -8px 28px rgba(8, 24, 39, 0.35));
+  box-shadow: var(--nav-app-box-shadow);
 }
 
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-inner {
+body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-inner {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   align-items: center;
@@ -564,89 +608,109 @@ body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ai
   padding: 0;
 }
 
+body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-inner--count-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-inner--count-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-inner--count-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-inner--count-5 {
+  grid-template-columns: repeat(5, 1fr);
+}
+
 @media (min-width: 768px) {
-  body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-inner {
+  body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-inner {
     width: auto;
     max-width: min(100%, 28rem);
     grid-template-columns: repeat(5, minmax(3rem, 1fr));
     column-gap: var(--spacing-xs, 0.25rem);
   }
+
+  body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-inner--count-2 {
+    grid-template-columns: repeat(2, minmax(3.5rem, 1fr));
+    max-width: min(100%, 14rem);
+  }
+
+  body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-inner--count-3 {
+    grid-template-columns: repeat(3, minmax(3rem, 1fr));
+    max-width: min(100%, 18rem);
+  }
+
+  body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-inner--count-4 {
+    grid-template-columns: repeat(4, minmax(3rem, 1fr));
+    max-width: min(100%, 22rem);
+  }
+
+  body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-inner--count-5 {
+    grid-template-columns: repeat(5, minmax(3rem, 1fr));
+    max-width: min(100%, 28rem);
+  }
 }
 
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link {
+body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-link {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   color: rgba(255, 255, 255, 0.55);
   background: transparent;
   min-width: 0;
   padding: var(--spacing-xs, 0.25rem);
   font-size: var(--font-size-xs, 0.6875rem);
   font-weight: 600;
+  line-height: 1.2;
   border-radius: var(--radius-small, 8px);
   text-decoration: none;
+  text-align: center;
 }
 
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-menu-trigger {
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  width: 100%;
+body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-link span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-icon {
+body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 24px;
   height: 24px;
   margin-bottom: 2px;
-}
-
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-icon--inline {
   color: inherit;
 }
 
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-icon__svg {
+body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-icon__svg {
   display: block;
   width: 22px;
   height: 22px;
 }
 
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-icon__img {
-  display: block;
-  width: 22px;
-  height: 22px;
-}
-
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-icon__active {
-  display: none;
-}
-
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link:hover .ainy-bottom-nav-icon__default,
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link.active .ainy-bottom-nav-icon__default {
-  display: none;
-}
-
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link:hover .ainy-bottom-nav-icon__active,
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link.active .ainy-bottom-nav-icon__active {
-  display: block;
-}
-
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link svg {
+body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-link svg {
   width: 22px;
   height: 22px;
   margin-bottom: 2px;
   opacity: 0.85;
 }
 
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link:hover,
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link.active {
+body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-link:hover,
+body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-link.active {
   color: var(--text-on-dark, #fff);
   background: transparent;
 }
 
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link.active::after {
+body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-link.active {
+  position: relative;
+}
+
+body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-link.active::after {
   content: '';
   position: absolute;
   bottom: 0;
@@ -658,49 +722,9 @@ body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ai
   border-radius: var(--radius-full, 999px);
 }
 
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link.active {
-  position: relative;
-}
-
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link:hover svg,
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav.ainy-bottom-nav--app .ainy-bottom-nav-link.active svg {
+body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-link:hover svg,
+body.ainy-has-bottom-nav nav.ainy-bottom-nav .ainy-bottom-nav-link.active svg {
   opacity: 1;
-  transform: none;
-}
-
-/* 旧4リンクナビ（非 Web アプリページ向けフォールバック） */
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav:not(.ainy-bottom-nav--app) {
-  display: block;
-  padding-top: var(--spacing-sm, 0.5rem);
-  padding-left: 0;
-  padding-right: 0;
-  padding-bottom: calc(var(--spacing-sm, 0.5rem) + env(safe-area-inset-bottom, 0px));
-}
-
-body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav:not(.ainy-bottom-nav--app) .ainy-bottom-nav-inner {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  max-width: 100%;
-  margin: 0 auto;
-  padding-left: var(--spacing-sm, 0.5rem);
-  padding-right: var(--spacing-sm, 0.5rem);
-  box-sizing: border-box;
-  justify-content: space-around;
-}
-
-@media (min-width: 768px) {
-  body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav:not(.ainy-bottom-nav--app) .ainy-bottom-nav-inner {
-    width: auto;
-    max-width: min(100%, 22rem);
-    justify-content: center;
-    gap: var(--spacing-lg, 2rem);
-  }
-
-  body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav:not(.ainy-bottom-nav--app) .ainy-bottom-nav-link {
-    min-width: 3.5rem;
-    flex: 0 0 auto;
-  }
 }
 
 /* ========================================
@@ -708,7 +732,6 @@ body:is(.web-app-integrated-ui, .ainy-bottom-nav-unified) nav.ainy-bottom-nav:no
    ======================================== */
 
 body.web-app-integrated-ui {
-  padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
   background: var(--bg-secondary, #f7f8fc);
 }
 
@@ -728,8 +751,9 @@ body.web-app-integrated-ui .team-dashboard-container:not(.ainy-webapp-page):not(
 
 body.web-app-integrated-ui .team-dashboard-container.ainy-webapp-page,
 body.web-app-integrated-ui .team-dashboard-container.page-mypage {
-  padding-left: 0;
-  padding-right: 0;
+  padding: 0;
+  min-height: 0;
+  background: transparent;
 }
 
 /* レガシー単体ヘッダー（一体型ヒーローと二重になるため非表示） */
@@ -737,7 +761,6 @@ body.web-app-integrated-ui .dashboard-header,
 body.web-app-integrated-ui .communication-header,
 body.web-app-integrated-ui .page-header,
 body.web-app-integrated-ui .favorite-teams-header,
-body.web-app-integrated-ui .invite-guardian-header,
 body.web-app-integrated-ui .profile-edit-header,
 body.web-app-integrated-ui .ainy-notification-settings__title,
 body.web-app-integrated-ui .ainy-notification-settings__nav-top,
@@ -754,6 +777,7 @@ body.web-app-integrated-ui .page-match-requests-wrap,
 body.web-app-integrated-ui .page-team-management.team-management-page,
 body.web-app-integrated-ui .page-team-members,
 body.web-app-integrated-ui .page-team-payment-management,
+body.web-app-integrated-ui .page-team-tuition-collections,
 body.web-app-integrated-ui .page-match-analytics,
 body.web-app-integrated-ui .page-edit-player,
 body.web-app-integrated-ui .page-player-add,
@@ -766,8 +790,7 @@ body.web-app-integrated-ui .notification-settings-page {
   min-height: 0;
 }
 
-body.web-app-integrated-ui .page-team-payment-management .team-payment-management-grid,
-body.web-app-integrated-ui .page-match-analytics .dashboard-section {
+body.web-app-integrated-ui .page-team-payment-management .team-payment-management-grid {
   margin-top: 0;
 }
 
@@ -779,12 +802,6 @@ body.web-app-integrated-ui .profile-edit-container {
 body.web-app-integrated-ui .profile-edit-card {
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
   border-radius: var(--radius-medium, 12px);
-}
-
-body.web-app-integrated-ui .page-team-members .members-section {
-  background: var(--bg-primary, #fff);
-  border-radius: var(--radius-medium, 12px);
-  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
 }
 
 body.web-app-integrated-ui .page-team-members .team-members-container,
@@ -896,4 +913,54 @@ body.web-app-integrated-ui .dashboard-section .btn-primary,
 body.web-app-integrated-ui .main-content-area .btn-primary {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   border-color: transparent;
+}
+
+/* サポート系（contact / faq / feedback）— 一体型シェル内 */
+.ainy-webapp-content--support {
+  padding: var(--spacing-md, 1.5rem);
+}
+
+.ainy-webapp-content--support .ainy-support-section-title {
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-base, 1rem);
+}
+
+.ainy-webapp-content--support .dashboard-section {
+  margin-bottom: var(--spacing-lg, 2rem);
+}
+
+.ainy-webapp-content--support .form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm, 0.75rem);
+  margin-top: var(--spacing-md, 1.5rem);
+}
+
+/* 管理系ページ（メンバー・出欠・スケジュール）— 一体型シェル内の表面・バッジ */
+body.web-app-integrated-ui .page-team-members .team-members-board__tab-badge,
+body.web-app-integrated-ui .page-attendance-report .attendance-card,
+body.web-app-integrated-ui .page-attendance-management .attendance-card,
+body.web-app-integrated-ui .page-schedule-management .schedule-month-card {
+  border-radius: var(--radius-medium, 12px);
+}
+
+body.web-app-integrated-ui .page-team-members .main-content-area,
+body.web-app-integrated-ui .page-attendance-report .attendance-board,
+body.web-app-integrated-ui .page-attendance-management .attendance-board,
+body.web-app-integrated-ui .page-schedule-management .schedule-layout {
+  padding-top: var(--spacing-sm, 0.5rem);
+}
+
+body.web-app-integrated-ui .page-schedule-management .schedule-list-badge,
+body.web-app-integrated-ui .page-team-members .team-members-board__tab-count {
+  font-size: var(--font-size-sm, 0.75rem);
+}
+
+body.web-app-integrated-ui .dashboard-section .form-control:focus-visible,
+body.web-app-integrated-ui .main-content-area .form-control:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-color: var(--primary-color);
 }

@@ -38,20 +38,33 @@ function aidunite_activation_stage_ids() {
 }
 
 /**
- * 初回試合募集（トライアル絞り込み）のスケジュール登録 URL
+ * 初回試合募集の導線 URL（マイページでクイックモーダルを開く）
  *
  * @return string
  */
 function aidunite_get_activation_recruit_edit_url() {
-    return home_url('/schedule-edit/');
+    return home_url('/mypage/?open_recruit=1');
 }
 
 /**
- * @deprecated 代わりに aidunite_get_activation_recruit_edit_url() を使用
+ * 廃止した /schedule-edit の代替 URL（スケジュール管理＋クイックモーダル）
+ *
+ * @param int    $schedule_id
+ * @param string $date Y-m-d
  * @return string
  */
-function aidunite_get_first_match_url() {
-    return aidunite_get_activation_recruit_edit_url();
+function aidunite_get_schedule_edit_url($schedule_id = 0, $date = '') {
+    $base = home_url('/schedule-management');
+    $schedule_id = (int) $schedule_id;
+    if ($schedule_id > 0) {
+        return add_query_arg('edit_schedule', $schedule_id, $base);
+    }
+    $date = trim((string) $date);
+    if ($date !== '') {
+        return add_query_arg('open_register', $date, $base);
+    }
+
+    return trailingslashit($base);
 }
 
 /**
@@ -268,6 +281,75 @@ function aidunite_team_has_established_match($team_id) {
 }
 
 /**
+ * オンボーディング・ボットを除く成立済み MR 件数
+ *
+ * @param int $team_id
+ * @return int
+ */
+function aidunite_team_count_real_established_matches($team_id) {
+    $team_id = (int) $team_id;
+    if ($team_id <= 0) {
+        return 0;
+    }
+
+    $established = function_exists('aidunite_analytics_funnel_mr_established_status_meta_values')
+        ? aidunite_analytics_funnel_mr_established_status_meta_values()
+        : ['established', '試合確定'];
+
+    $posts = get_posts([
+        'post_type'      => 'match_request',
+        'post_status'    => 'publish',
+        'posts_per_page' => -1,
+        'fields'         => 'ids',
+        'meta_query'     => [
+            'relation' => 'AND',
+            [
+                'relation' => 'OR',
+                [
+                    'key'   => 'from_team_id',
+                    'value' => (string) $team_id,
+                ],
+                [
+                    'key'   => 'to_team_id',
+                    'value' => (string) $team_id,
+                ],
+            ],
+            [
+                'key'     => 'status',
+                'value'   => $established,
+                'compare' => 'IN',
+            ],
+        ],
+    ]);
+
+    if (empty($posts)) {
+        return 0;
+    }
+
+    $count = 0;
+    foreach ($posts as $request_id) {
+        $request_id = (int) $request_id;
+        if (function_exists('aidunite_match_request_is_onboarding_bot')
+            && aidunite_match_request_is_onboarding_bot($request_id)) {
+            continue;
+        }
+        $count++;
+    }
+
+    return $count;
+}
+
+/**
+ * 実チームとの試合成立があるか（ボット除外）
+ *
+ * @param int $team_id
+ * @return bool
+ */
+function aidunite_team_has_real_established_match($team_id) {
+    return aidunite_team_count_real_established_matches((int) $team_id) > 0;
+}
+
+/**
  * DB 状態から段階を再計算（巻き戻しなし）
  *
  * @param int $team_id
@@ -384,6 +466,13 @@ function aidunite_team_activation_init_on_approval($team_id) {
     update_post_meta($team_id, AIDUNITE_TEAM_META_ACTIVATION_STAGE, 'recruit_pending');
     update_post_meta($team_id, AIDUNITE_TEAM_META_ACTIVATION_WIZARD_STEP, '1');
     delete_post_meta($team_id, AIDUNITE_TEAM_META_FIRST_RECRUIT_SCHEDULE_ID);
+
+    if (function_exists('aidunite_payment_start_trial_on_team_approval')) {
+        $leader_user_id = function_exists('aidunite_team_resolve_leader_user_id')
+            ? (int) aidunite_team_resolve_leader_user_id($team_id)
+            : (int) get_post_field('post_author', $team_id);
+        aidunite_payment_start_trial_on_team_approval($team_id, $leader_user_id);
+    }
 }
 
 /**
@@ -427,9 +516,11 @@ function aidunite_activation_is_mission_ui($team_id) {
  * @return bool
  */
 function aidunite_activation_is_chat_unlocked($team_id) {
-    $stage = aidunite_get_team_activation_stage($team_id);
+    $team_id = (int) $team_id;
+    $unlocked = aidunite_activation_stage_rank(aidunite_get_team_activation_stage($team_id))
+        >= aidunite_activation_stage_rank('first_established');
 
-    return aidunite_activation_stage_rank($stage) >= aidunite_activation_stage_rank('first_established');
+    return (bool) apply_filters('aidunite_activation_chat_unlocked', $unlocked, $team_id);
 }
 
 /**
@@ -458,6 +549,10 @@ function aidunite_activation_locked_page_slugs() {
 function aidunite_activation_is_page_locked($slug, $team_id) {
     $slug = (string) $slug;
     if (!in_array($slug, aidunite_activation_locked_page_slugs(), true)) {
+        return false;
+    }
+
+    if (function_exists('aidunite_user_is_privileged_admin') && aidunite_user_is_privileged_admin()) {
         return false;
     }
 
@@ -645,16 +740,14 @@ function aidunite_activation_filter_mypage_menu($menu, $user_type) {
         $slug = $path !== '' ? basename($path) : '';
 
         if ($slug === 'communication' && !aidunite_activation_is_chat_unlocked($team_id)) {
-            $item['activation_locked']  = true;
-            $item['activation_message']   = $message;
-            $item['url']                  = '#';
+            $item['activation_locked'] = true;
+            $item['activation_message'] = $message;
             continue;
         }
 
         if (isset($lock_slugs[$slug]) && aidunite_activation_is_page_locked($slug, $team_id)) {
             $item['activation_locked'] = true;
-            $item['activation_message']  = $message;
-            $item['url']                 = '#';
+            $item['activation_message'] = $message;
         }
     }
     unset($item);
@@ -663,3 +756,9 @@ function aidunite_activation_filter_mypage_menu($menu, $user_type) {
 }
 
 add_filter('aidunite_mypage_menu_v2_items', 'aidunite_activation_filter_mypage_menu', 20, 2);
+
+/**
+ * 現状はサブ機能のページロックを緩め、各メニューから専用ページへ遷移できるようにする。
+ */
+add_filter('aidunite_activation_sub_features_unlocked', '__return_true', 5);
+

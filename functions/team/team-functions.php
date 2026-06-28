@@ -87,10 +87,15 @@ function aidunite_register_team($user_id, $team_data, $options = []) {
     if (function_exists('aidunite_team_persist_register_meta')) {
         aidunite_team_persist_register_meta($team_id, $team_data);
     } else {
-        foreach (['team_name', 'team_name_kana', 'team_description', 'team_achievements', 'sport_type', 'team_category', 'team_type', 'team_gender_option', 'region', 'team_place', 'team_logo', 'registrant_name', 'contact_mail', 'contact_phone'] as $field) {
+        foreach (['team_name', 'team_name_kana', 'team_description', 'team_achievements', 'sport_type', 'team_category', 'team_type', 'team_gender_option', 'region', 'team_place', 'registrant_name', 'contact_mail', 'contact_phone'] as $field) {
             if (isset($team_data[$field])) {
                 update_post_meta($team_id, $field, sanitize_text_field((string) $team_data[$field]));
             }
+        }
+        if (isset($team_data['team_logo'])) {
+            update_post_meta($team_id, 'team_logo', function_exists('aidunite_team_logo_normalize_storage_url')
+                ? aidunite_team_logo_normalize_storage_url((string) $team_data['team_logo'])
+                : esc_url_raw((string) $team_data['team_logo']));
         }
         if (function_exists('aidunite_team_write_status_meta')) {
             aidunite_team_write_status_meta($team_id, 'pending');
@@ -136,6 +141,8 @@ function aidunite_register_team($user_id, $team_data, $options = []) {
     } catch (Exception $e) {
         error_log('管理者通知エラー: ' . $e->getMessage());
     }
+
+    do_action('aidunite_team_registered', (int) $team_id);
 
     return $team_id;
 }
@@ -983,6 +990,87 @@ function aidunite_get_monthly_support_count($user_id) {
 }
 
 /*--------------------------------------------------------------
+  チームロゴ URL（表示可否・日本語ファイル名対応）
+--------------------------------------------------------------*/
+if (!function_exists('aidunite_team_logo_is_displayable')) {
+    /**
+     * ロゴ img を出してよい URL か（filter_var は日本語パスで false になりやすいため不使用）
+     *
+     * @param string $url
+     * @return bool
+     */
+    function aidunite_team_logo_is_displayable($url) {
+        $url = trim((string) $url);
+        if ($url === '') {
+            return false;
+        }
+
+        if (strpos($url, '/wp-content/uploads/') !== false) {
+            return true;
+        }
+
+        $parsed = wp_parse_url($url);
+        if (!empty($parsed['scheme']) && !empty($parsed['host'])) {
+            return true;
+        }
+
+        $escaped = esc_url($url);
+
+        return $escaped !== '' && $escaped !== '#';
+    }
+}
+
+if (!function_exists('aidunite_team_logo_normalize_storage_url')) {
+    /**
+     * 保存・出力用にロゴ URL を正規化
+     *
+     * @param string $url
+     * @return string
+     */
+    function aidunite_team_logo_normalize_storage_url($url) {
+        $url = trim((string) $url);
+        if ($url === '') {
+            return '';
+        }
+
+        return esc_url_raw($url);
+    }
+}
+
+if (!function_exists('aidunite_team_logo_normalize_uploaded_path')) {
+    /**
+     * アップロード直後: マルチバイトファイル名を ASCII にリネーム（URL 検証・CDN 互換）
+     *
+     * @param string $file_path 絶対パス
+     * @return string リネーム後の絶対パス
+     */
+    function aidunite_team_logo_normalize_uploaded_path($file_path) {
+        $file_path = (string) $file_path;
+        if ($file_path === '' || !is_file($file_path)) {
+            return $file_path;
+        }
+
+        $basename = basename($file_path);
+        if ($basename === '' || !preg_match('/[^\x20-\x7E]/', $basename)) {
+            return $file_path;
+        }
+
+        $ext = strtolower((string) pathinfo($file_path, PATHINFO_EXTENSION));
+        if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+            $ext = 'png';
+        }
+        $dir = dirname($file_path);
+        $new_name = 'team-logo-' . wp_generate_password(10, false, false) . '.' . $ext;
+        $new_path = trailingslashit($dir) . $new_name;
+        if (@rename($file_path, $new_path)) {
+            return $new_path;
+        }
+
+        return $file_path;
+    }
+}
+
+/*--------------------------------------------------------------
   チームロゴの表示位置（申請フォームで調整）
 --------------------------------------------------------------*/
 if (!function_exists('aidunite_sanitize_team_logo_crop')) {
@@ -1041,14 +1129,17 @@ if (!function_exists('aidunite_get_team_logo_crop')) {
 --------------------------------------------------------------*/
 if (!function_exists('aidunite_get_team_logo_max_upload_bytes')) {
     function aidunite_get_team_logo_max_upload_bytes() {
-        return (int) apply_filters('aidunite_team_logo_max_upload_bytes', 10 * 1024 * 1024);
+        return function_exists('aidunite_get_image_upload_max_bytes')
+            ? aidunite_get_image_upload_max_bytes()
+            : (int) apply_filters('aidunite_team_logo_max_upload_bytes', 10 * 1024 * 1024);
     }
 }
 
 if (!function_exists('aidunite_get_team_logo_max_upload_label')) {
     function aidunite_get_team_logo_max_upload_label() {
-        $mb = (int) round(aidunite_get_team_logo_max_upload_bytes() / (1024 * 1024));
-        return $mb > 0 ? $mb . 'MB' : '10MB';
+        return function_exists('aidunite_get_image_upload_max_label')
+            ? aidunite_get_image_upload_max_label()
+            : '10MB';
     }
 }
 
@@ -1200,9 +1291,15 @@ function ajax_team_registration_logo_upload() {
         }
     }
 
+    if (function_exists('aidunite_team_logo_normalize_uploaded_path')) {
+        $resized_path = aidunite_team_logo_normalize_uploaded_path($resized_path);
+    }
+
     $upload_dir = wp_upload_dir();
     $url = str_replace($upload_dir['basedir'], $upload_dir['baseurl'], $resized_path);
-    $url = esc_url_raw($url);
+    $url = function_exists('aidunite_team_logo_normalize_storage_url')
+        ? aidunite_team_logo_normalize_storage_url($url)
+        : esc_url_raw($url);
 
     wp_send_json([
         'success' => true,
@@ -1284,9 +1381,8 @@ function ajax_team_registration() {
             ]);
         }
 
-        $suffix = $gender_scope === 'male' ? '男子' : '女子';
         if (function_exists('aidunite_build_team_registration_data_from_post')) {
-            $team_data = aidunite_build_team_registration_data_from_post($_POST, $gender_scope, $suffix);
+            $team_data = aidunite_build_team_registration_data_from_post($_POST, $gender_scope);
         } else {
             $team_data = [
                 'team_name'          => $_POST['team_name'] ?? '',
@@ -1329,62 +1425,23 @@ function ajax_team_registration() {
             // プラン・決済は申請フォームからは送信しない（価値体験後に別導線）。レガシーPOSTがあればのみ処理。
             $selected_plan_id = sanitize_text_field($_POST['selected_plan_id'] ?? '');
             $selected_payment_method = sanitize_text_field($_POST['selected_payment_method'] ?? '');
-            $board_code = sanitize_text_field($_POST['board_registration_code'] ?? '');
 
-            if ($selected_plan_id !== '' || $board_code !== '') {
+            if ($selected_plan_id !== '') {
                 require_once get_template_directory() . '/functions/payment/payment-config.php';
                 require_once get_template_directory() . '/functions/payment/payment-functions.php';
             }
 
-            if (!empty($board_code)) {
-                // 専用コードが使用済みかチェック
-                if (aidunite_is_registration_code_used($board_code)) {
-                    // バリデーションエラー（フォームエラーとして扱う）
-                    AidUniteApiResponse::send_validation_error(
-                        ['board_registration_code' => 'この専用コードは既に使用されています'],
-                        '入力内容を確認してください'
-                    );
-                    return;
-                }
-
-                // 専用コードを設定
-                aidunite_set_board_registration_code($team_id, $board_code);
-                aidunite_set_team_payment_mode($team_id, 'board');
-
-                // デフォルトプランを適用
-                $config = aidunite_get_payment_config();
-                $config_key = function_exists('aidunite_team_type_payment_config_key')
-                    ? aidunite_team_type_payment_config_key($team_id)
-                    : (function_exists('aidunite_team_type_is_club') && aidunite_team_type_is_club($team_type) ? 'club' : 'school');
-                $plans = $config[$config_key]['plans'];
-
-                foreach ($plans as $plan) {
-                    if (!empty($plan['is_default'])) {
-                        $selected_plan_id = $plan['id'];
-                        break;
-                    }
-                }
-            }
-
-            if (!empty($selected_plan_id) && function_exists('aidunite_set_selected_plan_id')) {
-                aidunite_set_selected_plan_id($team_id, $selected_plan_id);
-                if (function_exists('aidunite_set_trial_start_date')) {
-                    aidunite_set_trial_start_date($team_id);
-                }
-                if ($selected_payment_method !== '') {
-                    update_post_meta($team_id, 'selected_payment_method', $selected_payment_method);
-                }
-                if (empty($board_code)) {
-                    if ($selected_payment_method === 'invoice' && function_exists('aidunite_set_team_payment_mode')) {
-                        aidunite_set_team_payment_mode($team_id, 'school');
-                    } elseif (function_exists('aidunite_set_team_payment_mode')) {
-                        aidunite_set_team_payment_mode($team_id, 'personal');
-                    }
-                }
-                if (function_exists('aidunite_set_payment_status')) {
-                    $payment_user_id = get_current_user_id() ?: (int) $user_id;
-                    aidunite_set_payment_status($payment_user_id, 'trial');
-                }
+            if (!empty($selected_plan_id) && function_exists('aidunite_payment_persist_plan_selection')) {
+                $payment_user_id = get_current_user_id() ?: (int) $user_id;
+                $product_plan = strpos($selected_plan_id, 'club') !== false ? 'club' : 'match';
+                $payment_mode = $selected_payment_method === 'invoice' ? 'corporate' : 'personal';
+                aidunite_payment_persist_plan_selection($team_id, $payment_user_id, [
+                    'selected_plan_id' => $selected_plan_id,
+                    'product_plan' => $product_plan,
+                    'selected_payment_method' => $selected_payment_method,
+                    'payment_mode' => $payment_mode,
+                    'trial_start_date' => null,
+                ]);
             }
 
             wp_send_json(array(

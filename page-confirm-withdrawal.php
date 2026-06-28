@@ -3,7 +3,7 @@
  * Template Name: 退会完了
  * 退会確認リンククリック後の表示。スラッグを confirm-withdrawal にした固定ページで使用。
  * docs/withdrawal-risks-and-gaps.md 1.2, 5.6
- * 代表者: step=rep_confirm で「相手に通知するか」選択、step=rep_scheduled で受付完了表示。
+ * 代表者: step=rep_confirm で解散確定、step=rep_scheduled で受付完了表示。
  */
 
 get_header();
@@ -26,14 +26,9 @@ $is_rep_scheduled = ($step === 'rep_scheduled');
     <?php elseif ($is_rep_confirm) : ?>
       <h1 style="margin-top: 0;">代表者退会の確認</h1>
       <p>1か月後にチームを解散し、ご本人のアカウントを削除する手続きを進めます。チームの他メンバーには自動で通知されます。</p>
-      <p><strong>決まっている練習試合の相手チームに、解散の旨を通知しますか？</strong></p>
       <form method="post" action="<?php echo esc_url(home_url('/confirm-withdrawal')); ?>">
         <input type="hidden" name="rep_withdrawal_confirm" value="1">
         <input type="hidden" name="token" value="<?php echo esc_attr($token); ?>">
-        <p style="margin: 1rem 0;">
-          <label style="display: inline-block; margin-right: 1rem;"><input type="radio" name="notify_opponents" value="1" required> する（相手代表者に通知する）</label>
-          <label style="display: inline-block;"><input type="radio" name="notify_opponents" value="0"> しない</label>
-        </p>
         <p style="margin-top: 1.5rem;">
           <button type="submit" class="button" style="padding: 0.5rem 1rem; background: var(--primary-color, #0073aa); color: #fff; border: none; border-radius: var(--radius-small, 4px); cursor: pointer;">退会手続きを確定する</button>
         </p>
@@ -41,7 +36,7 @@ $is_rep_scheduled = ($step === 'rep_scheduled');
     <?php elseif ($is_rep_scheduled) : ?>
       <h1 style="margin-top: 0;">退会手続きを受け付けました</h1>
       <p>代表者退会の手続きを受け付けました。1か月後にチームが解散し、ご本人のアカウントが削除されます。</p>
-      <p>チームの他メンバーには通知済みです。相手に通知を選んだ場合は、決まっている試合の相手チーム代表者にも通知しています。</p>
+      <p>チームの他メンバーには通知済みです。</p>
       <p>それまでに取り消しをご希望の場合はお問い合わせください。</p>
       <p style="margin-top: 1.5rem;">
         <a href="<?php echo esc_url(home_url('/')); ?>" class="button" style="display: inline-block; padding: 0.5rem 1rem; background: var(--primary-color, #0073aa); color: #fff; text-decoration: none; border-radius: var(--radius-small, 4px);">トップページへ</a>

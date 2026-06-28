@@ -3,13 +3,52 @@
   マッチ関連通知機能統合：match-notifications.php
 ====================================================================*/
 
+if (!function_exists('aidunite_match_notification_schedule_context')) {
+    /**
+     * 通知文面用の schedule 表示コンテキスト（canonical 読取）
+     *
+     * @param int $schedule_id
+     * @return array{team_id:int,date:string,place:string,place_raw:string}
+     */
+    function aidunite_match_notification_schedule_context($schedule_id) {
+        $schedule_id = (int) $schedule_id;
+        $api = ($schedule_id > 0 && function_exists('aidunite_schedule_get_api_display_fields'))
+            ? aidunite_schedule_get_api_display_fields($schedule_id)
+            : [];
+        $place_raw = (string) ($api['place'] ?? '');
+        if ($place_raw === '' && $schedule_id > 0 && function_exists('aidunite_schedule_read_place_raw')) {
+            $place_raw = aidunite_schedule_read_place_raw($schedule_id);
+        }
+        $place_disp = $place_raw;
+        if ($place_raw !== '' && function_exists('aidunite_jp_place')) {
+            $place_disp = aidunite_jp_place($place_raw);
+        }
+
+        return [
+            'team_id'   => (int) ($api['team_id'] ?? ($schedule_id > 0 && function_exists('aidunite_schedule_read_team_id')
+                ? aidunite_schedule_read_team_id($schedule_id)
+                : (int) get_post_meta($schedule_id, 'team_id', true))),
+            'date'      => (string) ($api['date'] ?? ($schedule_id > 0 && function_exists('aidunite_schedule_read_normalized_date')
+                ? aidunite_schedule_read_normalized_date($schedule_id)
+                : '')),
+            'place'     => (string) $place_disp,
+            'place_raw' => (string) $place_raw,
+        ];
+    }
+}
+
 /**
  * マッチ申請通知を送信（統合版）
  */
 function send_match_request_notification($match_request_id, $target_schedule_id, $from_team_id) {
+    if (function_exists('aidunite_onboarding_bot_maybe_suppress_notification')
+        && aidunite_onboarding_bot_maybe_suppress_notification((int) $match_request_id)) {
+        return false;
+    }
+
     try {
-        // 申請先チームのIDを取得
-        $to_team_id = get_post_meta($target_schedule_id, 'team_id', true);
+        $sched_ctx = aidunite_match_notification_schedule_context((int) $target_schedule_id);
+        $to_team_id = (int) $sched_ctx['team_id'];
         if (!$to_team_id) {
             error_log("❌ 通知送信失敗：申請先チームIDが取得できません schedule_id={$target_schedule_id}");
             return false;
@@ -21,13 +60,8 @@ function send_match_request_notification($match_request_id, $target_schedule_id,
             $from_team_name = "チームID: {$from_team_id}";
         }
 
-        // スケジュール情報を取得
-        $schedule_date = get_post_meta($target_schedule_id, 'schedule_date', true);
-        // Phase 2: 統一メタキーを優先、後方互換性のために旧キーもフォールバック
-        $schedule_place = get_post_meta($target_schedule_id, 'schedule_place', true);
-        if (empty($schedule_place)) {
-            $schedule_place = get_post_meta($target_schedule_id, 'schedule_place_option', true);
-        }
+        $schedule_date = (string) $sched_ctx['date'];
+        $schedule_place = (string) $sched_ctx['place'];
 
         // 申請先チームの代表者を取得
         $team_leaders = get_team_leaders($to_team_id);
@@ -166,12 +200,11 @@ function send_match_approval_notification($request_id) {
             return false;
         }
 
-        // スケジュール情報を取得
-        $schedule_date = get_post_meta($to_schedule_id, 'schedule_date', true);
-        $schedule_place = get_post_meta($to_schedule_id, 'schedule_place_option', true) ?:
-                         get_post_meta($to_schedule_id, 'schedule_place', true);
+        $sched_ctx = aidunite_match_notification_schedule_context((int) $to_schedule_id);
+        $schedule_date = (string) $sched_ctx['date'];
+        $schedule_place = (string) $sched_ctx['place'];
 
-        $to_team_name = get_the_title(get_post_meta($to_schedule_id, 'team_id', true));
+        $to_team_name = get_the_title((int) $sched_ctx['team_id']);
 
         // 各代表者に通知を送信
         $success_count = 0;
@@ -197,7 +230,7 @@ function send_match_approval_notification($request_id) {
                 'data' => [
                     'match_request_id' => $request_id,
                     'from_team_id' => $from_team_id,
-                    'to_team_id' => get_post_meta($to_schedule_id, 'team_id', true),
+                    'to_team_id' => (int) $sched_ctx['team_id'],
                     'schedule_id' => $to_schedule_id,
                     'schedule_date' => $schedule_date
                 ]
@@ -236,7 +269,7 @@ function send_match_feedback_survey_notifications($match_request_id) {
         if ($to_team_id <= 0) {
             $to_schedule_id = (int) get_post_meta($match_request_id, 'to_schedule_id', true);
             if ($to_schedule_id > 0) {
-                $to_team_id = (int) get_post_meta($to_schedule_id, 'team_id', true);
+                $to_team_id = (int) aidunite_match_notification_schedule_context($to_schedule_id)['team_id'];
             }
         }
         if ($from_team_id <= 0 || $to_team_id <= 0) {
@@ -311,8 +344,9 @@ function send_match_rejection_notification($request_id) {
             return false;
         }
 
-        $schedule_date = get_post_meta($to_schedule_id, 'schedule_date', true);
-        $to_team_name = get_the_title(get_post_meta($to_schedule_id, 'team_id', true));
+        $sched_ctx = aidunite_match_notification_schedule_context((int) $to_schedule_id);
+        $schedule_date = (string) $sched_ctx['date'];
+        $to_team_name = get_the_title((int) $sched_ctx['team_id']);
 
         // 各代表者に通知を送信
         $success_count = 0;
@@ -327,7 +361,7 @@ function send_match_rejection_notification($request_id) {
                 'data' => [
                     'match_request_id' => $request_id,
                     'from_team_id' => $from_team_id,
-                    'to_team_id' => get_post_meta($to_schedule_id, 'team_id', true),
+                    'to_team_id' => (int) $sched_ctx['team_id'],
                     'schedule_id' => $to_schedule_id,
                     'schedule_date' => $schedule_date
                 ]
@@ -359,7 +393,8 @@ function send_match_cancellation_notification($request_id, $actor_team_id = 0) {
     $request_id = (int) $request_id;
     $from_team_id = (int) get_post_meta($request_id, 'from_team_id', true);
     $to_schedule_id = (int) get_post_meta($request_id, 'to_schedule_id', true);
-    $to_team_id = (int) get_post_meta($to_schedule_id, 'team_id', true);
+    $sched_ctx = ($to_schedule_id > 0) ? aidunite_match_notification_schedule_context($to_schedule_id) : ['team_id' => 0, 'date' => '', 'place' => '', 'place_raw' => ''];
+    $to_team_id = (int) ($sched_ctx['team_id'] > 0 ? $sched_ctx['team_id'] : get_post_meta($to_schedule_id, 'team_id', true));
 
     if ($from_team_id <= 0 || $to_team_id <= 0) {
         return false;
@@ -375,7 +410,7 @@ function send_match_cancellation_notification($request_id, $actor_team_id = 0) {
 
     $from_team_name = get_the_title($from_team_id);
     $to_team_name = get_the_title($to_team_id);
-    $schedule_date = get_post_meta($to_schedule_id, 'schedule_date', true);
+    $schedule_date = (string) $sched_ctx['date'];
 
     $teams = [
         $from_team_id => $from_team_name,
@@ -460,7 +495,7 @@ function send_match_request_superseded_notifications($canceled_request_id, $winn
             return false;
         }
 
-        $host_team_id = (int) get_post_meta($to_schedule_id, 'team_id', true);
+        $host_team_id = (int) aidunite_match_notification_schedule_context($to_schedule_id)['team_id'];
         $from_team_name = get_the_title($from_team_id);
         if ($from_team_name === '') {
             $from_team_name = 'チームID: ' . $from_team_id;
@@ -694,7 +729,7 @@ function send_match_request_reconfirm_accepted_notification($request_id, $accept
         return false;
     }
     $to_schedule_id = (int) get_post_meta($request_id, 'to_schedule_id', true);
-    $to_team_id = (int) get_post_meta($to_schedule_id, 'team_id', true);
+    $to_team_id = (int) aidunite_match_notification_schedule_context($to_schedule_id)['team_id'];
     if ($to_team_id <= 0) {
         return false;
     }
@@ -996,4 +1031,69 @@ if (!function_exists('aidunite_handle_match_status_change')) {
             send_match_rejection_notification($match_id);
         }
     }
+}
+
+/**
+ * 申請受信後48時間経過の承認リマインド（受信チーム代表者向け・1回）
+ */
+function send_match_request_pending_reminder_notification($request_id) {
+    $request_id = (int) $request_id;
+    if ($request_id <= 0) {
+        return false;
+    }
+
+    if (function_exists('aidunite_onboarding_bot_maybe_suppress_notification')
+        && aidunite_onboarding_bot_maybe_suppress_notification($request_id)) {
+        return false;
+    }
+
+    $canonical = function_exists('aidunite_match_request_get_canonical_meta')
+        ? aidunite_match_request_get_canonical_meta($request_id)
+        : [];
+    $to_schedule_id = (int) ($canonical['to_schedule_id'] ?? 0);
+    $from_team_id = (int) ($canonical['from_team_id'] ?? 0);
+    if ($to_schedule_id <= 0 || $from_team_id <= 0) {
+        return false;
+    }
+
+    $recipient_team_id = function_exists('aidunite_schedule_read_team_id')
+        ? (int) aidunite_schedule_read_team_id($to_schedule_id)
+        : 0;
+    if ($recipient_team_id <= 0) {
+        return false;
+    }
+
+    $from_team_name = function_exists('aidunite_get_team_name')
+        ? (string) aidunite_get_team_name($from_team_id)
+        : get_the_title($from_team_id);
+    if ($from_team_name === '') {
+        $from_team_name = '相手チーム';
+    }
+
+    $leaders = function_exists('get_team_leaders') ? get_team_leaders($recipient_team_id) : [];
+    if ($leaders === []) {
+        return false;
+    }
+
+    $link_url = home_url('/match-board-own');
+    $success = 0;
+    foreach ($leaders as $leader_id) {
+        $leader_id = (int) $leader_id;
+        if ($leader_id <= 0) {
+            continue;
+        }
+        $notification_data = [
+            'user_id' => $leader_id,
+            'type' => 'match_request_reminder',
+            'title' => '試合申請の回答をお忘れではありませんか',
+            'message' => $from_team_name . ' からの試合申請が未回答です。マッチボードから承認または却下してください。',
+            'link_url' => $link_url,
+            'related_id' => $request_id,
+        ];
+        if (function_exists('aidunite_create_notification') && aidunite_create_notification($notification_data)) {
+            $success++;
+        }
+    }
+
+    return $success > 0;
 }

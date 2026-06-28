@@ -7,24 +7,11 @@
     var cfg = window.aiduniteOnboardingBotModal || {};
     var restNonce = cfg.restNonce || (window.wpApiSettings && window.wpApiSettings.nonce) || '';
     var mypageUrl = cfg.mypageUrl || '/mypage/';
+    var recruitUrl = cfg.recruitUrl || (mypageUrl.replace(/\/?$/, '/') + '?open_recruit=1');
     var pendingChatUrl = '';
 
     function getModal() {
         return document.getElementById('mypage-onboarding-bot-chat-modal');
-    }
-
-    function setChatLink(url) {
-        var chatBtn = document.getElementById('mypage-onboarding-bot-chat-modal-chat');
-        if (!chatBtn) {
-            return;
-        }
-        if (url) {
-            chatBtn.href = url;
-            chatBtn.removeAttribute('hidden');
-        } else {
-            chatBtn.setAttribute('hidden', 'hidden');
-            chatBtn.href = '#';
-        }
     }
 
     function showOnboardingBotChatModal(chatUrl) {
@@ -35,7 +22,6 @@
         if (typeof chatUrl === 'string' && chatUrl !== '') {
             pendingChatUrl = chatUrl;
         }
-        setChatLink(pendingChatUrl);
         modal.removeAttribute('hidden');
         modal.classList.add('is-open');
         document.body.classList.add('mypage-onboarding-bot-modal-open');
@@ -55,15 +41,15 @@
     }
 
     function navigateAfterClose(mode) {
+        if (mode === 'close' || mode === 'later') {
+            window.location.href = recruitUrl;
+            return;
+        }
         if (mode === 'chat' && pendingChatUrl) {
             window.location.href = pendingChatUrl;
             return;
         }
-        if (mode === 'later') {
-            window.location.reload();
-            return;
-        }
-        window.location.href = mypageUrl;
+        window.location.href = recruitUrl;
     }
 
     function closeOnboardingBotChatModal(mode) {
@@ -86,7 +72,6 @@
         }
 
         pendingChatUrl = cfg.chatUrl || pendingChatUrl;
-        setChatLink(pendingChatUrl);
 
         var closeBtn = document.getElementById('mypage-onboarding-bot-chat-modal-close');
         if (closeBtn) {
@@ -94,30 +79,10 @@
                 closeOnboardingBotChatModal('close');
             });
         }
-        var laterBtn = document.getElementById('mypage-onboarding-bot-chat-modal-later');
-        if (laterBtn) {
-            laterBtn.addEventListener('click', function () {
-                closeOnboardingBotChatModal('later');
-            });
-        }
-        var chatBtn = document.getElementById('mypage-onboarding-bot-chat-modal-chat');
-        if (chatBtn) {
-            chatBtn.addEventListener('click', function (e) {
-                if (!pendingChatUrl) {
-                    e.preventDefault();
-                    return;
-                }
-                e.preventDefault();
-                closeOnboardingBotChatModal('chat');
-            });
-        }
         modal.querySelectorAll('[data-onboarding-bot-modal-close]').forEach(function (el) {
-            if (el.id === 'mypage-onboarding-bot-chat-modal-later') {
-                return;
-            }
             el.addEventListener('click', function () {
-                var mode = el.getAttribute('data-onboarding-bot-modal-close') || 'later';
-                closeOnboardingBotChatModal(mode === 'later' ? 'later' : 'close');
+                var mode = el.getAttribute('data-onboarding-bot-modal-close') || 'close';
+                closeOnboardingBotChatModal(mode);
             });
         });
         document.addEventListener('keydown', function (e) {

@@ -55,16 +55,17 @@ add_action('add_meta_boxes', 'add_schedule_metaboxes');
 function render_schedule_metabox($post) {
     wp_nonce_field('save_schedule_metabox', 'schedule_metabox_nonce');
 
-    // 既存の値を取得
-    $schedule_date = get_post_meta($post->ID, 'schedule_date', true);
-    $schedule_start_time = get_post_meta($post->ID, 'schedule_start_time', true);
-    $schedule_end_time = get_post_meta($post->ID, 'schedule_end_time', true);
-    $schedule_place = get_post_meta($post->ID, 'schedule_place', true);
-    $schedule_note = get_post_meta($post->ID, 'schedule_note', true);
-    $schedule_type = get_post_meta($post->ID, 'schedule_type', true);
-    $matching = get_post_meta($post->ID, 'matching', true); // 統一されたキー名を使用
-    $matching_gender_condition = get_post_meta($post->ID, 'matching_gender_condition', true);
-    $schedule_place_option = get_post_meta($post->ID, 'schedule_place_option', true);
+    // 既存の値を取得（表示は get_schedule_meta / display_bundle 経由）
+    $meta = function_exists('get_schedule_meta') ? get_schedule_meta($post->ID) : [];
+    $schedule_date = (string) ($meta['date'] ?? '');
+    $schedule_start_time = (string) ($meta['start_time'] ?? '');
+    $schedule_end_time = (string) ($meta['end_time'] ?? '');
+    $schedule_place = (string) ($meta['place'] ?? '');
+    $schedule_note = (string) ($meta['note'] ?? '');
+    $schedule_type = (string) ($meta['type'] ?? '');
+    $matching = (string) ($meta['matching'] ?? get_post_meta($post->ID, 'matching', true));
+    $matching_gender_condition = (string) ($meta['gender_condition'] ?? '');
+    $schedule_place_option = (string) ($meta['place_option'] ?? $schedule_place);
 
     // 時間オプション生成
     $time_options = '';
@@ -169,6 +170,13 @@ function render_schedule_metabox($post) {
 
 // メタボックス保存処理
 function save_schedule_metabox($post_id) {
+    if (function_exists('aidunite_schedule_is_persist_write_in_progress')
+        && aidunite_schedule_is_persist_write_in_progress()) {
+        return;
+    }
+    if (defined('REST_REQUEST') && REST_REQUEST) {
+        return;
+    }
     // セキュリティチェック
     if (!isset($_POST['schedule_metabox_nonce']) ||
         !wp_verify_nonce($_POST['schedule_metabox_nonce'], 'save_schedule_metabox')) {
@@ -226,28 +234,6 @@ function save_schedule_metabox($post_id) {
 
         return;
     }
-
-    // フォールバック（persist 未読込時のみ）
-    $fields = [
-        'schedule_date',
-        'schedule_start_time',
-        'schedule_end_time',
-        'schedule_place',
-        'schedule_note',
-        'schedule_type',
-        'matching_gender_condition',
-        'schedule_place_option',
-    ];
-
-    foreach ($fields as $field) {
-        if (isset($_POST[$field])) {
-            update_post_meta($post_id, $field, sanitize_text_field(wp_unslash($_POST[$field])));
-        }
-    }
-
-    $matching = isset($_POST['matching']) ? '1' : '0';
-    update_post_meta($post_id, 'matching', $matching);
-    update_post_meta($post_id, 'is_match_requested', $matching);
 }
 add_action('save_post', 'save_schedule_metabox');
 
@@ -288,21 +274,67 @@ function get_schedule_meta($post_id, $key = null) {
         ];
     }
 
+    if (function_exists('aidunite_schedule_get_display_bundle')) {
+        $bundle = aidunite_schedule_get_display_bundle((int) $post_id);
+        if ($bundle !== []) {
+            if ($key) {
+                $map = [
+                    'date' => 'date',
+                    'start_time' => 'start_time',
+                    'end_time' => 'end_time',
+                    'place' => 'place',
+                    'note' => 'memo',
+                    'type' => 'schedule_type',
+                    'matching' => 'matching',
+                    'gender_condition' => 'gender',
+                    'place_option' => 'place',
+                    'team_id' => 'team_id',
+                ];
+                $bundle_key = $map[$key] ?? $key;
+
+                return $bundle[$bundle_key] ?? get_post_meta($post_id, $key, true);
+            }
+
+            return [
+                'date' => (string) ($bundle['date'] ?? ''),
+                'start_time' => (string) ($bundle['start_time'] ?? ''),
+                'end_time' => (string) ($bundle['end_time'] ?? ''),
+                'place' => (string) ($bundle['place'] ?? ''),
+                'note' => (string) ($bundle['memo'] ?? ''),
+                'type' => (string) ($bundle['schedule_type'] ?? ''),
+                'matching' => (string) ($bundle['matching'] ?? ''),
+                'gender_condition' => (string) ($bundle['gender'] ?? ''),
+                'place_option' => (string) ($bundle['place'] ?? ''),
+                'team_id' => (int) ($bundle['team_id'] ?? 0),
+            ];
+        }
+    }
+
     if ($key) {
         return get_post_meta($post_id, $key, true);
     }
 
     return [
-        'date' => get_post_meta($post_id, 'schedule_date', true),
-        'start_time' => get_post_meta($post_id, 'schedule_start_time', true),
-        'end_time' => get_post_meta($post_id, 'schedule_end_time', true),
-        'place' => get_post_meta($post_id, 'schedule_place', true),
-        'note' => get_post_meta($post_id, 'schedule_note', true),
-        'type' => get_post_meta($post_id, 'schedule_type', true),
-        'matching' => get_post_meta($post_id, 'matching', true),
-        'gender_condition' => get_post_meta($post_id, 'matching_gender_condition', true),
-        'place_option' => get_post_meta($post_id, 'schedule_place_option', true),
-        'team_id' => get_post_meta($post_id, 'team_id', true),
+        'date' => function_exists('aidunite_schedule_read_normalized_date')
+            ? aidunite_schedule_read_normalized_date((int) $post_id)
+            : '',
+        'start_time' => '',
+        'end_time' => '',
+        'place' => function_exists('aidunite_schedule_read_place_raw')
+            ? aidunite_schedule_read_place_raw((int) $post_id)
+            : '',
+        'note' => '',
+        'type' => '',
+        'matching' => (string) get_post_meta($post_id, 'matching', true),
+        'gender_condition' => function_exists('aidunite_schedule_read_gender_raw')
+            ? aidunite_schedule_read_gender_raw((int) $post_id)
+            : '',
+        'place_option' => function_exists('aidunite_schedule_read_place_raw')
+            ? aidunite_schedule_read_place_raw((int) $post_id)
+            : '',
+        'team_id' => function_exists('aidunite_schedule_read_team_id')
+            ? aidunite_schedule_read_team_id((int) $post_id)
+            : 0,
     ];
 }
 

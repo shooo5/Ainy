@@ -62,11 +62,30 @@ function aidunite_schedule_finalize_new_recruit($schedule_id, $user_id, $team_id
 
     $board_id = aidunite_schedule_find_match_board_id_for_schedule($schedule_id);
     if ($board_id < 1 && function_exists('aidunite_schedule_create_match_board_for_recruit')) {
-        $board_id = aidunite_schedule_create_match_board_for_recruit($schedule_id, $user_id);
+        try {
+            $board_id = aidunite_schedule_create_match_board_for_recruit($schedule_id, $user_id);
+        } catch (Throwable $e) {
+            if (class_exists('AidUniteErrorHandler')) {
+                AidUniteErrorHandler::warning('schedule_create_match_board_failed', [
+                    'schedule_id' => $schedule_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+            $board_id = 0;
+        }
     }
 
     if ($team_id > 0 && function_exists('send_high_match_notifications')) {
-        send_high_match_notifications($schedule_id, $team_id);
+        try {
+            send_high_match_notifications($schedule_id, $team_id);
+        } catch (Throwable $e) {
+            if (class_exists('AidUniteErrorHandler')) {
+                AidUniteErrorHandler::warning('schedule_high_match_notify_failed', [
+                    'schedule_id' => $schedule_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     return (int) $board_id;
@@ -241,6 +260,24 @@ function aidunite_schedule_validate_wizard_submission(array $parsed, $team_id, a
         }
     }
 
+    if ($intent === 'recruit' && $team_id > 0 && function_exists('aidunite_payment_exit_grace_blocks_date')) {
+        $dates_to_check = [];
+        if ($start_date !== '') {
+            $dates_to_check[] = $start_date;
+        }
+        if ($all_confirmed_dates !== '') {
+            foreach (array_filter(array_map('trim', explode(',', $all_confirmed_dates))) as $d) {
+                $dates_to_check[] = $d;
+            }
+        }
+        foreach ($dates_to_check as $d) {
+            if (aidunite_payment_exit_grace_blocks_date($team_id, $d)) {
+                $errors[] = '解約・退会・解散の手続き中は、翌月以降の試合募集はできません。';
+                break;
+            }
+        }
+    }
+
     if ($intent === 'recruit') {
         if ($venue_condition === '') {
             $errors[] = '会場条件は必須です';
@@ -316,6 +353,7 @@ function aidunite_schedule_persist_payload_from_wizard(array $parsed, $date, $us
         'certainty' => ($intent === 'tentative') ? 'tentative' : 'firm',
         'schedule_type' => (string) ($parsed['schedule_type'] ?? ''),
         'date' => (string) $date,
+        'end_date' => (string) ($parsed['end_date'] ?? ''),
         'start_time' => (string) ($parsed['start_time'] ?? ''),
         'end_time' => (string) ($parsed['end_time'] ?? ''),
         'venue_condition' => (string) ($parsed['venue_condition'] ?? ''),
@@ -374,14 +412,25 @@ function aidunite_schedule_validate_registration_data(array $data) {
         if (!AidUniteValidator::validateDate($data['date'] ?? '')) {
             $errors[] = '無効な日付形式です';
         }
-        if (!AidUniteValidator::validateTime($data['start_time'] ?? '')) {
-            $errors[] = '無効な開始時間です';
-        }
-        if (!AidUniteValidator::validateTime($data['end_time'] ?? '')) {
-            $errors[] = '無効な終了時間です';
-        }
-        if (!AidUniteValidator::validateTimeOrder($data['start_time'] ?? '', $data['end_time'] ?? '')) {
-            $errors[] = '終了時間は開始時間より後にしてください';
+        $allows_all_day = function_exists('aidunite_schedule_data_allows_all_day')
+            && aidunite_schedule_data_allows_all_day($data);
+        $start_time = (string) ($data['start_time'] ?? '');
+        $end_time = (string) ($data['end_time'] ?? '');
+        $all_day = !empty($data['all_day']) && (string) $data['all_day'] !== '0';
+        if ($all_day || ($allows_all_day && $start_time === '' && $end_time === '')) {
+            // 終日（休み・合宿・遠征・仮予定等）
+        } elseif ($start_time === '' || $end_time === '') {
+            $errors[] = '開始・終了時間を入力してください';
+        } else {
+            if (!AidUniteValidator::validateTime($start_time)) {
+                $errors[] = '無効な開始時間です';
+            }
+            if (!AidUniteValidator::validateTime($end_time)) {
+                $errors[] = '無効な終了時間です';
+            }
+            if (!AidUniteValidator::validateTimeOrder($start_time, $end_time)) {
+                $errors[] = '終了時間は開始時間より後にしてください';
+            }
         }
     }
     if ($team_id < 1) {

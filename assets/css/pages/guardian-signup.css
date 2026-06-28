@@ -1,35 +1,67 @@
-/* ========================================
-   保護者登録ページ専用スタイル
-   Design Tokens 使用（Ainy-UI-Unified-Rules 準拠）
-   ======================================== */
+/* guardian-signup.css */
 
-.guardian-signup-container,
-.team-dashboard-container .mypage-card {
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-  padding: var(--spacing-lg);
+.guardian-signup-flow .field-error {
+  display: none;
+  color: #c62828;
+  font-size: var(--font-size-sm, 0.875rem);
+  margin-top: 0.25rem;
 }
 
-.guardian-signup-container .form-group,
-.team-dashboard-container .form-group {
-  margin-bottom: var(--spacing-base);
+.guardian-signup-flow .field-error.is-visible {
+  display: block;
 }
 
-.guardian-signup-container label,
-.team-dashboard-container .mypage-card label {
-  font-size: var(--font-size-sm);
-  color: var(--text-primary);
+.guardian-signup-flow .guardian-flow-input.error {
+  border-color: #e57373;
 }
 
-.guardian-signup-container .btn,
-.team-dashboard-container .mypage-card .btn {
-  min-height: 44px;
-  border-radius: var(--radius-base);
+.guardian-signup-flow .guardian-flow-sidebar .guardian-flow-card {
+  margin-bottom: var(--spacing-md, 1rem);
 }
 
-.guardian-signup-container .btn:focus-visible,
-.team-dashboard-container .mypage-card .btn:focus-visible {
-  outline: 2px solid var(--primary-color);
+.guardian-signup-flow .guardian-flow-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.guardian-signup-flow .guardian-flow-input-wrap--password .guardian-flow-input {
+  padding-right: calc(var(--spacing-xl, 2rem) + var(--spacing-base, 1rem));
+  width: 100%;
+}
+
+.guardian-signup-flow .guardian-flow-password-toggle {
+  position: absolute;
+  right: var(--spacing-sm, 0.5rem);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-small, 4px);
+  background: transparent;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.guardian-signup-flow .guardian-flow-password-toggle:hover {
+  background: var(--bg-secondary, #f5f5f5);
+  color: var(--primary-color, #6a5af9);
+}
+
+.guardian-signup-flow .guardian-flow-password-toggle:focus-visible {
+  outline: 2px solid var(--primary-color, #6a5af9);
   outline-offset: 2px;
+}
+
+.guardian-signup-flow .guardian-flow-toggle-icon svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  color: inherit;
 }

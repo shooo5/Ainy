@@ -35,7 +35,7 @@ function aidunite_is_legacy_first_match_request() {
 }
 
 /**
- * 旧 /first-match → スケジュール登録へ恒久リダイレクト
+ * 旧 /first-match → マイページ（試合募集クイックモーダル）へ恒久リダイレクト
  */
 function aidunite_activation_legacy_first_match_redirect() {
     if (!aidunite_is_legacy_first_match_request()) {
@@ -47,6 +47,58 @@ function aidunite_activation_legacy_first_match_redirect() {
 }
 
 add_action('template_redirect', 'aidunite_activation_legacy_first_match_redirect', 5);
+
+/**
+ * 廃止した /schedule-edit → スケジュール管理 or マイページ（クイックモーダル）
+ */
+function aidunite_redirect_legacy_schedule_edit_page() {
+    if (!is_user_logged_in() || !is_page('schedule-edit')) {
+        return;
+    }
+
+    $schedule_id = 0;
+    if (!empty($_GET['post_id'])) {
+        $schedule_id = absint(wp_unslash((string) $_GET['post_id']));
+    } elseif (!empty($_GET['id'])) {
+        $schedule_id = absint(wp_unslash((string) $_GET['id']));
+    } elseif (!empty($_GET['schedule_id'])) {
+        $schedule_id = absint(wp_unslash((string) $_GET['schedule_id']));
+    }
+
+    if ($schedule_id > 0 && function_exists('aidunite_get_schedule_edit_url')) {
+        wp_safe_redirect(aidunite_get_schedule_edit_url($schedule_id));
+        exit;
+    }
+
+    $date = '';
+    if (!empty($_GET['date'])) {
+        $date = sanitize_text_field(wp_unslash((string) $_GET['date']));
+    }
+
+    if ($date !== '' && function_exists('aidunite_schedule_edit_is_trial_simplified')
+        && aidunite_schedule_edit_is_trial_simplified()) {
+        wp_safe_redirect(aidunite_get_activation_recruit_edit_url());
+        exit;
+    }
+
+    if ($date !== '' && function_exists('aidunite_get_schedule_edit_url')) {
+        wp_safe_redirect(aidunite_get_schedule_edit_url(0, $date));
+        exit;
+    }
+
+    if (function_exists('aidunite_schedule_edit_is_trial_simplified')
+        && aidunite_schedule_edit_is_trial_simplified()) {
+        wp_safe_redirect(aidunite_get_activation_recruit_edit_url());
+        exit;
+    }
+
+    wp_safe_redirect(function_exists('aidunite_get_schedule_edit_url')
+        ? aidunite_get_schedule_edit_url()
+        : home_url('/schedule-management/'));
+    exit;
+}
+
+add_action('template_redirect', 'aidunite_redirect_legacy_schedule_edit_page', 6);
 
 /**
  * ロックページへのアクセス制御

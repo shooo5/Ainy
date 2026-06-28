@@ -31,12 +31,15 @@ if ($token) {
 $og_title = '試合招待の確認';
 $og_description = '試合の招待が届いています。リンクをタップして内容を確認し、承認または拒否してください。';
 if ($token_data && $schedule) {
-    $schedule_date = get_post_meta($schedule->ID, 'schedule_date', true);
-    $schedule_start = get_post_meta($schedule->ID, 'schedule_start_time', true);
-    $schedule_end = get_post_meta($schedule->ID, 'schedule_end_time', true);
-    $venue_name = get_post_meta($schedule->ID, 'venue_name', true);
+    $sch_inv = function_exists('aidunite_schedule_get_api_display_fields')
+        ? aidunite_schedule_get_api_display_fields((int) $schedule->ID)
+        : [];
+    $schedule_date = (string) ($sch_inv['date'] ?? '');
+    $schedule_start = (string) ($sch_inv['start_time'] ?? '');
+    $schedule_end = (string) ($sch_inv['end_time'] ?? '');
+    $venue_name = (string) ($sch_inv['venue_name'] ?? '');
     $user_id = $token_data['user_id'];
-    $team_id = get_user_meta($user_id, 'team_id', true);
+    $team_id = aidunite_user_read_primary_team_id((int) $user_id);
     $team_name = $team_id ? get_the_title($team_id) : '';
     $date_ja = $schedule_date ? date('Y年n月j日', strtotime($schedule_date)) : '';
     $time_ja = ($schedule_start && $schedule_end) ? "{$schedule_start}〜{$schedule_end}" : '';
@@ -56,7 +59,12 @@ add_action('wp_head', function () use ($og_title, $og_description) {
 }, 1);
 
 // CSS読み込み
-wp_enqueue_style('match-invite-style', get_stylesheet_directory_uri() . '/assets/css/pages/match-invite.css', [], '1.0.0');
+wp_enqueue_style(
+    'match-invite-style',
+    get_stylesheet_directory_uri() . '/assets/css/pages/match-invite.css',
+    ['aidunite-style', 'button-style', 'form-style'],
+    '1.0.0'
+);
 
 // JS読み込み
 wp_enqueue_script('match-invite-js', get_stylesheet_directory_uri() . '/assets/js/match/match-invite.js', ['jquery'], '1.0.0', true);
@@ -81,11 +89,16 @@ get_header();
     <?php else: ?>
         <!-- 試合情報表示 -->
         <?php
-        $schedule_date = get_post_meta($schedule->ID, 'schedule_date', true);
-        $schedule_start = get_post_meta($schedule->ID, 'schedule_start_time', true);
-        $schedule_end = get_post_meta($schedule->ID, 'schedule_end_time', true);
-        $schedule_gender = get_post_meta($schedule->ID, 'schedule_gender', true);
-        $venue_name = get_post_meta($schedule->ID, 'venue_name', true);
+        $sch_inv = function_exists('aidunite_schedule_get_api_display_fields')
+            ? aidunite_schedule_get_api_display_fields((int) $schedule->ID)
+            : [];
+        $schedule_date = (string) ($sch_inv['date'] ?? '');
+        $schedule_start = (string) ($sch_inv['start_time'] ?? '');
+        $schedule_end = (string) ($sch_inv['end_time'] ?? '');
+        $schedule_gender = (string) ($sch_inv['gender'] ?? (function_exists('aidunite_schedule_read_gender_raw')
+            ? aidunite_schedule_read_gender_raw((int) $schedule->ID)
+            : ''));
+        $venue_name = (string) ($sch_inv['venue_name'] ?? '');
         // 招待＝当方ホームなので、相手側にはアウェイ @会場名で表示
         $venue_display = !empty($venue_name) ? 'アウェイ @' . $venue_name : '会場名未設定';
 
@@ -103,7 +116,7 @@ get_header();
 
         // 相手チーム名を取得
         $user_id = $token_data['user_id'];
-        $team_id = get_user_meta($user_id, 'team_id', true);
+        $team_id = aidunite_user_read_primary_team_id((int) $user_id);
         $team_name = '';
         if ($team_id) {
             $team_post = get_post($team_id);

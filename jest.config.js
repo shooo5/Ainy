@@ -33,7 +33,6 @@ module.exports = {
         'js/common/schedule-utils.js',
         'js/form-notifications.js',
         'js/loading-spinner-utils.js',
-        'js/match/match-actions.js',
         'js/match/match-board-button-control.js',
         'js/pages/profile-edit.js',
         'js/schedule/schedule-edit.js',

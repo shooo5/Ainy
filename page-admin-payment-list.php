@@ -13,76 +13,150 @@ if (!$auth_result->is_valid()) {
 
 require_once get_template_directory() . '/functions/payment/payment-config.php';
 require_once get_template_directory() . '/functions/payment/admin-payment-list.php';
+require_once get_template_directory() . '/functions/common/admin-list-display.php';
 
+$active_tab = aidunite_admin_payment_list_normalize_tab(
+    isset($_GET['apl_tab']) ? sanitize_key(wp_unslash($_GET['apl_tab'])) : 'teams'
+);
 $list_page_var = 'apl_paged';
 $per_page = 25;
-$payment_status_filter = isset($_GET['payment_status_filter']) ? sanitize_text_field(wp_unslash($_GET['payment_status_filter'])) : '';
-$allowed_status = ['', 'paid', 'trial', 'unpaid', 'cancelled'];
-if (!in_array($payment_status_filter, $allowed_status, true)) {
-    $payment_status_filter = '';
+
+$contract_filter = isset($_GET['contract_filter']) ? sanitize_key(wp_unslash($_GET['contract_filter'])) : '';
+$tuition_status_filter = isset($_GET['tuition_status_filter']) ? sanitize_key(wp_unslash($_GET['tuition_status_filter'])) : '';
+$team_q = isset($_GET['team_q']) ? sanitize_text_field(wp_unslash($_GET['team_q'])) : '';
+
+$allowed_contract_filters = ['', 'trial', 'paid', 'active', 'unpaid', 'cancelling', 'cancelled', 'inactive'];
+if (!in_array($contract_filter, $allowed_contract_filters, true)) {
+    $contract_filter = '';
 }
 
-$all_users = aidunite_admin_payment_list_collect_users();
-if ($payment_status_filter !== '') {
-    $all_users = array_values(array_filter($all_users, static function ($user) use ($payment_status_filter) {
-        $status = function_exists('aidunite_get_payment_status')
-            ? aidunite_get_payment_status($user->ID)
-            : get_user_meta($user->ID, 'payment_status', true);
-        return (string) $status === $payment_status_filter;
-    }));
+$allowed_tuition_filters = ['', 'paid', 'pending_billing', 'overdue', 'failed', 'not_registered', 'disabled'];
+if (!in_array($tuition_status_filter, $allowed_tuition_filters, true)) {
+    $tuition_status_filter = '';
 }
 
-$total_count = count($all_users);
-$total_pages = $total_count > 0 ? (int) ceil($total_count / $per_page) : 1;
-$requested_page = isset($_GET[$list_page_var]) ? (int) $_GET[$list_page_var] : (isset($_GET['paged']) ? (int) $_GET['paged'] : 0);
-$current_page = $requested_page > 0 ? max(1, min($requested_page, $total_pages)) : 1;
-$offset = ($current_page - 1) * $per_page;
-$users_page = array_slice($all_users, $offset, $per_page);
+$total_count = 0;
+$total_pages = 1;
+$current_page = 1;
+$offset = 0;
+$teams_page = [];
+$tuition_page = [];
+$month_label = '';
+$stripe_vm = [];
 
-$pagination_base = add_query_arg(
-    array_filter(['payment_status_filter' => $payment_status_filter]),
-    get_permalink()
-);
-$reset_url = remove_query_arg(['payment_status_filter', $list_page_var, 'paged'], get_permalink());
+$all_team_ids = aidunite_admin_payment_list_collect_team_ids();
+$all_tuition_rows_cached = aidunite_admin_payment_list_collect_tuition_rows();
+$tab_counts = [
+    'teams' => count($all_team_ids),
+    'tuition' => count($all_tuition_rows_cached),
+];
+
+if ($active_tab === 'teams') {
+    $all_team_rows = [];
+    foreach ($all_team_ids as $team_id) {
+        if (function_exists('aidunite_payment_sync_team_platform_subscription_from_stripe')
+            && function_exists('aidunite_payment_read_team_stripe_subscription_id')
+            && aidunite_payment_read_team_stripe_subscription_id($team_id) === '') {
+            aidunite_payment_sync_team_platform_subscription_from_stripe($team_id, 0);
+        }
+        $row = aidunite_admin_payment_list_team_row_data($team_id);
+        if ($contract_filter !== '' && (string) ($row['contract_filter_key'] ?? '') !== $contract_filter) {
+            continue;
+        }
+        if ($team_q !== '' && mb_stripos((string) ($row['team_name'] ?? ''), $team_q) === false) {
+            continue;
+        }
+        $all_team_rows[] = $row;
+    }
+    $total_count = count($all_team_rows);
+    $total_pages = $total_count > 0 ? (int) ceil($total_count / $per_page) : 1;
+    $requested_page = isset($_GET[$list_page_var]) ? (int) $_GET[$list_page_var] : 0;
+    $current_page = $requested_page > 0 ? max(1, min($requested_page, $total_pages)) : 1;
+    $offset = ($current_page - 1) * $per_page;
+    $teams_page = array_slice($all_team_rows, $offset, $per_page);
+} elseif ($active_tab === 'tuition') {
+    $all_tuition_rows = [];
+    foreach ($all_tuition_rows_cached as $row) {
+        if ($tuition_status_filter !== '' && (string) ($row['month_status'] ?? '') !== $tuition_status_filter) {
+            continue;
+        }
+        if ($team_q !== '' && mb_stripos((string) ($row['team_name'] ?? ''), $team_q) === false) {
+            continue;
+        }
+        $all_tuition_rows[] = $row;
+    }
+    if ($all_tuition_rows !== [] && $month_label === '') {
+        $month_label = (string) ($all_tuition_rows[0]['month_label'] ?? '');
+    }
+    if ($month_label === '' && function_exists('aidunite_payment_read_current_month_window')) {
+        $window = aidunite_payment_read_current_month_window();
+        $month_label = (string) ($window['label'] ?? '');
+    }
+    $total_count = count($all_tuition_rows);
+    $total_pages = $total_count > 0 ? (int) ceil($total_count / $per_page) : 1;
+    $requested_page = isset($_GET[$list_page_var]) ? (int) $_GET[$list_page_var] : 0;
+    $current_page = $requested_page > 0 ? max(1, min($requested_page, $total_pages)) : 1;
+    $offset = ($current_page - 1) * $per_page;
+    $tuition_page = array_slice($all_tuition_rows, $offset, $per_page);
+} else {
+    $stripe_vm = aidunite_admin_payment_list_stripe_summary();
+}
+
+$pagination_query = array_filter([
+    'apl_tab' => $active_tab,
+    'contract_filter' => $active_tab === 'teams' ? $contract_filter : '',
+    'tuition_status_filter' => $active_tab === 'tuition' ? $tuition_status_filter : '',
+    'team_q' => $team_q !== '' ? $team_q : '',
+]);
+$pagination_base = add_query_arg($pagination_query, get_permalink());
+
+$founding_slots_remaining = function_exists('aidunite_payment_read_founding_slots_remaining')
+    ? (int) aidunite_payment_read_founding_slots_remaining()
+    : 0;
 
 get_header();
 ?>
 
 <div class="wrap page-admin-payment-list-wrap">
     <h1>決済一覧（管理者用）</h1>
-    <p style="color:var(--text-secondary); margin:0 0 var(--spacing-lg);">
-        チーム所属ユーザーまたは決済ステータスが登録されているユーザーを表示します。
-        金額の変更は <a href="<?php echo esc_url(home_url('/admin-payment-management')); ?>">決済管理</a> から行ってください。
+    <p class="admin-payment-list-lead">
+        課金ストリーム別に確認できます。
+        <strong>チーム（システム料）</strong>は代表者→Ainy本体 Stripe、
+        <strong>保護者（月謝）</strong>は保護者→チーム Connect Stripe です。
+        金額設定は <a href="<?php echo esc_url(home_url('/admin-payment-management')); ?>">決済管理</a> から行ってください。
+        Founding Team 残枠: <strong><?php echo (int) $founding_slots_remaining; ?></strong> チーム
     </p>
 
-    <div class="search-filter-section admin-schedule-filters" style="background:var(--bg-secondary); padding:var(--spacing-lg); margin:var(--spacing-lg) 0; border-radius:var(--radius-base);">
-        <h3>🔍 フィルター</h3>
-        <form method="get" class="admin-schedule-filters__form">
-            <div class="admin-schedule-filters__field">
-                <label for="payment_status_filter">決済ステータス</label>
-                <select id="payment_status_filter" name="payment_status_filter" class="admin-schedule-filters__input">
-                    <option value="">すべて</option>
-                    <option value="paid" <?php selected($payment_status_filter, 'paid'); ?>>有料（paid）</option>
-                    <option value="trial" <?php selected($payment_status_filter, 'trial'); ?>>トライアル</option>
-                    <option value="unpaid" <?php selected($payment_status_filter, 'unpaid'); ?>>未払い</option>
-                    <option value="cancelled" <?php selected($payment_status_filter, 'cancelled'); ?>>解約</option>
-                </select>
-            </div>
-            <div class="admin-schedule-filters__actions">
-                <button type="submit" class="button button-primary">絞り込む</button>
-                <a href="<?php echo esc_url($reset_url); ?>" class="button">リセット</a>
-            </div>
-        </form>
-        <p style="margin:var(--spacing-base) 0 0;">
-            全 <?php echo (int) $total_count; ?> 件
-            <?php if ($total_pages > 1) : ?>
-                （<?php echo (int) ($offset + 1); ?> - <?php echo (int) min($offset + $per_page, $total_count); ?> 件目）
-            <?php endif; ?>
-        </p>
-    </div>
+    <nav class="admin-payment-list-tabs" aria-label="決済一覧タブ">
+        <a href="<?php echo esc_url(aidunite_admin_payment_list_tab_url('teams')); ?>"
+            class="admin-payment-list-tabs__tab<?php echo $active_tab === 'teams' ? ' is-active' : ''; ?>"
+            <?php echo $active_tab === 'teams' ? 'aria-current="page"' : ''; ?>>
+            チーム（システム料）
+            <span class="admin-payment-list-tabs__count"><?php echo (int) $tab_counts['teams']; ?></span>
+        </a>
+        <a href="<?php echo esc_url(aidunite_admin_payment_list_tab_url('tuition')); ?>"
+            class="admin-payment-list-tabs__tab<?php echo $active_tab === 'tuition' ? ' is-active' : ''; ?>"
+            <?php echo $active_tab === 'tuition' ? 'aria-current="page"' : ''; ?>>
+            保護者（月謝）
+            <span class="admin-payment-list-tabs__count"><?php echo (int) $tab_counts['tuition']; ?></span>
+        </a>
+        <a href="<?php echo esc_url(aidunite_admin_payment_list_tab_url('stripe')); ?>"
+            class="admin-payment-list-tabs__tab<?php echo $active_tab === 'stripe' ? ' is-active' : ''; ?>"
+            <?php echo $active_tab === 'stripe' ? 'aria-current="page"' : ''; ?>>
+            Stripe連携
+        </a>
+    </nav>
+
+    <?php if ($active_tab !== 'stripe') : ?>
+    <p class="admin-payment-list-result-count">
+        全 <?php echo (int) $total_count; ?> 件
+        <?php if ($total_pages > 1) : ?>
+            （<?php echo (int) ($offset + 1); ?> - <?php echo (int) min($offset + $per_page, $total_count); ?> 件目）
+        <?php endif; ?>
+    </p>
 
     <?php if ($total_pages > 1) : ?>
-    <nav style="margin-bottom:var(--spacing-base);" aria-label="ページ送り">
+    <nav class="admin-payment-list-pagination" aria-label="ページ送り">
         <?php
         echo paginate_links([
             'base' => $pagination_base . '%_%',
@@ -91,83 +165,38 @@ get_header();
             'total' => $total_pages,
             'prev_text' => '&laquo; 前へ',
             'next_text' => '次へ &raquo;',
+            'add_args' => $pagination_query,
         ]);
         ?>
     </nav>
     <?php endif; ?>
+    <?php endif; ?>
 
-    <div style="overflow-x:auto;">
-        <table class="admin-payment-table wp-list-table widefat striped">
-            <thead>
-                <tr>
-                    <th class="col-checkbox">
-                        <label class="aidunite-admin-checkbox" title="このページをすべて選択（将来用）">
-                            <input type="checkbox" class="aidunite-admin-checkbox__input" disabled aria-label="すべて選択">
-                            <span class="aidunite-admin-checkbox__box" aria-hidden="true"></span>
-                        </label>
-                    </th>
-                    <th class="col-no">No</th>
-                    <th>ユーザー名</th>
-                    <th>ユーザーID</th>
-                    <th>チーム名</th>
-                    <th>チームID</th>
-                    <th>金額タイプ</th>
-                    <th>月額目安</th>
-                    <th>決済ステータス</th>
-                    <th>決済有無</th>
-                    <th>更新日時</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($users_page)) : ?>
-                <tr>
-                    <td colspan="12" style="text-align:center; padding:var(--spacing-xl);">該当するユーザーがありません。</td>
-                </tr>
-                <?php endif; ?>
-                <?php foreach ($users_page as $idx => $user) :
-                    $row = aidunite_admin_payment_list_row_data($user);
-                    $row_no = $offset + $idx + 1;
-                    $uid = (int) $row['user_id'];
-                    ?>
-                <tr>
-                    <td class="col-checkbox">
-                        <label class="aidunite-admin-checkbox">
-                            <input type="checkbox" class="payment-row-checkbox aidunite-admin-checkbox__input" value="<?php echo (int) $uid; ?>" aria-label="<?php echo esc_attr('ユーザーID ' . $uid); ?>">
-                            <span class="aidunite-admin-checkbox__box" aria-hidden="true"></span>
-                        </label>
-                    </td>
-                    <td class="col-no"><?php echo (int) $row_no; ?></td>
-                    <?php aidunite_admin_list_echo_cell('text', $row['user_name']); ?>
-                    <?php aidunite_admin_list_echo_cell('id', (string) $uid); ?>
-                    <?php
-                    if ($row['team_settings_url'] !== '') {
-                        $team_link = '<a href="' . esc_url($row['team_settings_url']) . '">' . esc_html($row['team_name']) . '</a>';
-                        aidunite_admin_list_echo_cell_html('text', $team_link);
-                    } else {
-                        aidunite_admin_list_echo_cell('text', $row['team_name']);
-                    }
-                    ?>
-                    <?php aidunite_admin_list_echo_cell('id', $row['team_id'] !== '—' ? (string) $row['team_id'] : '—'); ?>
-                    <?php aidunite_admin_list_echo_cell('text', $row['amount_type_label']); ?>
-                    <?php aidunite_admin_list_echo_cell('text', $row['monthly_fee']); ?>
-                    <?php aidunite_admin_list_echo_cell('text', $row['payment_status_label']); ?>
-                    <?php aidunite_admin_list_echo_cell('text', $row['paid_flag_label']); ?>
-                    <?php aidunite_admin_list_echo_cell('datetime', $row['status_updated']); ?>
-                    <td>
-                        <a href="<?php echo esc_url($row['user_edit_url']); ?>">ユーザー一覧</a>
-                        <?php if ($row['team_settings_url'] !== '') : ?>
-                        | <a href="<?php echo esc_url($row['team_settings_url']); ?>">チーム設定</a>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
+    <?php
+    if ($active_tab === 'teams') {
+        get_template_part('template-parts/payment/admin-payment-list', 'teams', [
+            'teams_page' => $teams_page,
+            'offset' => $offset,
+            'contract_filter' => $contract_filter,
+            'team_q' => $team_q,
+        ]);
+    } elseif ($active_tab === 'tuition') {
+        get_template_part('template-parts/payment/admin-payment-list', 'tuition', [
+            'tuition_page' => $tuition_page,
+            'offset' => $offset,
+            'tuition_status_filter' => $tuition_status_filter,
+            'team_q' => $team_q,
+            'month_label' => $month_label,
+        ]);
+    } else {
+        get_template_part('template-parts/payment/admin-payment-list', 'stripe', [
+            'stripe_vm' => $stripe_vm,
+        ]);
+    }
+    ?>
 
-    <?php if ($total_pages > 1) : ?>
-    <nav style="margin-top:var(--spacing-xl); display:flex; justify-content:center;" aria-label="ページ送り（下）">
+    <?php if ($active_tab !== 'stripe' && $total_pages > 1) : ?>
+    <nav class="admin-payment-list-pagination admin-payment-list-pagination--bottom" aria-label="ページ送り（下）">
         <?php
         echo paginate_links([
             'base' => $pagination_base . '%_%',
@@ -176,6 +205,7 @@ get_header();
             'total' => $total_pages,
             'prev_text' => '&laquo; 前へ',
             'next_text' => '次へ &raquo;',
+            'add_args' => $pagination_query,
         ]);
         ?>
     </nav>

@@ -86,69 +86,6 @@ function registration_preview_page() {
             </ul>
         </div>
     </div>
-
-    <style>
-    .registration-preview-links {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 20px;
-        margin: 20px 0;
-    }
-
-    .preview-link-card {
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 20px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .preview-link-card h3 {
-        margin-top: 0;
-        color: #333;
-        font-size: 1.2em;
-    }
-
-    .preview-link-card p {
-        color: #666;
-        margin-bottom: 15px;
-    }
-
-    .preview-link-card .button {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        text-decoration: none;
-    }
-
-    .preview-info {
-        background: #f9f9f9;
-        border-left: 4px solid #0073aa;
-        padding: 15px;
-        margin-top: 30px;
-    }
-
-    .preview-info h3 {
-        margin-top: 0;
-        color: #333;
-    }
-
-    .preview-info ul {
-        margin: 10px 0;
-        padding-left: 20px;
-    }
-
-    .preview-info li {
-        margin-bottom: 5px;
-        color: #666;
-    }
-
-    @media (max-width: 768px) {
-        .registration-preview-links {
-            grid-template-columns: 1fr;
-        }
-    }
-    </style>
     <?php
 }
 
@@ -462,7 +399,7 @@ function aidunite_render_chat_management_page() {
 
         <h2 style="margin:16px 0 8px;">重複一括削除（完全削除）</h2>
         <div style="background:#fff; border:1px solid #dcdcde; padding:12px; margin-bottom:16px;">
-            <form method="post">
+            <form method="post" data-aidunite-confirm="重複ルームを完全削除します。実行しますか？" data-aidunite-confirm-label="実行する">
                 <?php wp_nonce_field('aidunite_chat_mgmt_action', '_aidunite_chat_nonce'); ?>
                 <p>
                     <label>残す room_id（任意）</label><br>
@@ -473,7 +410,7 @@ function aidunite_render_chat_management_page() {
                     <input type="text" name="force_delete_room_ids" placeholder="例: 338,339" style="width:360px;">
                 </p>
                 <p>
-                    <button type="submit" name="aidunite_dedupe_rooms" class="button button-primary" onclick="return confirm('重複ルームを完全削除します。実行しますか？');">重複を削除実行</button>
+                    <button type="submit" name="aidunite_dedupe_rooms" class="button button-primary">重複を削除実行</button>
                 </p>
             </form>
         </div>
@@ -524,30 +461,10 @@ function aidunite_render_chat_management_page() {
 
         <h2 style="margin:12px 0 8px;">チャット一覧（表形式）</h2>
         <p style="margin:0 0 8px; color:#50575e;">全 <?php echo (int) $total_count; ?> 件 / <?php echo (int) $total_pages; ?> ページ（現在 <?php echo (int) $page_no; ?> ページ）</p>
-        <style>
-            .aidunite-chat-admin-table input[type="checkbox"] {
-                appearance: auto;
-                -webkit-appearance: checkbox;
-                opacity: 1;
-                visibility: visible;
-                position: static;
-                display: inline-block;
-                width: 16px;
-                height: 16px;
-                margin: 0;
-                vertical-align: middle;
-                cursor: pointer;
-            }
-            .aidunite-chat-admin-table th.col-check,
-            .aidunite-chat-admin-table td.col-check {
-                width: 44px;
-                text-align: center;
-            }
-        </style>
-        <form method="post">
+        <form method="post" data-aidunite-confirm="選択したチャットを完全削除します。よろしいですか？" data-aidunite-confirm-label="削除する">
         <?php wp_nonce_field('aidunite_chat_mgmt_action', '_aidunite_chat_nonce'); ?>
         <div style="margin:8px 0;">
-            <button type="submit" name="aidunite_delete_selected_rooms" class="button button-secondary" onclick="return confirm('選択したチャットを完全削除します。よろしいですか？');">選択したチャットを完全削除</button>
+            <button type="submit" name="aidunite_delete_selected_rooms" class="button button-secondary">選択したチャットを完全削除</button>
         </div>
         <table class="wp-list-table widefat fixed striped table-view-list aidunite-chat-admin-table" style="table-layout:auto;">
             <thead>
@@ -602,10 +519,10 @@ function aidunite_render_chat_management_page() {
                             <td><?php echo esc_html(mb_strimwidth((string) ($room['latest_message'] ?? ''), 0, 80, '...')); ?></td>
                             <td>
                                 <a class="button button-small" href="<?php echo esc_url(add_query_arg(['page' => 'aidunite-chat-management', 'view_room' => (int) $room['id'], 'status' => $status_filter, 'room_type' => $type_filter, 's' => $keyword, 'paged' => $page_no, 'per_page' => $per_page], admin_url('admin.php'))); ?>">閲覧</a>
-                                <form method="post" style="display:inline;">
+                                <form method="post" style="display:inline;" data-aidunite-confirm="room_id=<?php echo (int) $room['id']; ?> を完全削除します。よろしいですか？" data-aidunite-confirm-label="削除する">
                                     <?php wp_nonce_field('aidunite_chat_mgmt_action', '_aidunite_chat_nonce'); ?>
                                     <input type="hidden" name="delete_room_id" value="<?php echo (int) $room['id']; ?>">
-                                    <button type="submit" name="aidunite_delete_single_room" class="button button-small" onclick="return confirm('room_id=<?php echo (int) $room['id']; ?> を完全削除します。よろしいですか？');">完全削除</button>
+                                    <button type="submit" name="aidunite_delete_single_room" class="button button-small">完全削除</button>
                                 </form>
                             </td>
                         </tr>
@@ -641,19 +558,6 @@ function aidunite_render_chat_management_page() {
                 </div>
             </div>
         <?php endif; ?>
-        <script>
-        (function() {
-            var selectAll = document.getElementById('select_all_rooms');
-            if (!selectAll) return;
-            selectAll.addEventListener('change', function() {
-                var checked = !!selectAll.checked;
-                document.querySelectorAll('.room-select-checkbox').forEach(function(cb) {
-                    cb.checked = checked;
-                });
-            });
-        })();
-        </script>
-
         <?php if ($view_room_id > 0): ?>
             <div class="card" style="max-width:none; padding:16px; margin-top:16px;">
                 <h2>チャット詳細（room_id=<?php echo (int) $view_room_id; ?>）</h2>
@@ -681,3 +585,46 @@ function aidunite_render_chat_management_page() {
     </div>
     <?php
 }
+
+/**
+ * 管理画面のインライン資産を外部ファイルへ
+ */
+function aidunite_enqueue_admin_screen_assets($hook) {
+    $theme_dir = get_stylesheet_directory();
+    $theme_uri = get_stylesheet_directory_uri();
+
+    if ($hook === 'toplevel_page_registration-preview') {
+        $css = $theme_dir . '/assets/css/admin/admin-preview-links.css';
+        if (is_readable($css)) {
+            wp_enqueue_style(
+                'aidunite-admin-preview-links',
+                $theme_uri . '/assets/css/admin/admin-preview-links.css',
+                [],
+                (string) filemtime($css)
+            );
+        }
+    }
+
+    if ($hook === 'toplevel_page_aidunite-chat-management') {
+        $css = $theme_dir . '/assets/css/admin/admin-chat-management.css';
+        if (is_readable($css)) {
+            wp_enqueue_style(
+                'aidunite-admin-chat-management',
+                $theme_uri . '/assets/css/admin/admin-chat-management.css',
+                [],
+                (string) filemtime($css)
+            );
+        }
+        $js = $theme_dir . '/assets/js/admin/admin-chat-management.js';
+        if (is_readable($js)) {
+            wp_enqueue_script(
+                'aidunite-admin-chat-management',
+                $theme_uri . '/assets/js/admin/admin-chat-management.js',
+                [],
+                (string) filemtime($js),
+                true
+            );
+        }
+    }
+}
+add_action('admin_enqueue_scripts', 'aidunite_enqueue_admin_screen_assets');

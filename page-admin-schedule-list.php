@@ -262,7 +262,7 @@ get_header();
         <form method="post" id="schedule-bulk-delete-form">
             <div style="display:flex; flex-wrap:wrap; align-items:center; gap:var(--spacing-base);">
                 <span id="schedule-bulk-selected-count" style="color:var(--text-secondary); font-size:var(--font-size-sm, 0.875rem);" aria-live="polite">0件選択</span>
-                <button type="submit" name="bulk_delete_schedules" value="1" class="button button-danger" id="schedule-bulk-delete-btn" disabled onclick="return confirmScheduleBulkDelete();">選択したスケジュールを一括削除</button>
+                <button type="submit" name="bulk_delete_schedules" value="1" class="button button-danger" id="schedule-bulk-delete-btn" disabled>選択したスケジュールを一括削除</button>
             </div>
             <?php wp_nonce_field('bulk_delete_schedules'); ?>
         </form>
@@ -347,7 +347,7 @@ get_header();
                         <?php if (!empty($row['edit_url'])) : ?>
                         | <a href="<?php echo esc_url($row['edit_url']); ?>">編集</a>
                         <?php endif; ?>
-                        | <form method="post" style="display:inline;" onsubmit="return confirm('スケジュール ID <?php echo (int) $sid; ?> を削除しますか？\n申請中・成立済みマッチがある場合は削除できません。');">
+                        | <form method="post" style="display:inline;" data-aidunite-confirm="スケジュール ID <?php echo (int) $sid; ?> を削除しますか？&#10;申請中・成立済みマッチがある場合は削除できません。" data-aidunite-confirm-label="削除する">
                             <?php wp_nonce_field('delete_schedule_' . $sid); ?>
                             <input type="hidden" name="delete_schedule_id" value="<?php echo (int) $sid; ?>">
                             <button type="submit" class="button button-small button-danger">削除</button>
@@ -414,105 +414,5 @@ get_header();
     </nav>
     <?php endif; ?>
 </div>
-
-<script>
-(function() {
-    const selectAllSchedules = document.getElementById('select-all-schedules');
-    const bulkBtn = document.getElementById('schedule-bulk-delete-btn');
-    const countEl = document.getElementById('schedule-bulk-selected-count');
-
-    function getScheduleCheckboxes() {
-        return document.querySelectorAll('.schedule-row-checkbox');
-    }
-
-    function updateScheduleBulkUi() {
-        const boxes = getScheduleCheckboxes();
-        const checked = document.querySelectorAll('.schedule-row-checkbox:checked');
-        if (countEl) {
-            countEl.textContent = checked.length + '件選択';
-        }
-        if (bulkBtn) {
-            bulkBtn.disabled = checked.length === 0;
-        }
-        if (selectAllSchedules && boxes.length > 0) {
-            selectAllSchedules.checked = boxes.length === checked.length;
-            selectAllSchedules.indeterminate = checked.length > 0 && checked.length < boxes.length;
-        }
-    }
-
-    if (selectAllSchedules) {
-        selectAllSchedules.addEventListener('change', function() {
-            getScheduleCheckboxes().forEach(function(box) {
-                box.checked = selectAllSchedules.checked;
-            });
-            updateScheduleBulkUi();
-        });
-    }
-
-    getScheduleCheckboxes().forEach(function(box) {
-        box.addEventListener('change', updateScheduleBulkUi);
-    });
-
-    updateScheduleBulkUi();
-
-    window.confirmScheduleBulkDelete = function() {
-        const checked = document.querySelectorAll('.schedule-row-checkbox:checked');
-        if (checked.length === 0) {
-            alert('削除するスケジュールを選択してください。');
-            return false;
-        }
-        return confirm(
-            '選択した ' + checked.length + ' 件のスケジュールを削除しますか？\n' +
-            '申請中・成立済みマッチがある場合は削除できません。\n' +
-            'この操作は取り消せません。'
-        );
-    };
-
-    const bulkForm = document.getElementById('schedule-bulk-delete-form');
-    if (bulkForm) {
-        bulkForm.addEventListener('submit', function() {
-            bulkForm.querySelectorAll('input.js-schedule-bulk-hidden-id').forEach(function(el) {
-                el.remove();
-            });
-            document.querySelectorAll('.schedule-row-checkbox:checked').forEach(function(box) {
-                const hidden = document.createElement('input');
-                hidden.type = 'hidden';
-                hidden.name = 'schedule_ids[]';
-                hidden.value = box.value;
-                hidden.className = 'js-schedule-bulk-hidden-id';
-                bulkForm.appendChild(hidden);
-            });
-        });
-    }
-
-    function toggleScheduleDetails(scheduleId, open) {
-        var row = document.getElementById('schedule-details-' + scheduleId);
-        if (!row) {
-            return;
-        }
-        var shouldOpen = typeof open === 'boolean' ? open : !row.classList.contains('is-open');
-        row.classList.toggle('is-open', shouldOpen);
-    }
-
-    document.querySelectorAll('.details-toggle').forEach(function(link) {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            var id = this.getAttribute('data-schedule-id');
-            if (id) {
-                toggleScheduleDetails(id);
-            }
-        });
-    });
-
-    document.querySelectorAll('.schedule-details-close').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            var id = this.getAttribute('data-schedule-id');
-            if (id) {
-                toggleScheduleDetails(id, false);
-            }
-        });
-    });
-})();
-</script>
 
 <?php get_footer(); ?>

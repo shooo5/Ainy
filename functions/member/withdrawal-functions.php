@@ -221,160 +221,13 @@ function aidunite_is_representative($user_id) {
     return count(aidunite_get_representative_team_ids($user_id)) > 0;
 }
 
-/** スケジュール退会の option キー */
-define('AIDUNITE_SCHEDULED_WITHDRAWALS_OPTION', 'aidunite_scheduled_withdrawals');
-
 /**
- * スケジュール退会一覧を取得する
+ * 代表者退会スケジュール登録時に、チームメンバーへ通知する
  *
- * @return array[] 各要素は [ 'user_id' => int, 'team_ids' => int[], 'execute_at' => int ]
+ * @param int   $user_id   退会する代表者 user_id
+ * @param int[] $team_ids  解散するチームの team_id 一覧
  */
-function aidunite_get_scheduled_withdrawals() {
-    $raw = get_option(AIDUNITE_SCHEDULED_WITHDRAWALS_OPTION, []);
-    return is_array($raw) ? $raw : [];
-}
-
-/**
- * スケジュール退会を1件追加する
- *
- * @param int   $user_id   退会するユーザーID（代表者）
- * @param int[] $team_ids  削除するチームの投稿ID
- * @param int   $execute_at 実行予定の Unix タイムスタンプ
- */
-function aidunite_add_scheduled_withdrawal($user_id, $team_ids, $execute_at) {
-    $list = aidunite_get_scheduled_withdrawals();
-    $list[] = [
-        'user_id' => (int) $user_id,
-        'team_ids' => array_map('intval', (array) $team_ids),
-        'execute_at' => (int) $execute_at,
-    ];
-    update_option(AIDUNITE_SCHEDULED_WITHDRAWALS_OPTION, $list);
-}
-
-/**
- * スケジュール退会から指定ユーザーの予定を削除する
- *
- * @param int $user_id 退会するユーザーID
- */
-function aidunite_remove_scheduled_withdrawal($user_id) {
-    $list = aidunite_get_scheduled_withdrawals();
-    $list = array_filter($list, function ($item) use ($user_id) {
-        return (int) $item['user_id'] !== (int) $user_id;
-    });
-    update_option(AIDUNITE_SCHEDULED_WITHDRAWALS_OPTION, array_values($list));
-}
-
-/**
- * 代表者退会の「1か月後」実行処理（cron から呼ぶ）
- * 実行予定時刻を過ぎたスケジュール退会について、解約→チーム削除→ユーザー削除を行う。
- */
-function aidunite_process_scheduled_withdrawals() {
-    $list = aidunite_get_scheduled_withdrawals();
-    $now = time();
-    $processed = [];
-    foreach ($list as $item) {
-        if (empty($item['execute_at']) || $item['execute_at'] > $now) {
-            continue;
-        }
-        $user_id = (int) $item['user_id'];
-        $team_ids = isset($item['team_ids']) ? array_map('intval', (array) $item['team_ids']) : [];
-        $user = get_user_by('id', $user_id);
-        if (!$user) {
-            aidunite_remove_scheduled_withdrawal($user_id);
-            continue;
-        }
-        if (function_exists('aidunite_cancel_all_subscriptions_before_withdrawal')) {
-            if (!function_exists('aidunite_cancel_subscription')) {
-                require_once get_stylesheet_directory() . '/functions/payment/payment-cancel.php';
-            }
-            if (!function_exists('aidunite_cancel_tuition_subscription')) {
-                require_once get_stylesheet_directory() . '/functions/payment/payment-tuition.php';
-            }
-            aidunite_cancel_all_subscriptions_before_withdrawal($user_id);
-        }
-        foreach ($team_ids as $team_id) {
-            if ($team_id <= 0) {
-                continue;
-            }
-            if (function_exists('aidunite_cancel_tuition_subscription')) {
-                $members = get_users(['meta_key' => 'team_id', 'meta_value' => $team_id]);
-                foreach ($members as $m) {
-                    aidunite_cancel_tuition_subscription($m->ID, $team_id);
-                }
-            }
-            aidunite_detach_team_members_before_delete($team_id, $user_id);
-            wp_delete_post($team_id, true);
-        }
-        if (function_exists('aidunite_execute_withdrawal')) {
-            aidunite_execute_withdrawal($user_id);
-        }
-        aidunite_remove_scheduled_withdrawal($user_id);
-        $processed[] = $user_id;
-    }
-    if (!empty($processed) && defined('WP_DEBUG') && WP_DEBUG) {
-        error_log('aidunite_process_scheduled_withdrawals: 実行済み user_id=' . implode(',', $processed));
-    }
-}
-
-/**
- * 指定チームが「決まっている試合」でつながっている相手チームの代表者 user_id 一覧を取得する
- * match_request の status が accepted / established のものを対象とする。
- *
- * @param int[] $team_ids 自チームの team_id 一覧
- * @return int[] 相手チーム代表者の user_id（重複除く）
- */
-function aidunite_get_opponent_leader_ids_for_teams($team_ids) {
-    if (empty($team_ids)) {
-        return [];
-    }
-    $team_ids = array_map('intval', $team_ids);
-    $requests = get_posts([
-        'post_type' => 'match_request',
-        'post_status' => 'any',
-        'posts_per_page' => -1,
-        'meta_query' => [
-            'relation' => 'AND',
-            [
-                'relation' => 'OR',
-                ['key' => 'from_team_id', 'value' => $team_ids, 'compare' => 'IN'],
-                ['key' => 'to_team_id', 'value' => $team_ids, 'compare' => 'IN'],
-            ],
-            ['key' => 'status', 'value' => ['accepted', 'established'], 'compare' => 'IN'],
-        ],
-    ]);
-    $leader_ids = [];
-    foreach ($requests ?: [] as $req) {
-        $from = (int) get_post_meta($req->ID, 'from_team_id', true);
-        $to = (int) get_post_meta($req->ID, 'to_team_id', true);
-        $other_team_id = in_array($from, $team_ids, true) ? $to : $from;
-        if ($other_team_id <= 0) {
-            continue;
-        }
-        $team = get_post($other_team_id);
-        if (!$team || $team->post_type !== 'team') {
-            continue;
-        }
-        $leader = function_exists('aidunite_team_resolve_leader_user_id')
-            ? aidunite_team_resolve_leader_user_id($other_team_id)
-            : (int) get_post_meta($other_team_id, 'team_leader_id', true);
-        if ($leader <= 0) {
-            $leader = (int) $team->post_author;
-        }
-        if ($leader > 0) {
-            $leader_ids[$leader] = true;
-        }
-    }
-    return array_keys($leader_ids);
-}
-
-/**
- * 代表者退会スケジュール登録時に、チームメンバーと（オプションで）対戦相手に通知する
- *
- * @param int   $user_id           退会する代表者 user_id
- * @param int[] $team_ids           解散するチームの team_id 一覧
- * @param bool  $notify_opponents   対戦相手に通知するか
- */
-function aidunite_notify_team_dissolution_scheduled($user_id, $team_ids, $notify_opponents) {
+function aidunite_notify_team_dissolution_scheduled($user_id, $team_ids) {
     if (!function_exists('aidunite_notify_user')) {
         return;
     }
@@ -401,27 +254,6 @@ function aidunite_notify_team_dissolution_scheduled($user_id, $team_ids, $notify
                 "{$team_name} の代表者による退会のため、{$date_str} をもってチームが解散します。\n月謝は解散日をもって解約されます。ご不明な点はお問い合わせください。",
                 'team_dissolution',
                 $team_id
-            );
-        }
-    }
-
-    if ($notify_opponents) {
-        $opponent_ids = aidunite_get_opponent_leader_ids_for_teams($team_ids);
-        $team_titles = array_map(function ($id) {
-            $p = get_post($id);
-            return $p ? $p->post_title : '';
-        }, $team_ids);
-        $team_names = implode('・', array_filter($team_titles));
-        foreach ($opponent_ids as $oid) {
-            if ((int) $oid === (int) $user_id) {
-                continue;
-            }
-            aidunite_notify_user(
-                $oid,
-                '練習試合の相手チーム解散のご案内',
-                "決まっている試合の相手チーム（{$team_names}）が、{$date_str} をもって解散する予定です。練習試合等に影響がある場合は、該当チームの代表者へ直接ご連絡ください。",
-                'team_dissolution',
-                null
             );
         }
     }
@@ -468,20 +300,23 @@ function aidunite_get_withdrawal_tuition_team_ids($user_id) {
 function aidunite_cancel_all_subscriptions_before_withdrawal($user_id) {
     $user_id = (int) $user_id;
 
-    if (function_exists('aidunite_cancel_subscription')) {
-        $sub_id = get_user_meta($user_id, 'stripe_subscription_id', true);
-        if (!empty($sub_id)) {
-            $result = aidunite_cancel_subscription($user_id);
-            if (is_wp_error($result) && defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('退会前システム利用料解約: ' . $result->get_error_message());
-            }
+    $rep_team_ids = function_exists('aidunite_get_representative_team_ids')
+        ? aidunite_get_representative_team_ids($user_id)
+        : [];
+    foreach ($rep_team_ids as $team_id) {
+        $team_id = (int) $team_id;
+        if ($team_id <= 0) {
+            continue;
+        }
+        if (function_exists('aidunite_payment_cancel_team_stripe_subscription_immediate')) {
+            aidunite_payment_cancel_team_stripe_subscription_immediate($team_id, $user_id);
         }
     }
 
     if (function_exists('aidunite_cancel_tuition_subscription')) {
         $team_ids = aidunite_get_withdrawal_tuition_team_ids($user_id);
         foreach ($team_ids as $team_id) {
-            $result = aidunite_cancel_tuition_subscription($user_id, $team_id);
+            $result = aidunite_cancel_tuition_subscription($user_id, (int) $team_id);
             if (is_wp_error($result) && defined('WP_DEBUG') && WP_DEBUG) {
                 error_log('退会前月謝解約 team_id=' . $team_id . ': ' . $result->get_error_message());
             }
@@ -585,11 +420,32 @@ function aidunite_ajax_member_withdrawal() {
 
     if (function_exists('aidunite_is_representative') && aidunite_is_representative($current_user_id)) {
         $choice = isset($_POST['rep_withdrawal_choice']) ? sanitize_text_field(wp_unslash($_POST['rep_withdrawal_choice'])) : '';
-        if ($choice !== 'dissolve') {
+        if ($choice === 'transfer') {
             wp_send_json_error([
-                'message' => '代表者退会するには「チームを解散して退会する」を選択してください。代表者を譲る場合はチーム設定から行ってから退会申請してください。',
+                'message' => '代表者を譲る場合は、先にチーム設定で譲渡を完了してから退会申請してください（譲渡後は一般メンバーとして退会できます）。',
             ]);
             return;
+        }
+        if ($choice !== 'dissolve') {
+            wp_send_json_error([
+                'message' => '代表者退会するには「チームを解散して退会する」を選択するか、先にチーム設定で代表者を譲渡してください。',
+            ]);
+            return;
+        }
+        $team_ids = function_exists('aidunite_get_representative_team_ids')
+            ? aidunite_get_representative_team_ids($current_user_id)
+            : [];
+        foreach ($team_ids as $tid) {
+            if (!function_exists('aidunite_payment_exit_evaluate_gates')) {
+                continue;
+            }
+            $gates = aidunite_payment_exit_evaluate_gates((int) $tid);
+            if (!$gates['can_start']) {
+                wp_send_json_error([
+                    'message' => implode(' ', $gates['messages'] ?: ['翌月以降の試合を先にキャンセルしてください。']),
+                ]);
+                return;
+            }
         }
     }
 
@@ -605,14 +461,16 @@ function aidunite_ajax_member_withdrawal() {
 
 add_action('wp_ajax_member_withdrawal', 'aidunite_ajax_member_withdrawal');
 
-/* スケジュール退会の cron */
-add_action('aidunite_process_scheduled_withdrawals', 'aidunite_process_scheduled_withdrawals');
-add_action('init', function () {
-    if (get_transient('aidunite_scheduled_withdrawals_cron_registered')) {
+/**
+ * 旧スケジュール退会 cron / option の後始末（exit pending が正本）
+ */
+add_action('init', static function () {
+    if (get_transient('aidunite_legacy_scheduled_withdrawals_retired')) {
         return;
     }
-    if (!wp_next_scheduled('aidunite_process_scheduled_withdrawals')) {
-        wp_schedule_event(time(), 'hourly', 'aidunite_process_scheduled_withdrawals');
+    while ($ts = wp_next_scheduled('aidunite_process_scheduled_withdrawals')) {
+        wp_unschedule_event($ts, 'aidunite_process_scheduled_withdrawals');
     }
-    set_transient('aidunite_scheduled_withdrawals_cron_registered', 1, DAY_IN_SECONDS);
-}, 99);
+    delete_option('aidunite_scheduled_withdrawals');
+    set_transient('aidunite_legacy_scheduled_withdrawals_retired', 1, YEAR_IN_SECONDS);
+}, 5);

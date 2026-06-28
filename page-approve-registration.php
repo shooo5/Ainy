@@ -33,6 +33,9 @@ $approve_state = function_exists('aidunite_resolve_approve_registration_view_sta
     ? aidunite_resolve_approve_registration_view_state()
     : 'missing';
 
+$guardian_flow = isset($_GET['flow']) && (string) $_GET['flow'] === 'guardian';
+$team_pending = isset($_GET['team_pending']) && (string) $_GET['team_pending'] === '1';
+
 $login_url = home_url('/login/');
 $home_url = home_url('/');
 $register_url = home_url('/member-register/');
@@ -56,27 +59,23 @@ get_header();
             <?php echo aidunite_registration_complete_asset_icon('check_circle'); ?>
           </div>
         </div>
-        <h1 class="registration-complete-title">登録が完了しました！</h1>
-        <p class="registration-complete-subtitle">Ainyへようこそ</p>
+        <h1 class="registration-complete-title"><?php echo $guardian_flow && $team_pending ? 'メール確認が完了しました' : '登録が完了しました！'; ?></h1>
         <div class="registration-complete-description">
-          <p>アカウント登録が完了しました。</p>
-          <p>練習試合の調整や、<br>チーム運営をもっとスムーズに始められます。</p>
+          <?php if ($guardian_flow && $team_pending) : ?>
+          <p>Ainyへようこそ。</p>
+          <p>チームへの参加申請は<strong>代表者の承認待ち</strong>です。<br>承認後にマイページからご利用いただけます。</p>
+          <?php elseif ($guardian_flow) : ?>
+          <p>Ainyへようこそ。</p>
+          <p>マイページからスケジュール・連絡・出欠などをご確認いただけます。</p>
+          <?php else : ?>
+          <p>Ainyへようこそ。</p>
+          <p>練習試合の調整や、<br>チーム運営を始めましょう。</p>
+          <?php endif; ?>
         </div>
-        <div class="registration-complete-next-step">
-          <span class="registration-complete-sparkle" aria-hidden="true">
-            <?php echo aidunite_registration_complete_sparkle_icon(); ?>
-          </span>
-          <p class="registration-complete-next-step-text">
-            まずはログインして、<br>チーム作成やスケジュール登録を始めましょう。
-          </p>
-        </div>
-        <div class="registration-complete-actions">
+        <div class="registration-complete-actions registration-complete-actions--single">
           <a href="<?php echo esc_url($login_url); ?>" class="registration-complete-btn registration-complete-btn--primary">
             ログインする
             <span class="registration-complete-btn__icon"><?php echo aidunite_get_theme_icon_svg('arrow_forward', ['width' => '20', 'height' => '20']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-          </a>
-          <a href="<?php echo esc_url($home_url); ?>" class="registration-complete-btn registration-complete-btn--secondary">
-            ホームへ戻る
           </a>
         </div>
 

@@ -1,0 +1,14 @@
+/** design-reference schedule feedback */
+.feedback-preview-confirm--wide { max-width: 22rem; }
+.ref-schedule-tct-preview { text-align: left; font-size: 0.85rem; line-height: 1.5; }
+.ref-schedule-tct-row { display: flex; justify-content: space-between; gap: 0.75rem; padding: 0.2rem 0; }
+.ref-schedule-tct-divider { height: 1px; background: rgba(0,0,0,0.08); margin: 0.35rem 0; }
+.feedback-preview-center-pill {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.8); color: #fff; padding: 0.5rem 1.25rem;
+    border-radius: 999px; font-size: 0.85rem; white-space: nowrap;
+}
+.ref-schedule-card-time-demo { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem; }
+.ref-schedule-card-time-demo__item { display: flex; gap: 0.75rem; font-size: 0.85rem; }
+.ref-schedule-card-time-demo__label { min-width: 6rem; color: var(--text-secondary, #666); }
+.ref-schedule-card-time-demo__empty { color: var(--text-secondary, #999); font-style: italic; }

@@ -15,7 +15,37 @@
         return { root: root, nonce: nonce };
     }
 
+    function initFavoriteListRemove() {
+        document.querySelectorAll('.favorite-team-btn--remove').forEach(function(btn) {
+            if (btn.dataset.favoriteListRemoveBound) return;
+            btn.dataset.favoriteListRemoveBound = '1';
+            btn.addEventListener('click', function() {
+                var teamId = btn.getAttribute('data-team-id');
+                var config = getRestConfig();
+                if (!teamId || !config.root || !config.nonce) return;
+                var url = config.root.replace(/\/$/, '') + '/aidunite/v1/favorite-teams/toggle';
+                btn.disabled = true;
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': config.nonce },
+                    body: JSON.stringify({ team_id: parseInt(teamId, 10) }),
+                    credentials: 'same-origin'
+                }).then(function(r) { return r.json(); }).then(function(data) {
+                    if (data.success && data.added === false) {
+                        var li = btn.closest('.favorite-teams-item');
+                        if (li) li.remove();
+                        var list = document.querySelector('.favorite-teams-list');
+                        if (list && !list.querySelector('.favorite-teams-item')) {
+                            location.reload();
+                        }
+                    }
+                }).finally(function() { btn.disabled = false; });
+            });
+        });
+    }
+
     function init() {
+        initFavoriteListRemove();
         var btns = document.querySelectorAll('.favorite-team-btn');
         if (!btns.length) return;
 

@@ -83,7 +83,6 @@ function aidunite_metrics_collect_paid_users($date) {
 }
 
 function aidunite_metrics_collect_revenue_estimate($date) {
-    unset($date);
     $paid = aidunite_metrics_collect_paid_users($date);
     $amount = 0;
     if (function_exists('aidunite_get_payment_config')) {

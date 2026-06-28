@@ -3,6 +3,19 @@
  * 4ステップウィザード形式のスケジュール登録・編集機能
  */
 
+(function applyScheduleEditPageConfig() {
+    if (typeof aiduniteScheduleEditPage === 'undefined') {
+        return;
+    }
+    var pageCfg = aiduniteScheduleEditPage;
+    if (pageCfg.teamVenueData) {
+        window.teamVenueData = pageCfg.teamVenueData;
+    }
+    if (pageCfg.aidunite) {
+        window.AIDUNITE = Object.assign({}, window.AIDUNITE || {}, pageCfg.aidunite);
+    }
+})();
+
 // getDocument は js/common/dom-utils.js で定義。未読込時はフォールバック
 if (typeof getDocument === 'undefined') {
     function getDocument() {
@@ -187,15 +200,9 @@ document.addEventListener('DOMContentLoaded', function() {
             handleTabSwitch(this);
         });
 
-        // タッチイベント（スマホ対応）
-        btn.addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            this.style.transform = 'scale(0.95)';
-        });
-
+        // タッチイベント（スマホ対応・見た目は CSS :active）
         btn.addEventListener('touchend', function(e) {
             e.preventDefault();
-            this.style.transform = 'scale(1)';
             handleTabSwitch(this);
         });
     });
@@ -1524,13 +1531,9 @@ function initializeScheduleTypeConditionDisplay() {
         if (bothCard) {
             if (intent === 'confirmed') {
                 bothCard.classList.add('disabled');
-                bothCard.style.opacity = '0.5';
-                bothCard.style.pointerEvents = 'none';
                 bothCard.setAttribute('aria-disabled', 'true');
             } else {
                 bothCard.classList.remove('disabled');
-                bothCard.style.opacity = '';
-                bothCard.style.pointerEvents = '';
                 bothCard.removeAttribute('aria-disabled');
             }
         }
@@ -2390,6 +2393,41 @@ function getGenderLabel(gender) {
     return labels[g] || '—';
 }
 
+/**
+ * REST meta を canonical 優先で正規化（サーバーが date/start_time 等を付与、旧キーはフォールバック）
+ * @param {Record<string, unknown>|null|undefined} meta
+ * @returns {Record<string, string>}
+ */
+function aiduniteScheduleMetaCanonical(meta) {
+    const m = meta && typeof meta === 'object' ? meta : {};
+    const date = String(m.date || m.schedule_date || '');
+    const start = String(m.start_time || m.schedule_start_time || '');
+    const end = String(m.end_time || m.schedule_end_time || '');
+    const place = String(m.place || m.schedule_place || m.schedule_place_option || m.venue_condition || '');
+    const gender = String(m.gender || m.schedule_gender || m.matching_gender_condition || m.gender_condition || '');
+    const memo = String(m.memo || m.schedule_quick_memo || m.schedule_note || '');
+    return {
+        ...m,
+        date,
+        start_time: start,
+        end_time: end,
+        place,
+        venue_condition: place,
+        gender,
+        gender_condition: gender,
+        memo,
+        schedule_date: date,
+        schedule_start_time: start,
+        schedule_end_time: end,
+        schedule_place: place,
+        schedule_gender: gender,
+        schedule_type: String(m.schedule_type || ''),
+        schedule_quick_memo: memo,
+        intent: String(m.intent || ''),
+        matching: m.matching,
+    };
+}
+
 // 編集モード: 既存スケジュールデータを読み込む
 function loadScheduleForEdit(postId) {
     if (!postId) {
@@ -2414,14 +2452,14 @@ function loadScheduleForEdit(postId) {
         return response.json();
     })
     .then(schedule => {
-        //  loadScheduleForEdit: Loaded schedule data', schedule);
+        const meta = aiduniteScheduleMetaCanonical(schedule.meta);
 
         // 目的（intent）を設定
         const intentInput = document.getElementById('intent');
-        if (intentInput && schedule.meta && schedule.meta.intent) {
-            intentInput.value = schedule.meta.intent;
-            updateScheduleTypes(schedule.meta.intent);
-            const intentCard = document.querySelector(`.intent-selection .selection-card[data-value="${schedule.meta.intent}"]`);
+        if (intentInput && meta.intent) {
+            intentInput.value = meta.intent;
+            updateScheduleTypes(meta.intent);
+            const intentCard = document.querySelector(`.intent-selection .selection-card[data-value="${meta.intent}"]`);
             if (intentCard) {
                 intentCard.classList.add('selected');
             }
@@ -2429,51 +2467,46 @@ function loadScheduleForEdit(postId) {
 
         // 種別を設定
         const scheduleTypeInput = document.getElementById('schedule_type');
-        if (scheduleTypeInput && schedule.meta && schedule.meta.schedule_type) {
-            scheduleTypeInput.value = schedule.meta.schedule_type;
-            // 種別選択のイベントを発火
+        if (scheduleTypeInput && meta.schedule_type) {
+            scheduleTypeInput.value = meta.schedule_type;
             const scheduleTypeCards = document.getElementById('schedule_type_cards');
             if (scheduleTypeCards) {
-                const typeCard = scheduleTypeCards.querySelector(`[data-value="${schedule.meta.schedule_type}"]`);
+                const typeCard = scheduleTypeCards.querySelector(`[data-value="${meta.schedule_type}"]`);
                 if (typeCard) {
-                    selectCard(typeCard, 'schedule_type', schedule.meta.schedule_type);
+                    selectCard(typeCard, 'schedule_type', meta.schedule_type);
                 }
             }
-            //  loadScheduleForEdit: Set schedule_type=' + schedule.meta.schedule_type);
         }
 
         // 日付を設定
-        if (schedule.meta && schedule.meta.schedule_date) {
+        if (meta.schedule_date) {
             const startDateInput = document.getElementById('start_date');
             if (startDateInput) {
-                startDateInput.value = schedule.meta.schedule_date;
-                selectedDates = [new Date(schedule.meta.schedule_date)];
+                startDateInput.value = meta.schedule_date;
+                selectedDates = [new Date(meta.schedule_date)];
                 renderCalendar && renderCalendar();
-                //  loadScheduleForEdit: Set date=' + schedule.meta.schedule_date);
             }
         }
 
         // 時間を設定
-        if (schedule.meta && schedule.meta.schedule_start_time) {
-            const [startHour, startMinute] = schedule.meta.schedule_start_time.split(':');
+        if (meta.schedule_start_time) {
+            const [startHour, startMinute] = meta.schedule_start_time.split(':');
             const startHourInput = document.getElementById('start_hour');
             const startMinuteInput = document.getElementById('start_minute');
             if (startHourInput) startHourInput.value = startHour;
             if (startMinuteInput) startMinuteInput.value = startMinute;
-            //  loadScheduleForEdit: Set start_time=' + schedule.meta.schedule_start_time);
         }
 
-        if (schedule.meta && schedule.meta.schedule_end_time) {
-            const [endHour, endMinute] = schedule.meta.schedule_end_time.split(':');
+        if (meta.schedule_end_time) {
+            const [endHour, endMinute] = meta.schedule_end_time.split(':');
             const endHourInput = document.getElementById('end_hour');
             const endMinuteInput = document.getElementById('end_minute');
             if (endHourInput) endHourInput.value = endHour;
             if (endMinuteInput) endMinuteInput.value = endMinute;
-            //  loadScheduleForEdit: Set end_time=' + schedule.meta.schedule_end_time);
         }
 
-        // 会場条件を設定（統一メタキー優先）
-        const venueCondition = schedule.meta.schedule_place || schedule.meta.schedule_place_option || schedule.meta.venue_condition || '';
+        // 会場条件を設定
+        const venueCondition = meta.venue_condition || meta.schedule_place || '';
         if (venueCondition) {
             const venueConditionInput = document.getElementById('venue_condition');
             if (venueConditionInput) {
@@ -2487,8 +2520,8 @@ function loadScheduleForEdit(postId) {
             }
         }
 
-        // 性別条件を設定（統一メタキー優先）
-        const genderConditionRaw = schedule.meta.schedule_gender || schedule.meta.matching_gender_condition || schedule.meta.gender_condition || '';
+        // 性別条件を設定
+        const genderConditionRaw = meta.schedule_gender || meta.gender_condition || '';
         const genderCondition = normalizeRecruitGenderForUi(genderConditionRaw);
         if (genderCondition) {
             const genderConditionInput = document.getElementById('gender_condition');
@@ -2504,55 +2537,49 @@ function loadScheduleForEdit(postId) {
         }
 
         // 会場名を設定
-        if (schedule.meta && schedule.meta.venue_name) {
+        if (meta.venue_name) {
             const venueNameInput = document.getElementById('venue_name');
             if (venueNameInput) {
-                venueNameInput.value = schedule.meta.venue_name;
-                //  loadScheduleForEdit: Set venue_name=' + schedule.meta.venue_name);
+                venueNameInput.value = String(meta.venue_name);
             }
         }
 
         // メモを設定
-        if (schedule.meta && schedule.meta.schedule_quick_memo) {
+        if (meta.schedule_quick_memo) {
             const memoInput = document.getElementById('schedule_quick_memo');
             if (memoInput) {
-                memoInput.value = schedule.meta.schedule_quick_memo;
-                //  loadScheduleForEdit: Set schedule_quick_memo=' + schedule.meta.schedule_quick_memo);
+                memoInput.value = meta.schedule_quick_memo;
             }
         }
 
         // チーム数を設定（マッチ希望の場合）
-        if (schedule.meta && schedule.meta.male_teams) {
+        if (meta.male_teams) {
             const maleTeamsInput = document.getElementById('male_teams');
             if (maleTeamsInput) {
-                maleTeamsInput.value = schedule.meta.male_teams;
+                maleTeamsInput.value = String(meta.male_teams);
                 maleTeamsInput.dispatchEvent(new Event('input'));
             }
         }
-        if (schedule.meta && schedule.meta.female_teams) {
+        if (meta.female_teams) {
             const femaleTeamsInput = document.getElementById('female_teams');
             if (femaleTeamsInput) {
-                femaleTeamsInput.value = schedule.meta.female_teams;
+                femaleTeamsInput.value = String(meta.female_teams);
                 femaleTeamsInput.dispatchEvent(new Event('input'));
             }
         }
 
-        // 確認画面を更新
         updateConfirmation();
 
-        const m = schedule.meta || {};
-        const venueInit = m.schedule_place || m.schedule_place_option || m.venue_condition || '';
-        const genderInit = m.schedule_gender || m.matching_gender_condition || m.gender_condition || '';
-        const intentStr = String(m.intent || '');
-        const matchOne = (m.matching === 1 || m.matching === '1' || intentStr === 'recruit') ? 1 : 0;
+        const intentStr = String(meta.intent || '');
+        const matchOne = (meta.matching === 1 || meta.matching === '1' || intentStr === 'recruit') ? 1 : 0;
         window.__scheduleEditInitialMeta = {
             intent: intentStr,
-            schedule_type: String(m.schedule_type || ''),
-            schedule_date: String(m.schedule_date || ''),
-            schedule_start_time: String(m.schedule_start_time || ''),
-            schedule_end_time: String(m.schedule_end_time || ''),
-            venue: String(venueInit),
-            gender: String(genderInit),
+            schedule_type: String(meta.schedule_type || ''),
+            schedule_date: String(meta.schedule_date || ''),
+            schedule_start_time: String(meta.schedule_start_time || ''),
+            schedule_end_time: String(meta.schedule_end_time || ''),
+            venue: String(meta.venue_condition || meta.schedule_place || ''),
+            gender: String(meta.schedule_gender || meta.gender_condition || ''),
             matching: matchOne
         };
 
@@ -2749,20 +2776,11 @@ document.addEventListener('DOMContentLoaded', function() {
         scheduleForm.addEventListener('submit', handleFormSubmit);
     }
 
-    // 送信ボタンのタッチイベント処理（スマホ対応）
+    // 送信ボタンのタッチイベント処理（スマホ対応・見た目は CSS :active）
     const submitButton = document.querySelector('button[type="submit"]');
     if (submitButton) {
-        submitButton.addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            this.style.transform = 'scale(0.95)';
-            this.style.opacity = '0.8';
-        });
-
         submitButton.addEventListener('touchend', function(e) {
             e.preventDefault();
-            this.style.transform = 'scale(1)';
-            this.style.opacity = '1';
-            // フォーム送信をトリガー
             if (scheduleForm && !isSubmitting) {
                 handleFormSubmit({ target: scheduleForm, preventDefault: () => {} });
             }
@@ -3051,10 +3069,8 @@ function handleFormSubmit(event) {
                 if (risky && scheduleEditSensitiveChanged(window.__scheduleEditInitialMeta, curSnap)) {
                     resetSubmitUi();
                     const msg = scheduleEditMessageForBlocked();
-                    if (typeof showToastNotification !== 'undefined') {
+                    if (typeof showToastNotification === 'function') {
                         showToastNotification(msg, 'error');
-                    } else {
-                        alert(msg);
                     }
                     return;
                 }
@@ -3235,15 +3251,7 @@ function updateNextButtonState() {
     const nextButton = navElements[currentStep];
     if (nextButton) {
         nextButton.disabled = !isValid;
-        if (!isValid) {
-            nextButton.classList.add('disabled');
-            nextButton.style.opacity = '0.5';
-            nextButton.style.cursor = 'not-allowed';
-        } else {
-            nextButton.classList.remove('disabled');
-            nextButton.style.opacity = '1';
-            nextButton.style.cursor = 'pointer';
-        }
+        nextButton.classList.toggle('disabled', !isValid);
     }
 }
 

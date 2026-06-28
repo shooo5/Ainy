@@ -420,7 +420,7 @@
 }
 
 .mf-event-card__label {
-  color: #6d28d9;
+  color: var(--primary-dark);
   font-weight: 700;
   margin-bottom: var(--spacing-base, 1rem);
 }

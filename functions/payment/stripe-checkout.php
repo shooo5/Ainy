@@ -13,37 +13,66 @@ require_once get_template_directory() . '/functions/common/error-handler.php';
 
 /**
  * Stripe Checkoutセッションを作成
+ *
+ * @param int                  $user_id
+ * @param int                  $team_id
+ * @param array<string, mixed> $options ui_mode: hosted|embedded
+ * @return array<string, string>|WP_Error
  */
-function aidunite_create_checkout_session($user_id, $team_id) {
+function aidunite_create_checkout_session($user_id, $team_id, array $options = []) {
     // Stripe SDKのチェック
     if (!class_exists('\Stripe\Stripe')) {
         return new WP_Error('stripe_sdk_not_found', 'Stripe SDKがインストールされていません。ComposerでStripe SDKをインストールしてください: composer require stripe/stripe-php');
     }
 
     if (!aidunite_init_stripe()) {
-        return new WP_Error('stripe_init_failed', 'Stripeの初期化に失敗しました');
+        $secret_key = (string) get_option('aidunite_stripe_secret_key', '');
+        if ($secret_key !== '') {
+            $validation = aidunite_validate_stripe_secret_key($secret_key);
+            if (is_wp_error($validation)) {
+                return $validation;
+            }
+        }
+
+        return new WP_Error(
+            'stripe_init_failed',
+            'Stripeの初期化に失敗しました。管理者画面で Stripe API キーを確認してください。'
+        );
     }
 
     // チーム情報を取得
     $team_type = aidunite_get_team_type($team_id);
-    $monthly_fee = aidunite_calculate_monthly_fee($team_id);
+    $monthly_fee = aidunite_calculate_monthly_fee($team_id, $user_id);
     $plan = aidunite_get_plan_info($team_id);
 
     if (empty($plan)) {
         return new WP_Error('plan_not_found', 'プランが見つかりません');
     }
 
-    // ユーザー情報を取得
-    $user = get_userdata($user_id);
-    $user_email = $user->user_email;
+    // Stripe顧客を作成または取得（別 Stripe アカウントの残骸 ID は自動で作り直す）
+    $customer_id = function_exists('aidunite_ensure_stripe_platform_customer')
+        ? aidunite_ensure_stripe_platform_customer($user_id, $team_id)
+        : aidunite_get_stripe_customer_id($user_id);
 
-    // Stripe顧客を作成または取得
-    $customer_id = aidunite_get_stripe_customer_id($user_id);
+    if (is_wp_error($customer_id)) {
+        return $customer_id;
+    }
 
-    if (empty($customer_id)) {
+    $customer_id = (string) $customer_id;
+    if ($customer_id === '' && function_exists('aidunite_ensure_stripe_platform_customer')) {
+        return new WP_Error('customer_creation_failed', '決済情報の登録に失敗しました。しばらく時間をおいて再度お試しください。問題が続く場合は、お問い合わせください。');
+    }
+
+    if ($customer_id === '') {
+        // レガシー: ensure 関数が無い環境向け
+        $user = get_userdata($user_id);
+        if (!$user) {
+            return new WP_Error('user_not_found', 'ユーザー情報が見つかりません');
+        }
+
         try {
             $customer = \Stripe\Customer::create([
-                'email' => $user_email,
+                'email' => $user->user_email,
                 'name' => $user->display_name,
                 'metadata' => [
                     'user_id' => $user_id,
@@ -54,21 +83,36 @@ function aidunite_create_checkout_session($user_id, $team_id) {
             $customer_id = $customer->id;
             aidunite_set_stripe_customer_id($user_id, $customer_id);
         } catch (\Stripe\Exception\ApiErrorException $e) {
-            error_log("Stripe顧客作成エラー: " . $e->getMessage());
-            // 汎用的なエラーメッセージを返す（技術的詳細はログに記録済み）
+            error_log('Stripe顧客作成エラー: ' . $e->getMessage());
+
+            $secret_key = (string) get_option('aidunite_stripe_secret_key', '');
+            if (strpos($secret_key, 'whsec_') === 0) {
+                return new WP_Error(
+                    'stripe_secret_key_is_webhook',
+                    '決済設定に誤りがあります（Secret Key に Webhook Secret が入っています）。管理者に Stripe API キーの再設定を依頼してください。'
+                );
+            }
+
+            if (stripos($e->getMessage(), 'Invalid API Key') !== false) {
+                return new WP_Error(
+                    'stripe_api_key_invalid',
+                    'Stripe API キーが無効です。管理者に決済管理画面でのキー設定を確認してください。'
+                );
+            }
+
             return new WP_Error('customer_creation_failed', '決済情報の登録に失敗しました。しばらく時間をおいて再度お試しください。問題が続く場合は、お問い合わせください。');
         }
     }
 
-    // 早期決済特典を計算（後払い方式）
-    $bonus = aidunite_calculate_early_payment_bonus($team_id);
-
     // 価格IDを取得または作成
-    $price_id = aidunite_get_or_create_stripe_price($team_id, $monthly_fee);
+    $product_name = sprintf('Ainy %s', (string) ($plan['name'] ?? 'システム利用料'));
+    $price_id = aidunite_get_or_create_stripe_price($team_id, $monthly_fee, $product_name);
 
     if (is_wp_error($price_id)) {
         return $price_id;
     }
+
+    $ui_mode = isset($options['ui_mode']) && $options['ui_mode'] === 'embedded' ? 'embedded' : 'hosted';
 
     // Checkoutセッションを作成
     $session_params = [
@@ -79,87 +123,73 @@ function aidunite_create_checkout_session($user_id, $team_id) {
             'price' => $price_id,
             'quantity' => 1,
         ]],
-        'success_url' => home_url('/mypage?payment=success'),
-        'cancel_url' => home_url('/payment-setup?payment=cancelled'),
+        'locale' => 'ja',
         'metadata' => [
             'user_id' => $user_id,
             'team_id' => $team_id,
             'plan_id' => $plan['id'],
         ],
+        'custom_text' => [
+            'submit' => [
+                'message' => 'カードを登録する',
+            ],
+        ],
     ];
 
-    // 後払い方式での請求タイミング設定
-    // Stripe APIでは、billing_cycle_anchorとtrial_endは同時に指定できない
-    // billing_cycle_anchorを使用すると、その日までがトライアル期間として扱われ、その日から請求が開始される
-    // 重要: billing_cycle_anchorは「次の自然な請求日」（通常は現在から1ヶ月後）より先に設定できない
+    $checkout_return_url = add_query_arg(
+        [
+            'payment' => 'success',
+            'session_id' => '{CHECKOUT_SESSION_ID}',
+        ],
+        home_url('/payment-setup')
+    );
 
-    $current_timestamp = time();
-    $next_natural_billing_date = strtotime('+1 month', $current_timestamp); // 次の自然な請求日（1ヶ月後）
-
-    if ($bonus) {
-        // 後払い方式: 最初の請求日を設定
-        $first_billing_timestamp = strtotime($bonus['first_billing_date']);
-
-        // Stripeの制約: billing_cycle_anchorは「次の自然な請求日」より先に設定できない
-        // そのため、first_billing_timestampがnext_natural_billing_dateより後の場合は、
-        // next_natural_billing_dateを使用する
-        if ($first_billing_timestamp > $next_natural_billing_date) {
-            error_log("Stripe Checkout: billing_cycle_anchorをnext_natural_billing_dateに調整 (User ID: {$user_id})");
-            $billing_cycle_anchor = $next_natural_billing_date;
-        } else {
-            $billing_cycle_anchor = $first_billing_timestamp;
-        }
-
-        $session_params['subscription_data'] = [
-            'billing_cycle_anchor' => $billing_cycle_anchor, // 統一請求日（後払い方式）
-            'metadata' => [
-                'user_id' => $user_id,
-                'team_id' => $team_id,
-                'plan_id' => $plan['id'],
-                'early_bonus' => json_encode($bonus),
-                'billing_type' => 'postpaid', // 後払い方式
-                'original_first_billing_date' => $bonus['first_billing_date'], // 元の請求日をメタデータに保存
-            ],
-        ];
+    if ($ui_mode === 'embedded') {
+        $session_params['ui_mode'] = 'embedded';
+        $session_params['return_url'] = $checkout_return_url;
     } else {
-        // 特典なしの場合も後払い方式で統一
-        $trial_start = aidunite_get_trial_start_date($team_id);
-        if (!empty($trial_start)) {
-            // トライアル終了日を計算（30日後）
-            $original_trial_end = strtotime('+30 days', strtotime($trial_start));
-            $year = date('Y', $original_trial_end);
-            $month = date('m', $original_trial_end);
-            // トライアル終了日の次の月の1日が最初の請求日
-            $first_billing_timestamp = strtotime("{$year}-{$month}-01 +1 month");
+        $session_params['success_url'] = $checkout_return_url;
+        $session_params['cancel_url'] = home_url('/payment-setup?payment=cancelled');
+    }
 
-            // Stripeの制約: billing_cycle_anchorは「次の自然な請求日」より先に設定できない
-            if ($first_billing_timestamp > $next_natural_billing_date) {
-                error_log("Stripe Checkout: billing_cycle_anchorをnext_natural_billing_dateに調整 (User ID: {$user_id})");
-                $billing_cycle_anchor = $next_natural_billing_date;
-            } else {
-                $billing_cycle_anchor = $first_billing_timestamp;
-            }
+    $trial_end_date = aidunite_calculate_trial_end_date($team_id);
+    $subscription_metadata = [
+        'user_id' => $user_id,
+        'team_id' => $team_id,
+        'plan_id' => $plan['id'],
+        'billing_type' => 'postpaid',
+    ];
 
-            $session_params['subscription_data'] = [
-                'billing_cycle_anchor' => $billing_cycle_anchor,
-                'metadata' => [
-                    'user_id' => $user_id,
-                    'team_id' => $team_id,
-                    'plan_id' => $plan['id'],
-                    'billing_type' => 'postpaid',
-                    'original_first_billing_date' => date('Y-m-d', $first_billing_timestamp), // 元の請求日をメタデータに保存
-                ],
-            ];
+    $subscription_data = [
+        'metadata' => $subscription_metadata,
+    ];
+
+    if (!empty($trial_end_date)) {
+        $trial_end_ts = strtotime($trial_end_date);
+        if ($trial_end_ts > time()) {
+            $subscription_data['trial_end'] = $trial_end_ts;
         }
     }
+
+    $session_params['subscription_data'] = $subscription_data;
 
     try {
         $session = \Stripe\Checkout\Session::create($session_params);
 
-        return [
+        $result = [
             'session_id' => $session->id,
-            'url' => $session->url,
         ];
+
+        if ($ui_mode === 'embedded') {
+            $result['client_secret'] = (string) ($session->client_secret ?? '');
+            if ($result['client_secret'] === '') {
+                return new WP_Error('checkout_session_failed', '決済ページの準備に失敗しました。しばらく時間をおいて再度お試しください。');
+            }
+        } else {
+            $result['url'] = (string) ($session->url ?? '');
+        }
+
+        return $result;
     } catch (\Stripe\Exception\ApiErrorException $e) {
         error_log("Stripe Checkout Session作成エラー: " . $e->getMessage());
         error_log("エラーコード: " . $e->getStripeCode());
@@ -177,10 +207,17 @@ function aidunite_create_checkout_session($user_id, $team_id) {
 
 /**
  * Stripe価格IDを取得または作成
+ *
+ * @param int    $team_id
+ * @param int    $amount
+ * @param string $product_name
+ * @return string|WP_Error
  */
-function aidunite_get_or_create_stripe_price($team_id, $amount) {
+function aidunite_get_or_create_stripe_price($team_id, $amount, $product_name = 'Ainy システム利用料') {
     // 既存の価格IDをチェック（メタデータで管理）
-    $price_id = get_post_meta($team_id, 'stripe_price_id', true);
+    $price_id = function_exists('aidunite_payment_read_stripe_price_id')
+        ? aidunite_payment_read_stripe_price_id($team_id)
+        : '';
 
     if (!empty($price_id)) {
         // 既存の価格IDを確認
@@ -198,7 +235,7 @@ function aidunite_get_or_create_stripe_price($team_id, $amount) {
     // 新規価格を作成
     try {
         $product = \Stripe\Product::create([
-            'name' => 'Aniyシステム利用料',
+            'name' => $product_name,
             'metadata' => [
                 'team_id' => $team_id,
             ],
@@ -215,7 +252,9 @@ function aidunite_get_or_create_stripe_price($team_id, $amount) {
         ]);
 
         // 価格IDを保存
-        update_post_meta($team_id, 'stripe_price_id', $price->id);
+        if (function_exists('aidunite_team_write_stripe_price_id_meta')) {
+            aidunite_team_write_stripe_price_id_meta($team_id, $price->id);
+        }
 
         return $price->id;
     } catch (\Stripe\Exception\ApiErrorException $e) {
@@ -267,7 +306,10 @@ function aidunite_ajax_create_checkout() {
     }
 
     // Checkoutセッションを作成
-    $result = aidunite_create_checkout_session($user_id, $team_id);
+    $ui_mode = isset($_POST['ui_mode']) && sanitize_text_field(wp_unslash($_POST['ui_mode'])) === 'embedded'
+        ? 'embedded'
+        : 'hosted';
+    $result = aidunite_create_checkout_session($user_id, $team_id, ['ui_mode' => $ui_mode]);
 
     if (is_wp_error($result)) {
         // 支払い関連のエラーはcriticalとして扱う

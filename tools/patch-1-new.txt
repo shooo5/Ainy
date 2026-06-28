@@ -1,0 +1,160 @@
+    .schedule-line-5 {
+        font-size: 0.5rem;
+    }
+}
+
+/* クイック登録・カード操作モーダル */
+.aidunite-schedule-quick-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.aidunite-schedule-quick-modal.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.aidunite-schedule-quick-modal .sqm-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.aidunite-schedule-quick-modal .sqm-panel {
+    position: relative;
+    width: min(100%, 420px);
+    max-height: 90vh;
+    overflow: auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+
+.aidunite-schedule-quick-modal .sqm-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.aidunite-schedule-quick-modal .sqm-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-close {
+    border: none;
+    background: transparent;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    color: #6c757d;
+}
+
+.aidunite-schedule-quick-modal .sqm-body {
+    padding: 1rem 1.25rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-date {
+    margin: 0 0 1rem;
+    font-weight: 600;
+    color: #212529;
+}
+
+.aidunite-schedule-quick-modal .sqm-field {
+    margin-bottom: 1rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 0.85rem;
+    color: #495057;
+}
+
+.aidunite-schedule-quick-modal .sqm-input,
+.aidunite-schedule-quick-modal .sqm-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    padding: 0.45rem 0.6rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-input--readonly {
+    background: #f8f9fa;
+}
+
+.aidunite-schedule-quick-modal .sqm-radios {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-radio {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.aidunite-schedule-quick-modal .sqm-row-2 {
+    display: grid;
+    grid-template-columns: auto 1fr auto 1fr;
+    gap: 0.5rem 0.75rem;
+    align-items: center;
+}
+
+.aidunite-schedule-quick-modal .sqm-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.aidunite-schedule-quick-modal .sqm-footer--stack {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.aidunite-schedule-quick-modal .sqm-full {
+    width: 100%;
+    text-align: center;
+}
+
+.aidunite-schedule-quick-modal .sqm-advanced {
+    margin-right: auto;
+    font-size: 0.85rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-confirm-dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: 6em 1fr;
+    gap: 0.35rem 0.75rem;
+    font-size: 0.9rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-confirm-dl dt {
+    margin: 0;
+    color: #6c757d;
+}
+
+.aidunite-schedule-quick-modal .sqm-confirm-dl dd {
+    margin: 0;
+}
+

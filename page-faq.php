@@ -3,17 +3,29 @@
  * Template Name: FAQ
  */
 
+if (function_exists('aidunite_web_app_page_prepare_hero_shell_body_class')) {
+    aidunite_web_app_page_prepare_hero_shell_body_class();
+}
+
 get_header();
+
+$faq_shell_opened = false;
+if (function_exists('aidunite_web_app_page_shell_open')) {
+    aidunite_web_app_page_shell_open([
+        'page_class'    => 'page-faq',
+        'title'         => 'FAQ',
+        'subtitle'      => 'よくある質問と回答をご確認ください',
+        'content_class' => 'ainy-webapp-content--support',
+        'back'          => true,
+        'back_url'      => home_url('/mypage/'),
+    ]);
+    $faq_shell_opened = true;
+} else {
+    echo '<div class="team-dashboard-container page-faq">';
+    echo '<div class="dashboard-header"><h1>FAQ</h1><p>よくある質問と回答をご確認ください</p></div>';
+}
 ?>
 
-<div class="team-dashboard-container page-faq">
-  <!-- ダッシュボードヘッダー -->
-  <div class="dashboard-header">
-    <h1>FAQ</h1>
-    <p>よくある質問と回答をご確認ください</p>
-  </div>
-
-  <!-- FAQセクション -->
   <section class="dashboard-section">
     <h2>📋 よくある質問</h2>
     <div class="main-content-area">
@@ -89,46 +101,96 @@ get_header();
 
         <!-- マッチング関連 -->
         <div class="faq-category">
-          <h3>🤝 マッチング関連</h3>
+          <h3>🤝 試合募集・マッチング</h3>
           <div class="faq-item">
             <div class="faq-question" onclick="toggleFaq(this)">
-              <span>対戦相手の探し方</span>
+              <span>練習試合の募集の流れを教えてください</span>
               <span class="faq-toggle">+</span>
             </div>
             <div class="faq-answer">
-              <p>マッチボードから地域やレベルに応じた対戦相手を検索できます。条件に合う相手が見つかったら、マッチリクエストを送信してください。</p>
+              <p>①スケジュールを登録 → ②「試合募集」として公開 → ③マッチボードで相手を探す → ④申請・承認 → ⑤試合成立、の順です。成立後はチャットで詳細を調整できます。</p>
             </div>
           </div>
           <div class="faq-item">
             <div class="faq-question" onclick="toggleFaq(this)">
-              <span>マッチリクエストの承認・拒否方法</span>
+              <span>申請を承認・却下するには？</span>
               <span class="faq-toggle">+</span>
             </div>
             <div class="faq-answer">
-              <p>通知画面からマッチリクエストを確認し、「承認」または「拒否」を選択してください。承認後は、詳細な調整が可能になります。</p>
+              <p>通知一覧またはマッチ管理画面から申請を開き、「承認」または「却下」を選択してください。承認すると試合が成立し、双方に通知が届きます。</p>
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">
+              <span>募集条件が変わったと表示される</span>
+              <span class="faq-toggle">+</span>
+            </div>
+            <div class="faq-answer">
+              <p>申請後に募集側が会場・時間・性別条件などを変更した場合、再確認が必要になります。マッチ詳細画面の案内に従い、再申請または承諾を行ってください。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 出欠・保護者 -->
+        <div class="faq-category">
+          <h3>✅ 出欠・保護者連絡（Clubプラン）</h3>
+          <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">
+              <span>出欠の回答方法</span>
+              <span class="faq-toggle">+</span>
+            </div>
+            <div class="faq-answer">
+              <p>スケジュール詳細または出欠画面から「出席」「欠席」「未定」を選択してください。締切前であれば変更できます。Clubプランでご利用いただけます。</p>
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">
+              <span>保護者を招待するには？</span>
+              <span class="faq-toggle">+</span>
+            </div>
+            <div class="faq-answer">
+              <p>チーム設定の「保護者招待」からQRコードまたはリンクを発行し、保護者の方に共有してください。保護者は専用の登録画面から参加できます。</p>
             </div>
           </div>
         </div>
 
         <!-- 料金関連 -->
         <div class="faq-category">
-          <h3>💰 料金関連</h3>
+          <h3>💰 料金・お支払い</h3>
           <div class="faq-item">
             <div class="faq-question" onclick="toggleFaq(this)">
-              <span>料金プランの詳細を教えてください</span>
+              <span>料金プランの違いは？</span>
               <span class="faq-toggle">+</span>
             </div>
             <div class="faq-answer">
-              <p>無料プラン、スタンダードプラン（月額1,000円）、プレミアムプラン（月額2,000円）の3つのプランをご用意しています。詳細は料金ページでご確認ください。</p>
+              <p><strong>Matchプラン</strong>は試合募集・スケジュール・チャットなどマッチング機能向けです。<strong>Clubプラン</strong>はMatchの機能に加え、出欠管理・保護者連絡・月謝管理（Stripe）・メンバー管理が利用できます。詳細は<a href="<?php echo esc_url(home_url('/plan-info')); ?>">料金プラン</a>をご覧ください。</p>
             </div>
           </div>
           <div class="faq-item">
             <div class="faq-question" onclick="toggleFaq(this)">
-              <span>プランの変更方法</span>
+              <span>無料トライアルについて</span>
               <span class="faq-toggle">+</span>
             </div>
             <div class="faq-answer">
-              <p>マイページの「プラン管理」から、いつでもプランの変更が可能です。変更は翌月から適用され、差額分の精算が行われます。</p>
+              <p>初回は2ヶ月間の無料トライアルをご利用いただけます。トライアル終了前に<a href="<?php echo esc_url(home_url('/payment-setup')); ?>">支払い設定</a>でカード登録をお願いします。</p>
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">
+              <span>支払いに失敗した・カードを変更したい</span>
+              <span class="faq-toggle">+</span>
+            </div>
+            <div class="faq-answer">
+              <p><a href="<?php echo esc_url(home_url('/payment-setup')); ?>">支払い設定</a>からカード情報を更新してください。解約・プラン変更でお困りの場合は<a href="<?php echo esc_url(home_url('/contact')); ?>">お問い合わせ</a>ください（チーム名と登録メールをお知らせください）。</p>
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">
+              <span>MatchからClubへアップグレードするには？</span>
+              <span class="faq-toggle">+</span>
+            </div>
+            <div class="faq-answer">
+              <p>初回試合成立後、支払い設定画面からClubプランへアップグレードできます。成立前はMatchプランのご利用となります。</p>
             </div>
           </div>
         </div>
@@ -161,143 +223,17 @@ get_header();
       <div class="contact-section">
         <h3>📞 お問い合わせ</h3>
         <p>上記のFAQで解決しない場合は、お気軽にお問い合わせください。</p>
-        <a href="<?php echo home_url('/feedback'); ?>" class="btn btn-primary">お問い合わせフォーム</a>
+        <a href="<?php echo esc_url(home_url('/contact')); ?>" class="btn btn-primary">お問い合わせフォーム</a>
+        <a href="<?php echo esc_url(home_url('/guide')); ?>" class="btn btn-secondary">使い方ガイド</a>
       </div>
     </div>
   </section>
-</div>
 
-<style>
-.faq-container {
-  max-width: 800px;
-  margin: 0 auto;
+<?php
+if ($faq_shell_opened && function_exists('aidunite_web_app_page_shell_close')) {
+    aidunite_web_app_page_shell_close();
+} else {
+    echo '</div>';
 }
 
-.faq-category {
-  margin-bottom: 40px;
-}
-
-.faq-category h3 {
-  color: var(--text-primary);
-  font-size: 1.2rem;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #e9ecef;
-}
-
-.faq-item {
-  margin-bottom: 15px;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.faq-item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.faq-question {
-  background: #f8f9fa;
-  padding: 20px;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: 600;
-  color: var(--text-primary);
-  transition: background-color 0.3s ease;
-}
-
-.faq-question:hover {
-  background: #e9ecef;
-}
-
-.faq-toggle {
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: var(--text-muted);
-  transition: transform 0.3s ease;
-}
-
-.faq-question.active .faq-toggle {
-  transform: rotate(45deg);
-}
-
-.faq-answer {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s ease;
-  background: white;
-}
-
-.faq-answer.active {
-  max-height: 200px;
-}
-
-.faq-answer p {
-  padding: 20px;
-  margin: 0;
-  line-height: 1.6;
-  color: var(--text-muted);
-}
-
-.contact-section {
-  text-align: center;
-  margin-top: 50px;
-  padding: 30px;
-  background: #f8f9fa;
-  border-radius: 12px;
-}
-
-.contact-section h3 {
-  color: var(--text-primary);
-  margin-bottom: 15px;
-}
-
-.contact-section p {
-  color: var(--text-muted);
-  margin-bottom: 20px;
-}
-
-@media (max-width: 768px) {
-  .faq-question {
-    padding: 15px;
-    font-size: 0.9rem;
-  }
-
-  .faq-answer p {
-    padding: 15px;
-  }
-
-  .contact-section {
-    padding: 20px;
-  }
-}
-</style>
-
-<script>
-function toggleFaq(element) {
-  const answer = element.nextElementSibling;
-  const isActive = element.classList.contains('active');
-
-  // 他のFAQアイテムを閉じる
-  document.querySelectorAll('.faq-question.active').forEach(item => {
-    if (item !== element) {
-      item.classList.remove('active');
-      item.nextElementSibling.classList.remove('active');
-    }
-  });
-
-  // クリックされたアイテムの開閉
-  if (isActive) {
-    element.classList.remove('active');
-    answer.classList.remove('active');
-  } else {
-    element.classList.add('active');
-    answer.classList.add('active');
-  }
-}
-</script>
-
-<?php get_footer(); ?>
+get_footer();

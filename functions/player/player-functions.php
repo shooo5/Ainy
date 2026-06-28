@@ -5,81 +5,14 @@
  */
 
 /**
- * 選手ダッシュボード用データ取得（統一命名）
- */
-function aidunite_get_player_dashboard_data($player_id) {
-    if (!$player_id) {
-        return [];
-    }
-
-    $dashboard_data = [
-        'player_info' => [],
-        'team_info' => null,
-        'upcoming_schedules' => [],
-        'recent_attendance' => []
-    ];
-
-    // 選手情報を取得
-    $player_info = aidunite_get_player_info($player_id);
-    if ($player_info) {
-        $dashboard_data['player_info'] = $player_info;
-    }
-
-    // チーム情報を取得
-    $team_id = (function_exists('aidunite_get_current_team_id') ? aidunite_get_current_team_id((int) $player_id) : get_user_meta($player_id, 'team_id', true));
-    if ($team_id) {
-        $dashboard_data['team_info'] = aidunite_get_team_info($team_id);
-    }
-
-    // 今月のスケジュールを取得
-    $current_month = date('Y-m');
-    $date_range = [
-        'start' => $current_month . '-01',
-        'end' => $current_month . '-31'
-    ];
-
-    $player_schedules = aidunite_get_player_schedules($player_id, $date_range);
-    $dashboard_data['upcoming_schedules'] = $player_schedules;
-
-    // 最近の出欠回答を取得
-    $recent_attendance = get_posts([
-        'post_type' => 'attendance',
-        'post_status' => 'publish',
-        'posts_per_page' => 5,
-        'author' => $player_id,
-        'orderby' => 'date',
-        'order' => 'DESC'
-    ]);
-
-    foreach ($recent_attendance as $attendance) {
-        $schedule_id = get_post_meta($attendance->ID, 'schedule_id', true);
-        $schedule = get_post($schedule_id);
-
-        $dashboard_data['recent_attendance'][] = [
-            'attendance_id' => $attendance->ID,
-            'schedule_title' => $schedule ? $schedule->post_title : '',
-            'schedule_date' => get_post_meta($schedule_id, 'schedule_date', true),
-            'status' => get_post_meta($attendance->ID, 'attendance_status', true),
-            'submitted_date' => get_post_meta($attendance->ID, 'attendance_date', true)
-        ];
-    }
-
-    return $dashboard_data;
-}
-
-/**
- * 後方互換性のためのラッパー関数（段階的削除予定）
- * @deprecated 代わりに aidunite_get_player_dashboard_data() を使用してください
- */
-function tunageru_get_player_dashboard_data($player_id) {
-    return aidunite_get_player_dashboard_data($player_id);
-}
-
-/**
  * 選手情報取得（統一命名）
+ *
+ * @param int $player_id
+ * @return array<string, string>|null
  */
 function aidunite_get_player_info($player_id) {
-    if (!$player_id) {
+    $player_id = (int) $player_id;
+    if ($player_id <= 0) {
         return null;
     }
 
@@ -88,36 +21,34 @@ function aidunite_get_player_info($player_id) {
         return null;
     }
 
-    // 選手投稿から情報を取得
-    $player_posts = get_posts([
-        'post_type' => 'player',
-        'meta_key' => 'player_user_id',
-        'meta_value' => $player_id,
-        'posts_per_page' => 1
-    ]);
+    $edit = function_exists('aidunite_player_get_edit_display')
+        ? aidunite_player_get_edit_display($player_id)
+        : [];
 
     $player_info = [
         'name' => $user->display_name,
         'age' => '',
         'height' => '',
-        'position' => ''
+        'position' => '',
     ];
 
-    if (!empty($player_posts)) {
-        $player_post = $player_posts[0];
-        $birth_date = get_post_meta($player_post->ID, 'player_birth_date', true);
-        $height = get_post_meta($player_post->ID, 'player_height', true);
-        $position = get_post_meta($player_post->ID, 'player_position', true);
+    if ($edit === []) {
+        return $player_info;
+    }
 
-        if ($birth_date) {
-            $player_info['age'] = calculate_age($birth_date);
-        }
-        if ($height) {
-            $player_info['height'] = $height;
-        }
-        if ($position) {
-            $player_info['position'] = $position;
-        }
+    $birth = (string) ($edit['player_birth_date'] ?? '');
+    if ($birth !== '' && function_exists('calculate_age')) {
+        $player_info['age'] = (string) calculate_age($birth);
+    }
+
+    $height = (string) ($edit['player_height'] ?? '');
+    if ($height !== '') {
+        $player_info['height'] = $height;
+    }
+
+    $position = (string) ($edit['player_position'] ?? '');
+    if ($position !== '') {
+        $player_info['position'] = $position;
     }
 
     return $player_info;
@@ -125,14 +56,19 @@ function aidunite_get_player_info($player_id) {
 
 /**
  * 選手のスケジュール取得（統一命名）
+ *
+ * @param int                  $player_id
+ * @param array<string, string> $date_range
+ * @return array<int, array<string, mixed>>
  */
 function aidunite_get_player_schedules($player_id, $date_range = []) {
-    if (!$player_id) {
+    $player_id = (int) $player_id;
+    if ($player_id <= 0) {
         return [];
     }
 
-    $team_id = (function_exists('aidunite_get_current_team_id') ? aidunite_get_current_team_id((int) $player_id) : get_user_meta($player_id, 'team_id', true));
-    if (!$team_id) {
+    $team_id = (int) aidunite_player_read_team_id($player_id);
+    if ($team_id <= 0) {
         return [];
     }
 
@@ -143,18 +79,17 @@ function aidunite_get_player_schedules($player_id, $date_range = []) {
         'meta_query' => [
             [
                 'key' => 'team_id',
-                'value' => $team_id
-            ]
-        ]
+                'value' => $team_id,
+            ],
+        ],
     ];
 
-    // 日付範囲が指定されている場合
     if (!empty($date_range['start']) && !empty($date_range['end'])) {
         $args['meta_query'][] = [
             'key' => 'schedule_date',
             'value' => [$date_range['start'], $date_range['end']],
             'compare' => 'BETWEEN',
-            'type' => 'DATE'
+            'type' => 'DATE',
         ];
     }
 
@@ -162,19 +97,23 @@ function aidunite_get_player_schedules($player_id, $date_range = []) {
     $schedule_data = [];
 
     foreach ($schedules as $schedule) {
+        $sch_pl = function_exists('aidunite_schedule_get_display_bundle')
+            ? aidunite_schedule_get_display_bundle((int) $schedule->ID)
+            : [];
+        $start = (string) ($sch_pl['start_time'] ?? '');
+        $end = (string) ($sch_pl['end_time'] ?? '');
         $schedule_data[] = [
             'id' => $schedule->ID,
             'title' => $schedule->post_title,
-            'date' => get_post_meta($schedule->ID, 'schedule_date', true),
-            'time' => get_post_meta($schedule->ID, 'schedule_start_time', true) . ' - ' . get_post_meta($schedule->ID, 'schedule_end_time', true),
-            'place' => get_post_meta($schedule->ID, 'schedule_place', true),
-            'type' => get_post_meta($schedule->ID, 'schedule_type', true)
+            'date' => (string) ($sch_pl['date'] ?? ''),
+            'time' => ($start !== '' || $end !== '') ? trim($start . ' - ' . $end) : (string) ($sch_pl['legacy_time'] ?? ''),
+            'place' => (string) ($sch_pl['place'] ?? ''),
+            'type' => (string) ($sch_pl['schedule_type'] ?? ''),
         ];
     }
 
-    // 日付順にソート
-    usort($schedule_data, function($a, $b) {
-        return strtotime($a['date']) - strtotime($b['date']);
+    usort($schedule_data, static function ($a, $b) {
+        return strtotime((string) ($a['date'] ?? '')) - strtotime((string) ($b['date'] ?? ''));
     });
 
     return $schedule_data;
@@ -182,14 +121,21 @@ function aidunite_get_player_schedules($player_id, $date_range = []) {
 
 /**
  * 選手の総活動数を取得（統一命名）
+ *
+ * @param int $player_id
+ * @return int
  */
 function aidunite_get_player_total_events($player_id) {
-    if (!$player_id) return 0;
+    $player_id = (int) $player_id;
+    if ($player_id <= 0) {
+        return 0;
+    }
 
-    $team_id = (function_exists('aidunite_get_current_team_id') ? aidunite_get_current_team_id((int) $player_id) : get_user_meta($player_id, 'team_id', true));
-    if (!$team_id) return 0;
+    $team_id = (int) aidunite_player_read_team_id($player_id);
+    if ($team_id <= 0) {
+        return 0;
+    }
 
-    // スケジュール（練習・試合）の総数を取得
     $total_schedules = get_posts([
         'post_type' => 'schedule',
         'post_status' => 'publish',
@@ -198,32 +144,31 @@ function aidunite_get_player_total_events($player_id) {
             [
                 'key' => 'team_id',
                 'value' => $team_id,
-                'compare' => '='
-            ]
-        ]
+                'compare' => '=',
+            ],
+        ],
     ]);
 
     return count($total_schedules);
 }
 
 /**
- * 後方互換性のためのラッパー関数（段階的削除予定）
- * @deprecated 代わりに aidunite_get_player_total_events() を使用してください
- */
-function tunageru_get_player_total_events($player_id) {
-    return aidunite_get_player_total_events($player_id);
-}
-
-/**
  * 選手の試合数を取得（統一命名）
+ *
+ * @param int $player_id
+ * @return int
  */
 function aidunite_get_player_match_count($player_id) {
-    if (!$player_id) return 0;
+    $player_id = (int) $player_id;
+    if ($player_id <= 0) {
+        return 0;
+    }
 
-    $team_id = (function_exists('aidunite_get_current_team_id') ? aidunite_get_current_team_id((int) $player_id) : get_user_meta($player_id, 'team_id', true));
-    if (!$team_id) return 0;
+    $team_id = (int) aidunite_player_read_team_id($player_id);
+    if ($team_id <= 0) {
+        return 0;
+    }
 
-    // 試合のみのスケジュール数を取得
     $matches = get_posts([
         'post_type' => 'schedule',
         'post_status' => 'publish',
@@ -232,94 +177,34 @@ function aidunite_get_player_match_count($player_id) {
             [
                 'key' => 'team_id',
                 'value' => $team_id,
-                'compare' => '='
+                'compare' => '=',
             ],
             [
                 'key' => 'schedule_type',
                 'value' => 'match',
-                'compare' => '='
-            ]
-        ]
+                'compare' => '=',
+            ],
+        ],
     ]);
 
     return count($matches);
 }
 
 /**
- * 後方互換性のためのラッパー関数（段階的削除予定）
- * @deprecated 代わりに aidunite_get_player_match_count() を使用してください
- */
-function tunageru_get_player_match_count($player_id) {
-    return aidunite_get_player_match_count($player_id);
-}
-
-/**
  * 選手の出席率を取得（統一命名）
+ *
+ * @param int $player_id
+ * @return int|float
  */
 function aidunite_get_player_attendance_rate($player_id) {
-    if (!$player_id) return 0;
-
-    $team_id = (function_exists('aidunite_get_current_team_id') ? aidunite_get_current_team_id((int) $player_id) : get_user_meta($player_id, 'team_id', true));
-    if (!$team_id) return 0;
-
-    // 過去のスケジュール数を取得
-    $past_schedules = get_posts([
-        'post_type' => 'schedule',
-        'post_status' => 'publish',
-        'posts_per_page' => -1,
-        'meta_query' => [
-            [
-                'key' => 'team_id',
-                'value' => $team_id,
-                'compare' => '='
-            ],
-            [
-                'key' => 'schedule_date',
-                'value' => date('Y-m-d'),
-                'compare' => '<',
-                'type' => 'DATE'
-            ]
-        ]
-    ]);
-
-    if (empty($past_schedules)) return 100;
-
-    // 出席記録を取得
-    $attendance_count = 0;
-    foreach ($past_schedules as $schedule) {
-        $attendance = get_posts([
-            'post_type' => 'attendance',
-            'post_status' => 'publish',
-            'posts_per_page' => 1,
-            'author' => $player_id,
-            'meta_query' => [
-                [
-                    'key' => 'schedule_id',
-                    'value' => $schedule->ID,
-                    'compare' => '='
-                ],
-                [
-                    'key' => 'attendance_status',
-                    'value' => 'attended',
-                    'compare' => '='
-                ]
-            ]
-        ]);
-
-        if (!empty($attendance)) {
-            $attendance_count++;
-        }
+    $player_id = (int) $player_id;
+    if ($player_id <= 0) {
+        return 0;
     }
 
-    return round(($attendance_count / count($past_schedules)) * 100);
-}
+    if (function_exists('aidunite_attendance_calculate_presence_rate')) {
+        return aidunite_attendance_calculate_presence_rate($player_id);
+    }
 
-/**
- * 後方互換性のためのラッパー関数（段階的削除予定）
- * @deprecated 代わりに aidunite_get_player_attendance_rate() を使用してください
- */
-function tunageru_get_player_attendance_rate($player_id) {
-    return aidunite_get_player_attendance_rate($player_id);
+    return 0;
 }
-
-?>

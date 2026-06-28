@@ -1,0 +1,83 @@
+file	template	slug	home_url_refs	auto_page
+page-about.php	会社概要	about	3	
+page-admin-analytics-active.php	管理用アクティブデータ一覧	admin-analytics-active	1	
+page-admin-analytics-ai-report.php	管理用AI月次分析レポート	admin-analytics-ai-report	1	
+page-admin-analytics-churn.php	管理用離脱分析一覧	admin-analytics-churn	1	
+page-admin-analytics-pv.php	管理用PVデータ一覧	admin-analytics-pv	1	
+page-admin-match-feedback-list.php	管理用試合後アンケート一覧	admin-match-feedback-list	2	Y
+page-admin-payment-list.php	管理用決済一覧	admin-payment-list	2	
+page-admin-payment-management.php	管理用決済管理	admin-payment-management	2	
+page-admin-post-match-modules.php	管理用試合後モジュール	admin-post-match-modules	2	Y
+page-admin-schedule-list.php	管理用スケジュール一覧	admin-schedule-list	3	
+page-admin-team-funnel.php	管理用成立ファネル一覧	admin-team-funnel	1	
+page-admin-user-list.php	管理用ユーザー一覧	admin-user-list	5	
+page-ainy-dashboard.php	Ainy 管理者ダッシュボード	ainy-dashboard	7	
+page-approve-registration.php	Approve Registration	approve-registration	3	
+page-attendance-management.php	出欠管理	attendance-management	4	
+page-attendance-report.php	出欠連絡	attendance-report	7	
+page-chat-management.php	チャット管理	chat-management	1	Y
+page-chat.php	チャット画面（統合版）	chat	13	Y
+page-communication-main.php	—	communication-main	0	Y
+page-confirm-withdrawal.php	退会完了	confirm-withdrawal	9	
+page-contact.php	お問合せ	contact	5	
+page-cookie-policy.php	—	cookie-policy	5	
+page-design-reference.php	デザインリファレンス	design-reference	1	
+page-disclaimer.php	免責事項	disclaimer	4	
+page-edit-player.php	選手編集ページ	edit-player	1	
+page-faq.php	FAQ	faq	3	
+page-feedback.php	—	feedback	9	
+page-guardian-signup.php	保護者登録ページ	guardian-signup	1	Y
+page-guide.php	ガイド	guide	6	
+page-invite-guardian.php	保護者招待フォーム	invite-guardian	6	
+page-login.php	ログインページ	login	23	
+page-match-action.php	Match Action Page	match-action	0	
+page-match-analytics.php	マッチ統計	match-analytics	3	
+page-match-board-own.php	試合掲示板・自動マッチ候補	match-board-own	21	
+page-match-detail.php	—	match-detail	12	
+page-match-feedback.php	—	match-feedback	6	
+page-match-history.php	申請履歴	match-history	2	
+page-match-invite.php	試合招待確認ページ（ゲスト用）	match-invite	2	
+page-match-log-view.php	マッチ投稿ログ表示（開発者用）	match-log-view	1	
+page-match-requests.php	マッチ申請一覧	match-requests	4	
+page-member-register.php	新規会員登録フォーム	member-register	8	
+page-member-registration.php	新規会員登録ページ（仮登録受付）	member-registration	9	
+page-member-withdrawal.php	会員退会申請ページ	member-withdrawal	1	
+page-message-board.php	メッセージ掲示板	message-board	0	
+page-mypage-favorite-teams.php	お気に入りチーム一覧	mypage-favorite-teams	3	
+page-mypage.php	マイページ	mypage	67	
+page-notification-settings.php	通知設定ページ	notification-settings	10	Y
+page-notifications.php	通知一覧ページ	notifications	9	
+page-parent-payment.php	保護者月謝支払いページ	parent-payment	3	Y
+page-payment-required.php	支払い必要ページ	payment-required	3	Y
+page-payment-setup.php	支払い設定ページ（統合ページ）	payment-setup	5	Y
+page-plan-info.php	プラン情報ページ	plan-info	0	Y
+page-player-add.php	新規選手追加ページ	player-add	9	
+page-player-stats.php	個人記録	player-stats	2	
+page-press.php	プレスリリース	press	0	
+page-privacy-policy.php	プライバシーポリシー	privacy-policy	6	
+page-profile-edit.php	プロフィール編集	profile-edit	15	
+page-registration-preview.php	登録完了ページプレビュー	registration-preview	4	
+page-regulation.php	レギュレーションページ	regulation	3	
+page-sample-preview.php	サンプルページプレビュー	sample-preview	1	
+page-schedule-edit.php	スケジュール編集	schedule-edit	16	
+page-schedule-list.php	スケジュール一覧	schedule-list	9	Y
+page-schedule-management.php	スケジュール管理	schedule-management	19	
+page-service.php	サービス	service	1	
+page-system-maintenance.php	システムメンテナンス（管理者専用）	system-maintenance	1	
+page-system-management.php	—	system-management	2	
+page-team-apply.php	チーム申請ページ	team-apply	4	
+page-team-approval.php	チーム申請承認	team-approval	6	
+page-team-detail.php	チーム詳細ページ	team-detail	8	
+page-team-management.php	チーム管理（管理者専用）	team-management	12	
+page-team-members.php	チームメンバー一覧	team-members	10	
+page-team-payment-management.php	—	team-payment-management	2	Y
+page-team-public.php	チーム公開プロフィール	team-public	0	
+page-team-registration-complete.php	チーム作成申請完了ページ	team-registration-complete	3	
+page-team-registration-preview.php	チーム作成申請完了ページプレビュー	team-registration-preview	0	
+page-team-registration.php	新規チーム登録ページ	team-registration	13	
+page-team-settings.php	チーム設定	team-settings	6	
+page-template-dashboard.php	ダッシュボード型ページテンプレート	template-dashboard	0	
+page-terms-of-service.php	利用規約	terms-of-service	5	
+page-tournament-new.php	大会作成	tournament-new	1	
+page-tournaments.php	大会一覧	tournaments	5	
+TOTAL: 81

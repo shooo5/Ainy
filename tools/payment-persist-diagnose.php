@@ -24,16 +24,14 @@ $lines = [];
 $lines[] = '=== payment persist diagnose ===';
 $lines[] = 'persist_loaded=' . (function_exists('aidunite_team_write_payment_mode_meta') ? 'yes' : 'no');
 
-if ($team_id > 0 && function_exists('aidunite_payment_get_canonical_team_meta')) {
-    $lines[] = '--- team canonical (team_id=' . $team_id . ') ---';
-    foreach (aidunite_payment_get_canonical_team_meta($team_id) as $k => $v) {
-        $lines[] = $k . '=' . var_export($v, true);
-    }
+if ($team_id > 0 && function_exists('aidunite_payment_read_team_payload')) {
+    $lines[] = '--- team payment payload (team_id=' . $team_id . ') ---';
+    $lines[] = wp_json_encode(aidunite_payment_read_team_payload($team_id, get_current_user_id()), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 }
 
-if ($user_id > 0 && function_exists('aidunite_payment_get_canonical_user_meta')) {
+if ($user_id > 0 && function_exists('aidunite_payment_read_canonical_user_meta')) {
     $lines[] = '--- user canonical (user_id=' . $user_id . ') ---';
-    foreach (aidunite_payment_get_canonical_user_meta($user_id) as $k => $v) {
+    foreach (aidunite_payment_read_canonical_user_meta($user_id) as $k => $v) {
         $lines[] = $k . '=' . var_export($v, true);
     }
 }

@@ -15,22 +15,24 @@ if (!$auth_result->is_valid()) {
 $user_id = $auth_result->user_id;
 $team_id = function_exists('aidunite_resolve_user_team_id_for_schedule_ops')
     ? (int) aidunite_resolve_user_team_id_for_schedule_ops((int) $user_id)
-    : (int) get_user_meta($user_id, 'team_id', true);
+    : aidunite_user_read_primary_team_id((int) $user_id);
 if (!$team_id) {
     wp_safe_redirect(home_url('/schedule-management'));
     exit;
 }
 
-$team_gender_canonical = '';
-if (function_exists('aidunite_normalize_team_gender_option')) {
-    $team_gender_canonical = aidunite_normalize_team_gender_option((string) get_post_meta((int) $team_id, 'team_gender_option', true));
-}
+$team_edit_bundle = function_exists('aidunite_team_get_display_bundle')
+    ? aidunite_team_get_display_bundle((int) $team_id)
+    : [];
+
+$team_gender_canonical = (string) ($team_edit_bundle['team_gender_option'] ?? '');
 
 /** 新規・対戦マッチ希望時の性別カード初期値（team_gender_option → male/female/both）。編集時は既存メタを優先 */
 $default_gender_condition_from_team = '';
 if ($team_id && function_exists('aidunite_team_gender_option_to_schedule_gender_condition')) {
-    $raw_team_gender = get_post_meta((int) $team_id, 'team_gender_option', true);
-    $default_gender_condition_from_team = aidunite_team_gender_option_to_schedule_gender_condition((string) $raw_team_gender);
+    $default_gender_condition_from_team = aidunite_team_gender_option_to_schedule_gender_condition(
+        (string) ($team_edit_bundle['team_gender_option_raw'] ?? $team_gender_canonical)
+    );
 }
 
 $user_role = function_exists('aidunite_get_user_role') ? aidunite_get_user_role($user_id) : '';
@@ -46,6 +48,12 @@ if (isset($_GET['post_id']) && !empty($_GET['post_id'])) {
     $edit_post_id = intval($_GET['post_id']);
 }
 
+/** 編集時の schedule メタ（表示・権限判定。書込は persist 正本） */
+$edit_schedule_meta = [];
+if ($edit_post_id > 0 && function_exists('aidunite_schedule_get_canonical_meta')) {
+    $edit_schedule_meta = aidunite_schedule_get_canonical_meta($edit_post_id);
+}
+
 // 編集時：プライベート予定は本人のみ、チーム予定は代表のみ編集可
 if ($edit_post_id > 0) {
     $edit_post = get_post($edit_post_id);
@@ -53,7 +61,9 @@ if ($edit_post_id > 0) {
         wp_safe_redirect(home_url('/schedule-management'));
         exit;
     }
-    $edit_is_personal = get_post_meta($edit_post_id, 'is_personal', true) === '1';
+    $edit_is_personal = !empty($edit_schedule_meta)
+        ? (($edit_schedule_meta['is_personal'] ?? '0') === '1')
+        : false;
     if ($edit_is_personal) {
         if ((int) $edit_post->post_author !== (int) $user_id) {
             wp_safe_redirect(home_url('/schedule-management'));
@@ -79,8 +89,12 @@ if (isset($_GET['date']) && !empty($_GET['date'])) {
 
 // 編集モードの場合は既存スケジュールから日付を取得
 if ($edit_post_id > 0 && empty($preset_date)) {
-    $existing_date = get_post_meta($edit_post_id, 'schedule_date', true);
-    if ($existing_date) {
+    $existing_date = !empty($edit_schedule_meta['date'])
+        ? (string) $edit_schedule_meta['date']
+        : (function_exists('aidunite_schedule_read_normalized_date')
+            ? (string) aidunite_schedule_read_normalized_date($edit_post_id)
+            : '');
+    if ($existing_date !== '') {
         $preset_date = $existing_date;
     }
 }
@@ -94,7 +108,7 @@ if (empty($preset_date)) {
 if ($_POST && isset($_POST['schedule_nonce']) && wp_verify_nonce($_POST['schedule_nonce'], 'aidunite_schedule_nonce')) {
     $team_id = function_exists('aidunite_resolve_user_team_id_for_schedule_ops')
         ? (int) aidunite_resolve_user_team_id_for_schedule_ops((int) $user_id)
-        : (int) get_user_meta($user_id, 'team_id', true);
+        : aidunite_user_read_primary_team_id((int) $user_id);
 
     $parsed = function_exists('aidunite_schedule_parse_wizard_post')
         ? aidunite_schedule_parse_wizard_post($_POST, [
@@ -120,7 +134,12 @@ if ($_POST && isset($_POST['schedule_nonce']) && wp_verify_nonce($_POST['schedul
 
             if ($post_id_from_form > 0) {
                 $edit_post = get_post($post_id_from_form);
-                $is_personal_edit = $edit_post ? (get_post_meta($post_id_from_form, 'is_personal', true) === '1') : false;
+                $edit_meta_row = function_exists('aidunite_schedule_get_canonical_meta')
+                    ? aidunite_schedule_get_canonical_meta($post_id_from_form)
+                    : [];
+                $is_personal_edit = $edit_post
+                    ? (($edit_meta_row['is_personal'] ?? '0') === '1')
+                    : false;
                 $can_edit = $edit_post && $edit_post->post_type === 'schedule'
                     && ((int) $edit_post->post_author === (int) $user_id
                         || (!$is_personal_edit && ($is_team_leader || $is_admin)));
@@ -174,13 +193,6 @@ if ($_POST && isset($_POST['schedule_nonce']) && wp_verify_nonce($_POST['schedul
                         aidunite_schedule_finalize_new_recruit((int) $created_id, $user_id, $team_id);
                     }
 
-                    if (($parsed['attendance_required'] ?? '0') === '1') {
-                        require_once get_stylesheet_directory() . '/functions/attendance/attendance-notification.php';
-                        if (function_exists('aidunite_notify_attendance_request')) {
-                            aidunite_notify_attendance_request((int) $created_id);
-                        }
-                    }
-
                     $success_count++;
                 }
             }
@@ -202,7 +214,7 @@ if ($_POST && isset($_POST['schedule_nonce']) && wp_verify_nonce($_POST['schedul
             if (empty($errors)) {
                 $errors[] = 'スケジュールの保存に失敗しました';
             }
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $errors[] = 'スケジュールの保存中にエラーが発生しました: ' . $e->getMessage();
         }
     }
@@ -255,9 +267,13 @@ $tab_contents = [
 
 // ステップ1のコンテンツ生成（カード形式）
 function get_step1_content() {
-    global $is_team_leader, $edit_post_id, $schedule_edit_trial_simplified;
+    global $is_team_leader, $edit_post_id, $edit_schedule_meta, $schedule_edit_trial_simplified;
     ob_start();
-    $edit_is_personal = ($edit_post_id > 0) ? (get_post_meta($edit_post_id, 'is_personal', true) === '1') : false;
+    $edit_is_personal = ($edit_post_id > 0)
+        ? (!empty($edit_schedule_meta)
+            ? (($edit_schedule_meta['is_personal'] ?? '0') === '1')
+            : false)
+        : false;
     $trial            = $schedule_edit_trial_simplified;
     $team_vis_checked = (!$trial && !($edit_post_id > 0 && $edit_is_personal)) ? 'checked' : '';
     $personal_vis_checked = (!$trial && $edit_post_id > 0 && $edit_is_personal) ? 'checked' : '';
@@ -338,7 +354,7 @@ function get_step1_content() {
 
 // ステップ2のコンテンツ生成（種別選択＝UI上はStep3・種別・条件）
 function get_step2_content() {
-    global $is_team_leader, $edit_post_id, $schedule_edit_trial_simplified, $team_id;
+    global $is_team_leader, $edit_post_id, $edit_schedule_meta, $schedule_edit_trial_simplified, $team_id;
     $step3_venue_title   = '② 会場条件';
     $step3_gender_title  = '③ 性別条件';
     $step3_recruit_title = '④ 募集チーム数';
@@ -489,7 +505,9 @@ function get_step2_content() {
                 <input type="checkbox" name="attendance_required" id="attendance_required" class="attendance-checkbox-input" value="1"
                     <?php
                     if ($edit_post_id > 0) {
-                        $current_attendance_required = get_post_meta($edit_post_id, 'attendance_required', true);
+                        $current_attendance_required = !empty($edit_schedule_meta)
+                            ? ($edit_schedule_meta['attendance_required'] ?? '0')
+                            : '0';
                         checked($current_attendance_required, '1');
                     }
                     ?>>
@@ -810,7 +828,7 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
             <?php endif; ?>
 
             <!-- タブナビゲーション（フロントエンド非表示） -->
-            <div class="tab-navigation" style="display: none;">
+            <div class="tab-navigation" data-aidunite-tabs="skip" style="display: none;">
                 <?php foreach ($tabs as $index => $tab): ?>
                     <button type="button" class="tab-btn <?php echo $index === 0 ? 'active' : ''; ?>"
                             data-tab="<?php echo esc_attr($tab['id']); ?>">
@@ -821,12 +839,10 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
 
             <!-- タブコンテンツ -->
             <?php foreach ($tab_contents as $index => $content): ?>
-                <section class="dashboard-section tab-content <?php echo $index === 0 ? 'active' : ''; ?>"
+                <section class="tab-content <?php echo $index === 0 ? 'active' : ''; ?>"
                          id="<?php echo esc_attr($content['id']); ?>">
                     <h2><?php echo esc_html($content['title']); ?></h2>
-                    <div class="main-content-area">
                         <?php echo $content['content']; ?>
-                    </div>
 
                 </section>
             <?php endforeach; ?>
@@ -843,38 +859,44 @@ if ($schedule_edit_shell_opened && function_exists('aidunite_web_app_page_shell_
 
     <?php
     // チームのホーム名と会場名履歴を取得（ページ冒頭で解決した操作中 team_id を使用）
-    $home_venue_name = $team_id ? get_post_meta($team_id, 'home_venue_name', true) : '';
-    $venue_name_history = $team_id ? get_post_meta($team_id, 'venue_name_history', true) : [];
+    $home_venue_name = (string) ($team_edit_bundle['home_venue_name'] ?? '');
+    $venue_name_history = $team_edit_bundle['venue_name_history'] ?? [];
     if (!is_array($venue_name_history)) {
         $venue_name_history = [];
     }
+
+    $schedule_edit_activation_redirect = (
+        function_exists('aidunite_schedule_edit_should_redirect_to_mypage')
+        && aidunite_schedule_edit_should_redirect_to_mypage((int) $team_id, 'recruit')
+    ) ? add_query_arg('activation', 'stage2', home_url('/mypage/')) : '';
+
+    wp_localize_script('aidunite-schedule-edit', 'aiduniteScheduleEditPage', [
+        'teamVenueData' => [
+            'homeVenueName' => $home_venue_name,
+            'venueHistory' => $venue_name_history,
+        ],
+        'aidunite' => [
+            'presetDate' => $preset_date,
+            'editPostId' => $edit_post_id > 0 ? $edit_post_id : null,
+            'scheduleManagementUrl' => home_url('/schedule-management'),
+            'defaultGenderConditionFromTeam' => $default_gender_condition_from_team,
+            'teamGenderCanonical' => $team_gender_canonical,
+            'recruitGenderLabels' => ['male' => '男子', 'female' => '女子'],
+            'venueConditionLabels' => [
+                'home' => 'ホーム',
+                'away' => 'アウェイ',
+                'either' => 'どちらでも可',
+                'both' => 'どちらでも可',
+                'undecided' => '未定',
+            ],
+            'trialSimplified' => (bool) $schedule_edit_trial_simplified,
+            'trialRecruitGender' => function_exists('aidunite_activation_recruit_gender_for_team')
+                ? aidunite_activation_recruit_gender_for_team((int) $team_id)
+                : 'male',
+            'activationRedirectUrl' => $schedule_edit_activation_redirect,
+        ],
+    ]);
     ?>
-    <script>
-        // チームの会場名データをJavaScriptに渡す
-        window.teamVenueData = {
-            homeVenueName: <?php echo json_encode($home_venue_name); ?>,
-            venueHistory: <?php echo json_encode($venue_name_history); ?>
-        };
-    </script>
-<script>
-// グローバル設定（JS側で利用）
-window.AIDUNITE = Object.assign({}, window.AIDUNITE || {}, {
-    presetDate: '<?php echo esc_js($preset_date); ?>',
-    editPostId: <?php echo $edit_post_id > 0 ? $edit_post_id : 'null'; ?>,
-    scheduleManagementUrl: '<?php echo esc_js(home_url('/schedule-management')); ?>',
-    defaultGenderConditionFromTeam: <?php echo wp_json_encode($default_gender_condition_from_team); ?>,
-    teamGenderCanonical: <?php echo wp_json_encode($team_gender_canonical); ?>,
-    recruitGenderLabels: { male: '男子', female: '女子' },
-    venueConditionLabels: { home: 'ホーム', away: 'アウェイ', either: 'どちらでも可', both: 'どちらでも可', undecided: '未定' },
-    trialSimplified: <?php echo $schedule_edit_trial_simplified ? 'true' : 'false'; ?>,
-    trialRecruitGender: <?php echo wp_json_encode(function_exists('aidunite_activation_recruit_gender_for_team') ? aidunite_activation_recruit_gender_for_team((int) $team_id) : 'male'); ?>,
-    activationRedirectUrl: <?php echo wp_json_encode(
-        function_exists('aidunite_schedule_edit_should_redirect_to_mypage') && aidunite_schedule_edit_should_redirect_to_mypage((int) $team_id, 'recruit')
-            ? add_query_arg('activation', 'stage2', home_url('/mypage/'))
-            : ''
-    ); ?>
-});
-</script>
 
 <!-- トースト・schedule.css は enqueue.php。以下はカレンダー用インラインスタイルのみ -->
 <?php

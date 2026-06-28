@@ -222,14 +222,58 @@ function aidunite_team_public_profile_enqueue_assets() {
 }
 
 /**
+ * チーム情報チップ用 SVG アイコンキー → basename
+ *
+ * @return array<string, string>
+ */
+function aidunite_team_info_chip_icon_basenames() {
+    return [
+        'location'  => 'stadium',
+        'category'  => 'family_group',
+        'type'      => 'build',
+        'gender'    => 'group',
+        'leader'    => 'person_check',
+        'intro'     => 'stylus',
+        'base_name' => 'id_card',
+        'website'   => 'home',
+        'sns'       => 'campaign',
+    ];
+}
+
+/**
+ * @param string $icon_key aidunite_team_info_chip_icon_basenames() のキー
+ */
+function aidunite_team_info_chip_icon_html($icon_key) {
+    $map = aidunite_team_info_chip_icon_basenames();
+    $basename = $map[$icon_key] ?? 'info';
+    if (!function_exists('aidunite_render_theme_icon')) {
+        return '';
+    }
+    return aidunite_render_theme_icon($basename, ['width' => '28', 'height' => '28']);
+}
+
+/**
+ * チーム申請確認 JS 用チップ SVG マップ
+ *
+ * @return array<string, string>
+ */
+function aidunite_team_info_chip_icons_for_js() {
+    $icons = [];
+    foreach (array_keys(aidunite_team_info_chip_icon_basenames()) as $key) {
+        $icons[$key] = aidunite_team_info_chip_icon_html($key);
+    }
+    return $icons;
+}
+
+/**
  * Basic info chip: icon + label + value.
  *
- * @param string $icon
+ * @param string $icon_key
  * @param string $label
  * @param string $value
  * @param bool   $solo
  */
-function aidunite_team_public_profile_render_info_chip($icon, $label, $value, $solo = false) {
+function aidunite_team_public_profile_render_info_chip($icon_key, $label, $value, $solo = false) {
     $label = trim((string) $label);
     $value = trim((string) $value);
     if ($label === '' || $value === '') {
@@ -242,7 +286,7 @@ function aidunite_team_public_profile_render_info_chip($icon, $label, $value, $s
     ob_start();
     ?>
     <article class="<?php echo esc_attr($classes); ?>">
-      <span class="team-info-chip__icon" aria-hidden="true"><?php echo esc_html($icon); ?></span>
+      <span class="team-info-chip__icon" aria-hidden="true"><?php echo aidunite_team_info_chip_icon_html($icon_key); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
       <span class="team-info-chip__label"><?php echo esc_html($label); ?></span>
       <span class="team-info-chip__value"><?php echo esc_html($value); ?></span>
     </article>
@@ -251,13 +295,13 @@ function aidunite_team_public_profile_render_info_chip($icon, $label, $value, $s
 }
 
 /**
- * ??????????????????????
+ * 紹介文チップ
  *
- * @param string $icon
+ * @param string $icon_key
  * @param string $label
  * @param string $text
  */
-function aidunite_team_public_profile_render_intro_chip($icon, $label, $text) {
+function aidunite_team_public_profile_render_intro_chip($icon_key, $label, $text) {
     $label = trim((string) $label);
     $text = trim((string) $text);
     if ($label === '' || $text === '') {
@@ -267,7 +311,7 @@ function aidunite_team_public_profile_render_intro_chip($icon, $label, $text) {
     ob_start();
     ?>
     <article class="team-info-chip team-info-chip--solo team-info-chip--intro">
-      <span class="team-info-chip__icon" aria-hidden="true"><?php echo esc_html($icon); ?></span>
+      <span class="team-info-chip__icon" aria-hidden="true"><?php echo aidunite_team_info_chip_icon_html($icon_key); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
       <span class="team-info-chip__label"><?php echo esc_html($label); ?></span>
       <div class="team-info-chip__prose"><?php echo nl2br(esc_html($text)); ?></div>
     </article>
@@ -401,7 +445,7 @@ function aidunite_render_team_public_profile($team_id, array $args = []) {
         <?php endif; ?>
 
         <header class="team-public-profile__hero">
-          <?php if (!empty($vm['team_logo']) && filter_var($vm['team_logo'], FILTER_VALIDATE_URL)) : ?>
+          <?php if (!empty($vm['team_logo']) && function_exists('aidunite_team_logo_is_displayable') && aidunite_team_logo_is_displayable($vm['team_logo'])) : ?>
             <img class="team-public-profile__logo" src="<?php echo esc_url($vm['team_logo']); ?>" alt="" width="120" height="120" loading="lazy" />
           <?php else : ?>
             <div class="team-public-profile__logo team-public-profile__logo--placeholder" aria-hidden="true"></div>
@@ -418,31 +462,31 @@ function aidunite_render_team_public_profile($team_id, array $args = []) {
         $basic_chips = '';
         $chip_defs = [
             [
-                'icon' => "\xf0\x9f\x93\x8d",
+                'icon' => 'location',
                 'label' => $t['card_location'],
                 'value' => (string) ($vm['location_display'] ?? ''),
                 'solo' => false,
             ],
             [
-                'icon' => "\xf0\x9f\x8e\x92",
+                'icon' => 'category',
                 'label' => $t['category_short'],
                 'value' => (string) ($vm['team_category'] ?? ''),
                 'solo' => false,
             ],
             [
-                'icon' => "\xf0\x9f\x8f\xab",
+                'icon' => 'type',
                 'label' => $t['type'],
                 'value' => (string) ($vm['team_type'] ?? ''),
                 'solo' => false,
             ],
             [
-                'icon' => "\xf0\x9f\x91\xa5",
+                'icon' => 'gender',
                 'label' => $t['gender'],
                 'value' => (string) ($vm['gender_label'] ?? ''),
                 'solo' => false,
             ],
             [
-                'icon' => "\xf0\x9f\x91\xa4",
+                'icon' => 'leader',
                 'label' => $t['leader'],
                 'value' => (string) ($vm['registrant_name'] ?? ''),
                 'solo' => true,
@@ -472,7 +516,7 @@ function aidunite_render_team_public_profile($team_id, array $args = []) {
         <?php
         $intro_chip = !empty($vm['team_description'])
             ? aidunite_team_public_profile_render_intro_chip(
-                "\xf0\x9f\x93\x9d",
+                'intro',
                 $t['intro'],
                 (string) $vm['team_description']
             )

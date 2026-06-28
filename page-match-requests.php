@@ -32,11 +32,14 @@ $requests_raw = get_posts($args);
 $requests_list = [];
 
 foreach ($requests_raw as $request) {
-    $to_schedule_id = get_post_meta($request->ID, 'to_schedule_id', true);
-    $from_schedule_id = get_post_meta($request->ID, 'from_schedule_id', true);
-    if (!$to_schedule_id) {
-        $to_schedule_id = get_post_meta($request->ID, 'my_schedule_id', true);
-        $from_schedule_id = get_post_meta($request->ID, 'my_schedule_id', true);
+    $mr = function_exists('aidunite_match_request_get_canonical_meta')
+        ? aidunite_match_request_get_canonical_meta((int) $request->ID)
+        : [];
+    $to_schedule_id = (int) ($mr['to_schedule_id'] ?? 0);
+    $from_schedule_id = (int) ($mr['from_schedule_id'] ?? 0);
+    if ($to_schedule_id < 1) {
+        $to_schedule_id = (int) ($mr['my_schedule_id'] ?? 0);
+        $from_schedule_id = $to_schedule_id;
     }
     if (!$to_schedule_id) {
         continue;
@@ -50,30 +53,42 @@ foreach ($requests_raw as $request) {
         continue;
     }
 
-    $from_schedule_id = (int) get_post_meta($request->ID, 'from_schedule_id', true) ?: (int) get_post_meta($request->ID, 'my_schedule_id', true);
-    $from_team_id = (int) get_post_meta($request->ID, 'from_team_id', true);
-    $to_team_id = (int) get_post_meta($request->ID, 'to_team_id', true);
+    if ($from_schedule_id < 1) {
+        $from_schedule_id = (int) ($mr['my_schedule_id'] ?? 0);
+    }
+    $from_team_id = (int) ($mr['from_team_id'] ?? 0);
+    $to_team_id = (int) ($mr['to_team_id'] ?? 0);
     if (!$to_team_id) {
         $to_author_id = get_post_field('post_author', $to_schedule_id);
-        $to_team_id = (int) get_user_meta($to_author_id, 'team_id', true);
+        $to_team_id = aidunite_user_read_primary_team_id((int) $to_author_id);
     }
     if (!$from_team_id) {
         $from_author_id = (int) $request->post_author;
-        $from_team_id = (int) get_user_meta($from_author_id, 'team_id', true);
+        $from_team_id = aidunite_user_read_primary_team_id((int) $from_author_id);
     }
 
     $from_team_name = $from_team_id ? get_the_title($from_team_id) : '—';
     $to_team_name = $to_team_id ? get_the_title($to_team_id) : '—';
-    $schedule_date = get_post_meta($to_schedule_id, 'schedule_date', true);
-    $start = get_post_meta($to_schedule_id, 'schedule_start_time', true);
-    $end = get_post_meta($to_schedule_id, 'schedule_end_time', true);
-    $time_disp = trim($start . '〜' . $end) === '〜' ? '—' : trim($start . '〜' . $end);
-    $gender_raw = get_post_meta($to_schedule_id, 'schedule_gender', true) ?: get_post_meta($to_schedule_id, 'gender_condition', true);
+    $sch = function_exists('aidunite_schedule_get_display_bundle')
+        ? aidunite_schedule_get_display_bundle((int) $to_schedule_id)
+        : [];
+    $schedule_date = (string) ($sch['date'] ?? (function_exists('aidunite_schedule_read_normalized_date')
+        ? aidunite_schedule_read_normalized_date((int) $to_schedule_id)
+        : ''));
+    $start = (string) ($sch['start_time'] ?? '');
+    $end = (string) ($sch['end_time'] ?? '');
+    $time_disp = function_exists('aidunite_admin_list_format_time_range_display')
+        ? aidunite_admin_list_format_time_range_display($start, $end)
+        : (trim($start . '〜' . $end) === '〜' ? '—' : trim($start . '〜' . $end));
+    $gender_raw = (string) ($sch['gender'] ?? '');
+    if ($gender_raw === '' && function_exists('aidunite_schedule_read_gender_raw')) {
+        $gender_raw = (string) aidunite_schedule_read_gender_raw((int) $to_schedule_id);
+    }
     $gender_label = function_exists('aidunite_admin_list_format_gender_display')
         ? aidunite_admin_list_format_gender_display((string) $gender_raw)
         : ($gender_raw ?: '—');
-    $status = get_post_meta($request->ID, 'status', true);
-    $reminder_sent = get_post_meta($request->ID, 'reminder_sent_at', true);
+    $status = (string) ($mr['status'] ?? '');
+    $reminder_sent = (string) ($mr['reminder_sent_at'] ?? '');
 
     // 募集チーム数（男子 ◯/● 女子 ◯/●）を to_schedule_id 単位でキャッシュして付与
     static $schedule_recruitment_cache = [];
@@ -363,51 +378,10 @@ if ($match_requests_shell_opened && function_exists('aidunite_web_app_page_shell
 }
 ?>
 
-<style>
-.page-match-requests-wrap .status-pending { background:rgba(255,193,7,0.15); color:var(--warning-color); }
-.page-match-requests-wrap .status-accepted { background:rgba(40,167,69,0.15); color:var(--success-color); }
-.page-match-requests-wrap .status-rejected { background:rgba(220,53,69,0.15); color:var(--danger-color); }
-</style>
-
-<script>
-jQuery(document).ready(function($) {
-  $('.match-approve-btn, .match-reject-btn').on('click', function() {
-    var row = $(this).closest('tr');
-    var requestId = row.data('request-id');
-    var isApprove = $(this).hasClass('match-approve-btn');
-    var status = isApprove ? 'accepted' : 'rejected';
-    var actionLabel = isApprove ? '承認済み' : '拒否済み';
-
-    $.ajax({
-      url: '<?php echo esc_url(admin_url('admin-ajax.php')); ?>',
-      method: 'POST',
-      data: {
-        action: 'au_update_match_request_status',
-        security: '<?php echo wp_create_nonce('au_match_nonce'); ?>',
-        request_id: requestId,
-        status: status
-      },
-      success: function(res) {
-        if (res && res.success) {
-          if (typeof showToastNotification !== 'undefined') {
-            showToastNotification('申請を' + actionLabel + 'しました', 'success');
-          } else { alert('申請を' + actionLabel + 'しました'); }
-          row.find('.status-badge').removeClass('status-pending').addClass(isApprove ? 'status-accepted' : 'status-rejected').text(actionLabel);
-          row.find('.match-approve-btn, .match-reject-btn').remove();
-        } else {
-          if (typeof showToastNotification !== 'undefined') {
-            showToastNotification(res && res.data ? res.data : '更新に失敗しました', 'error');
-          } else { alert('更新に失敗しました'); }
-        }
-      },
-      error: function() {
-        if (typeof showToastNotification !== 'undefined') {
-          showToastNotification('更新に失敗しました', 'error');
-        } else { alert('更新に失敗しました'); }
-      }
-    });
-  });
-});
-</script>
-
-<?php get_footer(); ?>
+<?php
+wp_localize_script('aidunite-match-requests', 'aiduniteMatchRequestsPage', [
+    'ajaxUrl' => admin_url('admin-ajax.php'),
+    'matchNonce' => wp_create_nonce('au_match_nonce'),
+]);
+get_footer();
+?>

@@ -72,6 +72,35 @@ class AidUniteScheduleModal {
         }
     }
 
+    /** @param {string} message @param {string} [type='info'] */
+    static notify(message, type = 'info') {
+        if (typeof showToastNotification === 'function') {
+            showToastNotification(message, type);
+        } else {
+            console.warn('[AidUnite]', type, message);
+        }
+    }
+
+    /**
+     * OS confirm() の代替（削除・重要操作）
+     * @param {{ title?: string, message: string, confirmLabel?: string, confirmVariant?: 'danger'|'primary', onConfirm?: Function }} opts
+     */
+    static confirmAction(opts) {
+        const message = opts && opts.message ? String(opts.message) : '';
+        if (typeof showConfirmModal !== 'function') {
+            console.warn('[AidUnite] showConfirmModal unavailable:', message);
+            return;
+        }
+        showConfirmModal({
+            title: (opts && opts.title) || '削除確認',
+            message,
+            confirmLabel: (opts && opts.confirmLabel) || '削除する',
+            cancelLabel: 'キャンセル',
+            confirmVariant: (opts && opts.confirmVariant) || 'danger',
+            onConfirm: (opts && typeof opts.onConfirm === 'function') ? opts.onConfirm : null
+        });
+    }
+
     /**
      * テキストを要素内・textarea 初期表示用にエスケープ
      * @param {string} str
@@ -300,17 +329,9 @@ class AidUniteScheduleModal {
             ? AidUniteScheduleUtils.getGenderLabel(schedule.gender) || ''
             : (typeof getGenderLabel === 'function' ? getGenderLabel(schedule.gender) || '' : schedule.gender || '');
         // 会場の表記ロジック
-        // Phase 3: 統一メタキーを優先、後方互換性のために旧キーもフォールバック
-        // 1) 優先: schedule_place (統一メタキー) / schedule_place_option (旧キー) / venue_condition / place_option
-        // 2) 次点: place に 'home' / 'away' / 'both' / 'either' が入っていればそれを会場オプションとして扱う
-        // 3) place が会場名ならそのまま使用
-        const isKeyword = (v) => ['home','away','both','either'].includes(String(v || '').toLowerCase());
-        const venueRaw = (schedule.schedule_place || schedule.schedule_place_option || schedule.venue_condition || schedule.place_option || (isKeyword(schedule.place) ? schedule.place : ''));
-        if (schedule.schedule_place) {
-            //  schedule-modal: Using schedule_place (unified key) for schedule_id=' + (schedule.id || 'unknown') + ': ' + schedule.schedule_place);
-        } else if (schedule.schedule_place_option) {
-            //  schedule-modal: Using schedule_place_option (fallback) for schedule_id=' + (schedule.id || 'unknown') + ': ' + schedule.schedule_place_option);
-        }
+        const venueRaw = (typeof AidUniteScheduleUtils !== 'undefined' && AidUniteScheduleUtils.resolveVenueConditionRaw)
+            ? AidUniteScheduleUtils.resolveVenueConditionRaw(schedule)
+            : (schedule.schedule_place || schedule.venue_condition || schedule.place || '');
         // 会場条件を日本語に変換（共通ユーティリティを使用）
         const venueLabel = (typeof AidUniteScheduleUtils !== 'undefined' && AidUniteScheduleUtils.getVenueLabel)
             ? AidUniteScheduleUtils.getVenueLabel(venueRaw) || ''
@@ -447,14 +468,9 @@ class AidUniteScheduleModal {
         const genderDisplay = (typeof AidUniteScheduleUtils !== 'undefined' && AidUniteScheduleUtils.getGenderLabel)
             ? AidUniteScheduleUtils.getGenderLabel(schedule.gender) || ''
             : (typeof getGenderLabel === 'function' ? getGenderLabel(schedule.gender) || '' : schedule.gender || '');
-        // Phase 3: 統一メタキーを優先、後方互換性のために旧キーもフォールバック
-        const isKeyword = (v) => ['home','away','both','either'].includes(String(v || '').toLowerCase());
-        const venueRaw = (schedule.schedule_place || schedule.schedule_place_option || schedule.venue_condition || schedule.place_option || (isKeyword(schedule.place) ? schedule.place : ''));
-        if (schedule.schedule_place) {
-            //  schedule-modal: Using schedule_place (unified key) for schedule_id=' + (schedule.id || 'unknown') + ': ' + schedule.schedule_place);
-        } else if (schedule.schedule_place_option) {
-            //  schedule-modal: Using schedule_place_option (fallback) for schedule_id=' + (schedule.id || 'unknown') + ': ' + schedule.schedule_place_option);
-        }
+        const venueRaw = (typeof AidUniteScheduleUtils !== 'undefined' && AidUniteScheduleUtils.resolveVenueConditionRaw)
+            ? AidUniteScheduleUtils.resolveVenueConditionRaw(schedule)
+            : (schedule.schedule_place || schedule.venue_condition || schedule.place || '');
         // 会場条件を日本語に変換（共通ユーティリティを使用）
         const venueLabel = (typeof AidUniteScheduleUtils !== 'undefined' && AidUniteScheduleUtils.getVenueLabel)
             ? AidUniteScheduleUtils.getVenueLabel(venueRaw) || ''
@@ -737,9 +753,7 @@ class AidUniteScheduleModal {
      */
     static saveScheduleMemoOnly(scheduleId, memoValue, schedule) {
         if (typeof AidUniteAjaxUtils === 'undefined' || typeof AidUniteAjaxUtils.updateScheduleMemoOnly !== 'function') {
-            if (typeof showToastNotification !== 'undefined') {
-                showToastNotification('メモ保存が利用できません。ページを再読み込みしてください。', 'error');
-            }
+            AidUniteScheduleModal.notify('メモ保存が利用できません。ページを再読み込みしてください。', 'error');
             return;
         }
         AidUniteAjaxUtils.updateScheduleMemoOnly({
@@ -752,19 +766,13 @@ class AidUniteScheduleModal {
                     schedule.quick_memo = v;
                     schedule.schedule_quick_memo = v;
                 }
-                if (typeof showToastNotification !== 'undefined') {
-                    showToastNotification('メモを保存しました', 'success');
-                }
+                AidUniteScheduleModal.notify('メモを保存しました', 'success');
             },
             onError: (err) => {
                 const code = (err && err.code) ? err.code : '';
                 const raw = (err && err.message) ? err.message : String(err || '');
                 const msg = code ? AidUniteScheduleModal.messageForScheduleErrorCode(code, raw) : raw;
-                if (typeof showToastNotification !== 'undefined') {
-                    showToastNotification('メモの保存に失敗しました: ' + msg, 'error');
-                } else {
-                    alert(msg);
-                }
+                AidUniteScheduleModal.notify('メモの保存に失敗しました: ' + msg, 'error');
             }
         });
     }
@@ -827,6 +835,18 @@ class AidUniteScheduleModal {
         }
         this.closeAll();
 
+        if (typeof AidUniteScheduleQuickModal !== 'undefined') {
+            const found = AidUniteScheduleQuickModal.findScheduleById(id);
+            if (found) {
+                AidUniteScheduleQuickModal.openEdit(found);
+                return;
+            }
+            if (typeof AidUniteScheduleQuickModal.openEditById === 'function') {
+                AidUniteScheduleQuickModal.openEditById(id);
+                return;
+            }
+        }
+
         // 各ページで個別に実装されている場合はそれを優先
         if (typeof window.editScheduleFromPopup === 'function') {
             window.editScheduleFromPopup(id);
@@ -836,24 +856,7 @@ class AidUniteScheduleModal {
             return;
         }
 
-        // デフォルト実装: 編集ページに遷移（対象日付をクエリに含めて、登録画面カレンダーでその日を強調表示）
-        let baseUrl = '/schedule-edit';
-        try {
-            const schedule = this.findScheduleById(id);
-            const params = new URLSearchParams();
-            params.set('post_id', id);
-            if (schedule && schedule.date) {
-                params.set('date', schedule.date);
-            }
-            const query = params.toString();
-            if (query) {
-                baseUrl += `?${query}`;
-            }
-        } catch (e) {
-            console.error('編集URL生成中にエラーが発生しました:', e);
-            baseUrl = `/schedule-edit?post_id=${encodeURIComponent(id)}`;
-        }
-        window.location.href = baseUrl;
+        window.location.href = '/schedule-management/?edit_schedule=' + encodeURIComponent(id);
     }
 
     /**
@@ -880,11 +883,7 @@ class AidUniteScheduleModal {
 
         const self = this;
         const notifyErr = function(text) {
-            if (typeof showToastNotification !== 'undefined') {
-                showToastNotification(text, 'error');
-            } else {
-                alert(text);
-            }
+            AidUniteScheduleModal.notify(text, 'error');
         };
         const runDelete = function(apiFn) {
             apiFn({
@@ -978,10 +977,10 @@ class AidUniteScheduleModal {
             if (boards > 0 || mrs > 0) {
                 confirmText = '関連する掲示板・マッチ申請データも含めて削除される場合があります。' + confirmText;
             }
-            if (!confirm(confirmText)) {
-                return;
-            }
-            executeScheduleDelete();
+            AidUniteScheduleModal.confirmAction({
+                message: confirmText,
+                onConfirm: executeScheduleDelete
+            });
         };
 
         if (typeof AidUniteAjaxUtils !== 'undefined' && typeof AidUniteAjaxUtils.getScheduleDependencies === 'function') {
@@ -997,24 +996,30 @@ class AidUniteScheduleModal {
                     afterDepsOk();
                 },
                 onError: () => {
-                    if (!confirm('依存状況を取得できませんでした。このまま削除を試みますか？')) {
-                        return;
-                    }
-                    window.__aiduniteLastScheduleDeps = null;
-                    if (!confirm('このスケジュールを削除してもよろしいですか？')) {
-                        return;
-                    }
-                    executeScheduleDelete();
+                    AidUniteScheduleModal.confirmAction({
+                        title: '確認',
+                        message: '依存状況を取得できませんでした。このまま削除を試みますか？',
+                        confirmLabel: '続行する',
+                        onConfirm: () => {
+                            window.__aiduniteLastScheduleDeps = null;
+                            AidUniteScheduleModal.confirmAction({
+                                message: 'このスケジュールを削除してもよろしいですか？',
+                                onConfirm: executeScheduleDelete
+                            });
+                        }
+                    });
                 }
             });
             return;
         }
 
-        if (!confirm('このスケジュールを削除してもよろしいですか？')) {
-            return;
-        }
-        window.__aiduniteLastScheduleDeps = null;
-        executeScheduleDelete();
+        AidUniteScheduleModal.confirmAction({
+            message: 'このスケジュールを削除してもよろしいですか？',
+            onConfirm: () => {
+                window.__aiduniteLastScheduleDeps = null;
+                executeScheduleDelete();
+            }
+        });
     }
 
     /**
@@ -1055,11 +1060,10 @@ class AidUniteScheduleModal {
         })
         .catch(error => {
             console.error('招待URL発行エラー:', error);
-            if (typeof showToastNotification !== 'undefined') {
-                showToastNotification('招待URLの生成に失敗しました: ' + (error.message || '不明なエラー'), 'error');
-            } else {
-                alert('招待URLの生成に失敗しました: ' + (error.message || '不明なエラー'));
-            }
+            AidUniteScheduleModal.notify(
+                '招待URLの生成に失敗しました: ' + (error.message || '不明なエラー'),
+                'error'
+            );
         });
     }
 
@@ -1173,24 +1177,28 @@ class AidUniteScheduleModal {
     static confirmScheduleBuiltin(scheduleId) {
         const schedule = AidUniteScheduleModal.findScheduleById(scheduleId);
         if (!schedule) {
-            const msg = 'スケジュール情報が取得できませんでした。';
-            if (typeof showToastNotification !== 'undefined') {
-                showToastNotification(msg, 'error');
-            } else {
-                window.alert(msg);
-            }
+            AidUniteScheduleModal.notify('スケジュール情報が取得できませんでした。', 'error');
             return;
         }
-        if (!window.confirm('この仮の予定を確定しますか？')) {
-            return;
-        }
+        AidUniteScheduleModal.confirmAction({
+            title: '確定確認',
+            message: 'この仮の予定を確定しますか？',
+            confirmLabel: '確定する',
+            confirmVariant: 'primary',
+            onConfirm: () => AidUniteScheduleModal.runConfirmScheduleBuiltin(scheduleId, schedule)
+        });
+    }
+
+    static runConfirmScheduleBuiltin(scheduleId, schedule) {
         const nonce = (typeof wpApiSettings !== 'undefined' && wpApiSettings.nonce) ? wpApiSettings.nonce : '';
         const url = (typeof wpApiSettings !== 'undefined' && wpApiSettings.root)
             ? (wpApiSettings.root + 'aidunite/v1/update-schedule-v2')
             : '/wp-json/aidunite/v1/update-schedule-v2';
         const typeRaw = String(schedule.type || '');
         const typeStripped = typeRaw.replace(/（仮）/g, '').replace(/\(仮\)/g, '').trim();
-        const venueCond = schedule.venue_condition || schedule.schedule_place || schedule.schedule_place_option || '';
+        const venueCond = (typeof AidUniteScheduleUtils !== 'undefined' && AidUniteScheduleUtils.resolveVenueConditionRaw)
+            ? AidUniteScheduleUtils.resolveVenueConditionRaw(schedule)
+            : (schedule.schedule_place || schedule.venue_condition || '');
         fetch(url, {
             method: 'POST',
             headers: {
@@ -1216,11 +1224,7 @@ class AidUniteScheduleModal {
             .then((data) => {
                 if (data && data.success) {
                     AidUniteScheduleModal.closeAll();
-                    if (typeof showToastNotification !== 'undefined') {
-                        showToastNotification('スケジュールを確定しました', 'success');
-                    } else {
-                        window.alert('スケジュールを確定しました');
-                    }
+                    AidUniteScheduleModal.notify('スケジュールを確定しました', 'success');
                     if (typeof window.loadSchedules === 'function') {
                         window.loadSchedules();
                     } else {
@@ -1232,11 +1236,7 @@ class AidUniteScheduleModal {
             })
             .catch((err) => {
                 console.error('confirmScheduleBuiltin:', err);
-                if (typeof showToastNotification !== 'undefined') {
-                    showToastNotification(err.message || 'スケジュールの確定に失敗しました', 'error');
-                } else {
-                    window.alert(err.message || 'スケジュールの確定に失敗しました');
-                }
+                AidUniteScheduleModal.notify(err.message || 'スケジュールの確定に失敗しました', 'error');
             });
     }
 

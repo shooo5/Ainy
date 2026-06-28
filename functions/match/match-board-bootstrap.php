@@ -34,6 +34,7 @@ if (!function_exists('aidunite_match_board_ensure_dependencies')) {
             'functions/match/match-gender-venue-helpers.php',
             'functions/match/match-apply-evaluation.php',
             'functions/match/match-board-tier.php',
+            'functions/match/match-board-persist-read.php',
         ];
         foreach ($files as $rel) {
             $path = aidunite_match_theme_file($rel);

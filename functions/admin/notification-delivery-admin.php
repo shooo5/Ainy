@@ -37,6 +37,14 @@ function aidunite_render_notification_delivery_admin_page() {
 
     aidunite_notification_delivery_maybe_install_tables();
 
+    $report_days = isset($_GET['report_days']) ? max(1, min(90, (int) $_GET['report_days'])) : 7;
+    $weekly_summary = function_exists('aidunite_notification_delivery_get_summary')
+        ? aidunite_notification_delivery_get_summary(['days' => $report_days])
+        : null;
+    $badge_sample = function_exists('aidunite_notification_badge_consistency_sample')
+        ? aidunite_notification_badge_consistency_sample(10)
+        : null;
+
     global $wpdb;
     $events_table = aidunite_notification_delivery_events_table();
     $channels_table = aidunite_notification_delivery_channels_table();
@@ -94,6 +102,95 @@ function aidunite_render_notification_delivery_admin_page() {
         <p class="description">
             <?php echo esc_html__('仕様: docs/spec/notification.md 第24節。本文・メールアドレスはログに保存しません。', 'aidunite'); ?>
         </p>
+
+        <?php if (is_array($weekly_summary)) : ?>
+            <div class="aidunite-delivery-weekly-summary" style="background:#fff;border:1px solid #c3c4c7;padding:16px 20px;margin:16px 0;border-radius:4px;">
+                <h2 style="margin-top:0;"><?php echo esc_html(sprintf('配信サマリー（過去 %d 日）', $report_days)); ?></h2>
+                <p style="margin:0 0 12px;">
+                    <?php
+                    printf(
+                        esc_html__('期間: %1$s 〜 %2$s (UTC) / イベント %3$d 件', 'aidunite'),
+                        esc_html((string) ($weekly_summary['period']['from_utc'] ?? '')),
+                        esc_html((string) ($weekly_summary['period']['to_utc'] ?? '')),
+                        (int) ($weekly_summary['event_count'] ?? 0)
+                    );
+                    ?>
+                </p>
+                <table class="widefat" style="max-width:720px;">
+                    <thead>
+                        <tr>
+                            <th><?php echo esc_html__('チャンネル', 'aidunite'); ?></th>
+                            <th><?php echo esc_html__('success', 'aidunite'); ?></th>
+                            <th><?php echo esc_html__('failed', 'aidunite'); ?></th>
+                            <th><?php echo esc_html__('skipped', 'aidunite'); ?></th>
+                            <th><?php echo esc_html__('到達率', 'aidunite'); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($weekly_summary['channel_rates'] ?? [] as $ch => $rate) : ?>
+                            <tr>
+                                <td><code><?php echo esc_html((string) $ch); ?></code></td>
+                                <td><?php echo (int) ($rate['success'] ?? 0); ?></td>
+                                <td><?php echo (int) ($rate['failed'] ?? 0); ?></td>
+                                <td><?php echo (int) ($rate['skipped'] ?? 0); ?></td>
+                                <td><?php
+                                $sr = $rate['success_rate'] ?? null;
+                                echo $sr !== null ? esc_html(number_format($sr * 100, 1) . '%') : '—';
+                                ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+                <?php
+                $tier1_rates = $weekly_summary['tier1']['channel_rates'] ?? [];
+                if ($tier1_rates !== []) :
+                    ?>
+                    <h3><?php echo esc_html__('Tier1（試合・決済クリティカル）', 'aidunite'); ?></h3>
+                    <p><?php printf(esc_html__('イベント %d 件', 'aidunite'), (int) ($weekly_summary['tier1']['event_count'] ?? 0)); ?></p>
+                    <ul style="margin:0;">
+                        <?php foreach ($tier1_rates as $ch => $rate) : ?>
+                            <li>
+                                <code><?php echo esc_html((string) $ch); ?></code>:
+                                <?php
+                                $sr = $rate['success_rate'] ?? null;
+                                echo $sr !== null ? esc_html(number_format($sr * 100, 1) . '%') : '—';
+                                echo ' (failed ' . (int) ($rate['failed'] ?? 0) . ')';
+                                ?>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+                <?php if (!empty($weekly_summary['alerts'])) : ?>
+                    <h3><?php echo esc_html__('アラート', 'aidunite'); ?></h3>
+                    <ul>
+                        <?php foreach ($weekly_summary['alerts'] as $alert) : ?>
+                            <li style="color:<?php echo ($alert['level'] ?? '') === 'error' ? '#b32d2e' : (($alert['level'] ?? '') === 'warning' ? '#996800' : '#50575e'); ?>;">
+                                <?php echo esc_html((string) ($alert['message'] ?? '')); ?>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+                <?php if (is_array($badge_sample)) : ?>
+                    <p style="margin-top:12px;">
+                        <?php
+                        echo esc_html(sprintf(
+                            'バッジ整合サンプル: %d ユーザー検査 / %s',
+                            (int) ($badge_sample['sampled'] ?? 0),
+                            !empty($badge_sample['all_ok']) ? 'OK' : '要確認（tools/notification-badge-consistency-check.php）'
+                        ));
+                        ?>
+                    </p>
+                <?php endif; ?>
+                <form method="get" style="margin-top:12px;">
+                    <input type="hidden" name="page" value="aidunite-notification-delivery-log" />
+                    <label>
+                        <?php echo esc_html__('集計日数', 'aidunite'); ?>
+                        <input type="number" name="report_days" value="<?php echo (int) $report_days; ?>" min="1" max="90" style="width:4em;" />
+                    </label>
+                    <button type="submit" class="button"><?php echo esc_html__('再集計', 'aidunite'); ?></button>
+                </form>
+            </div>
+        <?php endif; ?>
 
         <h2 class="title"><?php echo esc_html__('フィルター', 'aidunite'); ?></h2>
         <form method="get" action="" class="aidunite-delivery-filters" style="margin-bottom:1.5em;">

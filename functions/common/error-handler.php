@@ -104,6 +104,9 @@ class AidUniteErrorHandler {
      * 管理者に通知
      */
     private static function notifyAdmin($log_entry) {
+        if (defined('REST_REQUEST') && REST_REQUEST) {
+            return;
+        }
         $admin_email = get_option('admin_email');
         if (!$admin_email) return;
 

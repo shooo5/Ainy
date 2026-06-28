@@ -90,6 +90,36 @@ class AidUniteDateUtils {
     }
 
     /**
+     * 画面表示用（統一定義：yy/mm/dd（曜） Ainy-UI-Unified-Rules）
+     * PHP AidUniteDateUtils::formatDateForDisplay() と同型
+     *
+     * @param {string} dateString - YYYY-MM-DD
+     * @returns {string} 例: "26/06/20（土）"
+     */
+    static formatDateDisplayUnified(dateString) {
+        if (!dateString) {
+            return '';
+        }
+
+        try {
+            const date = new Date(String(dateString) + 'T00:00:00');
+            if (isNaN(date.getTime())) {
+                console.warn('AidUniteDateUtils.formatDateDisplayUnified: 無効な日付文字列です', dateString);
+                return String(dateString);
+            }
+
+            const y = String(date.getFullYear()).slice(-2);
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const weekday = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
+            return `${y}/${m}/${day}（${weekday}）`;
+        } catch (error) {
+            console.error('AidUniteDateUtils.formatDateDisplayUnified: エラーが発生しました', error);
+            return String(dateString);
+        }
+    }
+
+    /**
      * 今日の日付かどうかをチェック
      *
      * @param {string} dateString - チェックする日付文字列（YYYY-MM-DD形式）
@@ -253,6 +283,66 @@ class AidUniteDateUtils {
             return dateString;
         }
     }
+
+    /**
+     * チャット API の created_at を Date に変換（MySQL UTC 文字列のフォールバック付き）
+     *
+     * @param {string} value ISO8601 または Y-m-d H:i:s
+     * @returns {Date}
+     */
+    static parseChatCreatedAt(value) {
+        if (!value) {
+            return new Date(NaN);
+        }
+        const s = String(value).trim();
+        if (!s) {
+            return new Date(NaN);
+        }
+        if (/Z$|[+-]\d{2}:\d{2}$/.test(s)) {
+            return new Date(s);
+        }
+        const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/);
+        if (m) {
+            const sec = m[6] ? parseInt(m[6], 10) : 0;
+            return new Date(Date.UTC(
+                parseInt(m[1], 10),
+                parseInt(m[2], 10) - 1,
+                parseInt(m[3], 10),
+                parseInt(m[4], 10),
+                parseInt(m[5], 10),
+                sec
+            ));
+        }
+        return new Date(s);
+    }
+
+    /**
+     * チャット吹き出し用の相対時刻（今日 / 昨日 / yy/mm/dd HH:mm）
+     *
+     * @param {string} createdAt
+     * @returns {string}
+     */
+    static formatChatMessageTime(createdAt) {
+        const d = AidUniteDateUtils.parseChatCreatedAt(createdAt);
+        if (isNaN(d.getTime())) {
+            return '';
+        }
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const yesterday = today - 86400000;
+        const t = d.getTime();
+        const timeStr = d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+        if (t >= today) {
+            return '今日 ' + timeStr;
+        }
+        if (t >= yesterday && t < today) {
+            return '昨日 ' + timeStr;
+        }
+        const y = String(d.getFullYear()).slice(-2);
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return y + '/' + mo + '/' + day + ' ' + timeStr;
+    }
 }
 
 // 後方互換性のためのグローバル関数（段階的移行用）
@@ -270,6 +360,7 @@ if (typeof window !== 'undefined') {
     window.formatRelativeTime = AidUniteDateUtils.formatRelativeTime.bind(AidUniteDateUtils);
     window.formatDateJapanese = AidUniteDateUtils.formatDateJapanese.bind(AidUniteDateUtils);
     window.formatDateWithWeekday = AidUniteDateUtils.formatDateWithWeekday.bind(AidUniteDateUtils);
+    window.formatDateDisplayUnified = AidUniteDateUtils.formatDateDisplayUnified.bind(AidUniteDateUtils);
 }
 
 // モジュールエクスポート（ES6モジュール対応）

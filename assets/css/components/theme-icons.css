@@ -6,14 +6,17 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    line-height: 0;
+    align-self: center;
+    line-height: 1;
     vertical-align: middle;
+    box-sizing: content-box;
 }
 
 .aidunite-icon__svg,
 .aidunite-icon svg {
     display: block;
     flex-shrink: 0;
+    pointer-events: none;
 }
 
 /* ========================================
@@ -24,8 +27,17 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    line-height: 0;
+    align-self: center;
+    line-height: 1;
     vertical-align: middle;
+}
+
+/* Material Symbols 系 viewBox の視覚中心をテキスト行高に合わせる */
+.aidunite-icon--inline svg,
+.aidunite-icon--inline .aidunite-icon__svg,
+.aidunite-icon:not([class*="aidunite-icon--block"]) svg,
+.aidunite-icon:not([class*="aidunite-icon--block"]) .aidunite-icon__svg {
+    transform: translateY(0.04em);
 }
 
 /* 親要素：先頭アイコン + テキストを flex で中央揃え */
@@ -56,15 +68,26 @@
     .login-error-message,
     .date-info,
     .form-help-item,
-    .alert
-):has(> .aidunite-icon--inline:first-child),
+    .alert,
+    .trial-badge,
+    .mf-btn-submit__main,
+    .ainy-dashboard-kpi-diff,
+    .attendance-status-badge
+):has(> .aidunite-icon:first-child),
 :is(
     .btn,
     .login-submit-btn,
     .profile-save-btn,
     .profile-cancel-btn,
-    .member-register-submit
-):has(> .aidunite-icon--inline:first-child),
+    .member-register-submit,
+    .match-btn,
+    .market-axis-quick-btn,
+    .btn-small,
+    .post-btn,
+    .draft-btn,
+    .tab-btn,
+    .dashboard-btn
+):has(> .aidunite-icon:first-child),
 .btn:has(> .btn-icon:first-child),
 .btn:has(> .aidunite-icon:first-child),
 .btn:has(> .btn-nav-chevron),
@@ -93,8 +116,17 @@
     .login-error-message,
     .date-info,
     .alert
-):has(> .aidunite-icon--inline:first-child) {
+):has(> .aidunite-icon:first-child) {
     display: flex;
+}
+
+/* クラス未整備の span / a（アイコン + テキスト） */
+span:has(> .aidunite-icon--inline:first-child),
+a:has(> .aidunite-icon--inline:first-child) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    line-height: 1.25;
 }
 
 /* ボタン内アイコンスロット */
@@ -108,7 +140,8 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    line-height: 0;
+    align-self: center;
+    line-height: 1;
 }
 
 .btn__label {
@@ -221,7 +254,7 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    line-height: 0;
+    line-height: 1;
     align-self: center;
     margin-top: 0;
 }
@@ -250,7 +283,7 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    line-height: 0;
+    line-height: 1;
     align-self: center;
     margin-top: 0;
 }
@@ -289,4 +322,159 @@
     align-self: center;
     margin: 0;
     padding: 0;
+}
+
+/* ========================================
+   全ページ共通: SVG + テキスト/値（垂直中央）
+   ======================================== */
+:is(
+    [class$="__icon"],
+    [class*="__icon "],
+    [class$="__meta"],
+    [class*="__meta "],
+    [class*="__leading"],
+    [class*="__trailing"],
+    .sqm-badge,
+    .status-badge,
+    .market-axis-badge,
+    .badge,
+    .trial-badge,
+    .attendance-status-badge,
+    .match-candidate-status-badge,
+    .match-score-badge,
+    .match-level,
+    .item-type-badge,
+    .priority-badge,
+    .category-badge,
+    .badge-recruiting,
+    .badge-recruitment-completed,
+    .btn-icon,
+    .aidunite-toast-icon,
+    .card-icon,
+    .post-icon,
+    .draft-icon,
+    .trial-icon
+) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+    gap: 0.35em;
+    line-height: 1.25;
+}
+
+:is(
+    [class$="__icon"],
+    [class*="__icon "],
+    [class$="__meta"],
+    [class*="__meta "],
+    [class*="__leading"],
+    .sqm-badge,
+    .status-badge,
+    .market-axis-badge,
+    .badge,
+    .trial-badge,
+    .attendance-status-badge,
+    .match-candidate-status-badge,
+    .match-score-badge,
+    .match-level,
+    .item-type-badge,
+    .priority-badge,
+    .category-badge,
+    .badge-recruiting,
+    .badge-recruitment-completed,
+    .btn-icon,
+    .aidunite-toast-icon
+) > .aidunite-icon {
+    align-self: center;
+    line-height: 1;
+}
+
+.aidunite-icon--inline + :is(span, strong, em, small, label, a),
+.aidunite-icon:not(.aidunite-icon--block) + :is(span, strong, em, small, label, a) {
+    display: inline-flex;
+    align-items: center;
+    align-self: center;
+    line-height: 1.25;
+}
+
+:is(
+    .sqm-view-info,
+    .alert,
+    .form-help-item,
+    .schedule-wizard-info-bar,
+    .login-error-message,
+    .date-info,
+    .mypage-mission-hint,
+    .dashboard-info-row,
+    .toast-notification-content,
+    .ainy-notification-card__header
+):has(> .aidunite-icon:first-child) {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm, 0.5rem);
+}
+
+:is(
+    .trial-badge,
+    .mf-btn-submit__main,
+    .ainy-dashboard-kpi-diff,
+    .attendance-status-badge
+):has(> .aidunite-icon:first-child) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    line-height: 1.25;
+}
+
+:is(
+    .sqm-view-info,
+    .alert,
+    .form-help-item,
+    .schedule-wizard-info-bar,
+    .login-error-message,
+    .date-info,
+    .mypage-mission-hint,
+    .dashboard-info-row,
+    .toast-notification-content,
+    .ainy-notification-card__header,
+    .trial-badge,
+    .mf-btn-submit__main,
+    .ainy-dashboard-kpi-diff,
+    .attendance-status-badge
+):has(> .aidunite-icon:first-child) > .aidunite-icon {
+    align-self: center;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+:is(
+    .sqm-view-info,
+    .alert,
+    .form-help-item,
+    .login-error-message
+):has(> .aidunite-icon:first-child) > :is(p, span, div):not(.aidunite-icon) {
+    align-self: center;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* コンパクトバッジ（14〜16px アイコン）：視覚オフセットを抑えてラベルと揃える */
+:is(
+    .aidunite-icon--tier-badge,
+    .status-badge .aidunite-icon--inline,
+    .market-axis-badge .aidunite-icon--inline,
+    .attendance-status-badge .aidunite-icon,
+    .badge .aidunite-icon--inline,
+    .match-candidate-status-badge .aidunite-icon--inline
+) svg,
+:is(
+    .aidunite-icon--tier-badge,
+    .status-badge .aidunite-icon--inline,
+    .market-axis-badge .aidunite-icon--inline,
+    .attendance-status-badge .aidunite-icon,
+    .badge .aidunite-icon--inline,
+    .match-candidate-status-badge .aidunite-icon--inline
+) .aidunite-icon__svg {
+    transform: none;
 }

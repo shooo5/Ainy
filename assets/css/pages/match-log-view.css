@@ -1,0 +1,8 @@
+/**
+ * page-match-log-view.php
+ */
+.page-match-log-view { display: block; }
+.page-match-log-view .log-table { width: 100%; border-collapse: collapse; }
+.page-match-log-view .log-table th,
+.page-match-log-view .log-table td { border: 1px solid var(--border-color); padding: var(--spacing-sm) var(--spacing-base); text-align: left; }
+.page-match-log-view .post-type-header { margin: var(--spacing-xl) 0 var(--spacing-base); font-weight: bold; font-size: var(--font-size-lg); }

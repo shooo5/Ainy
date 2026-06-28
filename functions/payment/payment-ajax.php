@@ -39,72 +39,19 @@ function aidunite_ajax_save_plan_selection() {
         return;
     }
 
-    // プランIDを保存
-    aidunite_set_selected_plan_id($team_id, $plan_id);
-
-    // トライアル開始日を設定（まだ設定されていない場合）
-    $trial_start = aidunite_get_trial_start_date($team_id);
-    if (empty($trial_start)) {
-        aidunite_set_trial_start_date($team_id);
-    }
-
-    // 支払いステータスをトライアルに設定（まだ設定されていない場合）
-    $current_status = aidunite_get_payment_status($user_id);
-    if (empty($current_status)) {
-        aidunite_set_payment_status($user_id, 'trial');
-    }
+    $product_plan = strpos($plan_id, 'club') !== false ? 'club' : 'match';
+    $payload = function_exists('aidunite_payment_persist_plan_selection')
+        ? aidunite_payment_persist_plan_selection($team_id, $user_id, [
+            'selected_plan_id' => $plan_id,
+            'product_plan' => $product_plan,
+        ])
+        : [];
 
     AidUniteApiResponse::send_success([
-        'redirect_url' => home_url('/payment-setup')
+        'redirect_url' => home_url('/payment-setup'),
+        'payload' => $payload,
     ], 'プランが選択されました');
 }
-
-/**
- * Ajax: 支払い方法保存
- */
-add_action('wp_ajax_aidunite_save_payment_method', 'aidunite_ajax_save_payment_method');
-function aidunite_ajax_save_payment_method() {
-    // 統一認証・権限チェック
-    require_once get_template_directory() . '/functions/common/auth-middleware.php';
-    $auth_result = AidUniteAuthMiddleware::require_team_membership();
-    if (!$auth_result->is_valid()) {
-        AidUniteApiResponse::send_error($auth_result->error ?: 'ログインが必要です');
-        return;
-    }
-
-    // CSRF対策
-    $nonce_result = AidUniteAuthMiddleware::verify_nonce('nonce', 'aidunite_payment_nonce');
-    if (is_wp_error($nonce_result)) {
-        AidUniteApiResponse::send_error($nonce_result->get_error_message(), null, 'normal', 'csrf_verification_failed');
-        return;
-    }
-
-    $user_id = $auth_result->user_id;
-    $team_id = $auth_result->team_id;
-
-    $payment_method = AidUniteAuthMiddleware::sanitize($_POST['payment_method'] ?? 'stripe', 'text');
-
-    if (!in_array($payment_method, ['stripe', 'invoice'])) {
-        AidUniteApiResponse::send_validation_error(['payment_method' => '無効な支払い方法です']);
-        return;
-    }
-
-    // 支払い方法を保存
-    update_post_meta($team_id, 'selected_payment_method', $payment_method);
-
-    // 支払いモードを設定（教育委員会契約でない場合）
-    $payment_mode = aidunite_get_team_payment_mode($team_id);
-    if ($payment_mode !== 'board') {
-        if ($payment_method === 'invoice') {
-            aidunite_set_team_payment_mode($team_id, 'school');
-        } else {
-            aidunite_set_team_payment_mode($team_id, 'personal');
-        }
-    }
-
-    AidUniteApiResponse::send_success(null, '支払い方法が保存されました');
-}
-
 
 /**
  * Ajax: 月謝サブスクリプションの解約

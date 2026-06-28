@@ -1,0 +1,93 @@
+/**
+ * page-chat.php — FOUC 防止用 critical CSS（head 早期読込）
+ */
+.message {
+  margin-bottom: 0.5em;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  flex-direction: row;
+}
+
+.message.own {
+  flex-direction: row;
+  justify-content: flex-end;
+}
+
+.message-avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.chat-messages .message .message-main {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: min(40ch, 70%);
+}
+
+.chat-messages .message.own .message-main {
+  align-items: flex-end;
+}
+
+.message-content {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+  color: #e8ecf4;
+}
+
+.chat-messages .message .message-main .message-content {
+  padding: 8px 12px 10px;
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  max-height: none;
+  min-height: 0;
+  overflow: visible;
+  text-overflow: clip;
+  text-align: left;
+}
+
+.chat-messages .message .message-content::after {
+  content: none;
+  display: none;
+}
+
+.chat-messages .message .message-body,
+.chat-messages .message .message-text {
+  overflow: visible;
+  max-height: none;
+  -webkit-line-clamp: unset;
+  display: block;
+  color: #e8ecf4;
+}
+
+.chat-page-shell .message-sender,
+.chat-page-shell .message-time {
+  color: #94a3b8;
+}
+
+.chat-page-shell .message-team {
+  color: #c7d2fe;
+}
+
+.message.own .message-content {
+  background: rgba(99, 102, 241, 0.35);
+  color: #f4f6ff;
+  border: 1px solid rgba(129, 140, 248, 0.45);
+}
+
+.chat-messages .message .message-avatar {
+  display: none;
+}

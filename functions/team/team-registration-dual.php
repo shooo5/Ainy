@@ -97,30 +97,25 @@ function aidunite_link_paired_team_applications($team_id_a, $team_id_b, $batch_i
  *
  * @param array<string, mixed> $post $_POST 相当
  * @param string               $gender male|female
- * @param string               $name_suffix 例: 男子
  * @return array<string, mixed>
  */
-function aidunite_build_team_registration_data_from_post(array $post, $gender, $name_suffix = '') {
+function aidunite_build_team_registration_data_from_post(array $post, $gender) {
     $gender = function_exists('aidunite_normalize_team_gender_option')
         ? aidunite_normalize_team_gender_option($gender)
         : sanitize_key($gender);
 
     $base_name = sanitize_text_field($post['team_name_base'] ?? $post['team_name'] ?? '');
     $explicit  = sanitize_text_field($post['team_' . $gender . '_name'] ?? '');
-    if ($explicit !== '') {
-        $team_name = $explicit;
-    } elseif ($name_suffix !== '' && $base_name !== '') {
-        $team_name = $base_name . ' ' . $name_suffix;
-    } else {
-        $team_name = $base_name;
-    }
+    $team_name = $explicit !== '' ? $explicit : $base_name;
 
     $kana_base = sanitize_text_field($post['team_name_kana'] ?? '');
     $kana_explicit = sanitize_text_field($post['team_' . $gender . '_name_kana'] ?? '');
     $team_name_kana = $kana_explicit !== '' ? $kana_explicit : $kana_base;
 
     $logo_key = 'team_' . $gender . '_logo';
-    $logo     = esc_url_raw(wp_unslash($post[$logo_key] ?? $post['team_logo'] ?? ''));
+    $logo     = function_exists('aidunite_team_logo_normalize_storage_url')
+        ? aidunite_team_logo_normalize_storage_url(wp_unslash($post[$logo_key] ?? $post['team_logo'] ?? ''))
+        : esc_url_raw(wp_unslash($post[$logo_key] ?? $post['team_logo'] ?? ''));
 
     $current_user = wp_get_current_user();
     $rep_name     = sanitize_text_field(wp_unslash($post['representative_name'] ?? ''));
@@ -188,14 +183,19 @@ function aidunite_save_team_registration_post_meta_from_request($team_id, array 
     }
 
     $prefix = $gender_prefix !== '' ? 'team_' . $gender_prefix . '_' : 'team_';
-    $logo   = esc_url_raw(wp_unslash($post[$prefix . 'logo'] ?? $post['team_logo'] ?? ''));
-    if ($logo !== '' && function_exists('aidunite_save_team_logo_crop_meta')) {
-        aidunite_save_team_logo_crop_meta(
-            $team_id,
-            wp_unslash($post[$prefix . 'logo_offset_x'] ?? $post['team_logo_offset_x'] ?? 0),
-            wp_unslash($post[$prefix . 'logo_offset_y'] ?? $post['team_logo_offset_y'] ?? 0),
-            wp_unslash($post[$prefix . 'logo_zoom'] ?? $post['team_logo_zoom'] ?? 100)
-        );
+    $logo   = function_exists('aidunite_team_logo_normalize_storage_url')
+        ? aidunite_team_logo_normalize_storage_url(wp_unslash($post[$prefix . 'logo'] ?? $post['team_logo'] ?? ''))
+        : esc_url_raw(wp_unslash($post[$prefix . 'logo'] ?? $post['team_logo'] ?? ''));
+    if ($logo !== '') {
+        update_post_meta($team_id, 'team_logo', $logo);
+        if (function_exists('aidunite_save_team_logo_crop_meta')) {
+            aidunite_save_team_logo_crop_meta(
+                $team_id,
+                wp_unslash($post[$prefix . 'logo_offset_x'] ?? $post['team_logo_offset_x'] ?? 0),
+                wp_unslash($post[$prefix . 'logo_offset_y'] ?? $post['team_logo_offset_y'] ?? 0),
+                wp_unslash($post[$prefix . 'logo_zoom'] ?? $post['team_logo_zoom'] ?? 100)
+            );
+        }
     }
 
     $team_type = sanitize_text_field($post['team_type'] ?? '');
@@ -217,8 +217,8 @@ function aidunite_register_dual_gender_teams($user_id, array $post) {
         return new WP_Error('invalid_user', 'ログインが必要です。');
     }
 
-    $male_data   = aidunite_build_team_registration_data_from_post($post, 'male', '男子');
-    $female_data = aidunite_build_team_registration_data_from_post($post, 'female', '女子');
+    $male_data   = aidunite_build_team_registration_data_from_post($post, 'male');
+    $female_data = aidunite_build_team_registration_data_from_post($post, 'female');
 
     foreach (['male' => $male_data, 'female' => $female_data] as $label => $data) {
         $g = (string) ($data['team_gender_option'] ?? '');

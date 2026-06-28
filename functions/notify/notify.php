@@ -6,7 +6,9 @@
 ====================================================================*/
 
 require_once __DIR__ . '/notification-delivery-log.php';
+require_once __DIR__ . '/notification-delivery-report.php';
 require_once __DIR__ . '/notification-persist.php';
+require_once __DIR__ . '/notification-persist-read.php';
 require_once __DIR__ . '/notification-api.php';
 
 /**
@@ -35,9 +37,15 @@ function aidunite_notify_user($user_id, $title, $message, $type = 'general', $re
     if (strpos($type, 'match') !== false) {
       $data['link_url'] = home_url('/match-detail/?id=' . $rid);
     } elseif (strpos($type, 'schedule') !== false) {
-      $data['link_url'] = home_url('/schedule-edit/?id=' . $rid);
+      $data['link_url'] = function_exists('aidunite_get_schedule_edit_url')
+          ? aidunite_get_schedule_edit_url((int) $rid)
+          : home_url('/schedule-management/?edit_schedule=' . (int) $rid);
     } elseif ($type === 'team_approval' || strpos($type, 'team') !== false) {
       $data['link_url'] = home_url('/team-detail/?id=' . $rid);
+    } elseif ($type === 'attendance') {
+      $data['link_url'] = function_exists('aidunite_attendance_report_url')
+        ? aidunite_attendance_report_url($rid)
+        : home_url('/attendance-report');
     }
   }
   $result = aidunite_notification_send((int) $user_id, $type, $data);
@@ -106,7 +114,9 @@ function aidunite_create_notification($notification_data) {
         $tid = (string) $type;
         if ($tid === 'match_game_dissolved') {
             // related_id は募集 schedule。編集画面へ。
-            $data['link_url'] = home_url('/schedule-edit/?id=' . (int) $data['related_id']);
+            $data['link_url'] = function_exists('aidunite_get_schedule_edit_url')
+                ? aidunite_get_schedule_edit_url((int) $data['related_id'])
+                : home_url('/schedule-management/?edit_schedule=' . (int) $data['related_id']);
         } elseif ($tid === 'match_participant_withdrawn') {
             $data['link_url'] = home_url('/match-board-own');
         } elseif ($tid === 'match_feedback_survey') {

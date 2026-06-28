@@ -1,0 +1,189 @@
+/* 仮→確定トーストモーダル（クイックモーダル詳細と同トンマナ） */
+.tentative-confirm-toast-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.tentative-confirm-toast-overlay.show {
+    opacity: 1;
+}
+
+.tentative-confirm-toast {
+    --sqm-view-label-bg: #e3f2fd;
+    --sqm-view-label-color: #0d47a1;
+    background: var(--bg-primary, #fff);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    max-width: 420px;
+    width: 92%;
+    padding: 1rem 1rem 0.85rem;
+}
+
+.tentative-confirm-toast.tct--theme-male {
+    --sqm-view-label-bg: #e3f2fd;
+    --sqm-view-label-color: #0d47a1;
+}
+
+.tentative-confirm-toast.tct--theme-female {
+    --sqm-view-label-bg: #f3e5f5;
+    --sqm-view-label-color: #4a148c;
+}
+
+.tentative-confirm-toast .tct-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.65rem;
+}
+
+.tentative-confirm-toast .tct-header h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.tentative-confirm-toast .tct-close {
+    border: none;
+    background: none;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    color: #6c757d;
+}
+
+.tentative-confirm-toast .tct-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.tentative-confirm-toast .sqm-view-detail-list {
+    margin: 0;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.tentative-confirm-toast .sqm-view-detail-row {
+    display: grid;
+    grid-template-columns: minmax(6.5rem, auto) 1px minmax(0, 1fr);
+    align-items: stretch;
+    min-height: 2.5rem;
+    border-bottom: 1px dotted #dee2e6;
+}
+
+.tentative-confirm-toast .sqm-view-detail-row:last-child {
+    border-bottom: none;
+}
+
+.tentative-confirm-toast .sqm-view-detail-row__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.55rem;
+    background: var(--sqm-view-label-bg);
+    color: var(--sqm-view-label-color);
+}
+
+.tentative-confirm-toast .sqm-view-detail-row__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: inherit;
+}
+
+.tentative-confirm-toast .sqm-view-detail-row__label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.25;
+    white-space: nowrap;
+}
+
+.tentative-confirm-toast .sqm-view-detail-row__sep {
+    width: 1px;
+    background: linear-gradient(to bottom, #cfd4da 35%, transparent 35%);
+    background-size: 1px 6px;
+    background-repeat: repeat-y;
+}
+
+.tentative-confirm-toast .sqm-view-detail-row__value {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: #212529;
+    text-align: center;
+    word-break: break-word;
+}
+
+.tentative-confirm-toast .tct-row--time .sqm-view-detail-row__value,
+.tentative-confirm-toast .tct-time-value {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0.45rem;
+}
+
+.tentative-confirm-toast .sqm-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.tentative-confirm-toast .tct-time-inputs {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    width: 100%;
+}
+
+.tentative-confirm-toast .tct-time-inputs.tct-is-hidden {
+    display: none;
+}
+
+.tentative-confirm-toast .tct-time-input {
+    width: auto;
+    min-width: 6.5rem;
+    font-size: 0.875rem;
+    padding: 0.3rem 0.4rem;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+}
+
+.tentative-confirm-toast .tct-time-sep {
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.tentative-confirm-toast .tct-footer {
+    margin-top: 0.85rem;
+    padding-top: 0;
+    border-top: none;
+}
+
+.tentative-confirm-toast .sqm-action-btn__leading {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+
+.tentative-confirm-toast .sqm-action-btn .aidunite-icon {
+    line-height: 1;
+}

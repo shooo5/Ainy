@@ -52,9 +52,13 @@ function getDaysDifference(date1, date2) {
 function showCancelWarning(callback) {
     const message = `試合日まで${CANCEL_WARNING_DAYS}日以内のキャンセルは相手チームに迷惑をかける可能性があります。\n\n本当にキャンセルしますか？`;
 
-    if (confirm(message)) {
-        callback();
-    }
+    aiduniteConfirm({
+        message: message,
+        title: 'キャンセル確認',
+        confirmLabel: 'キャンセルする',
+        confirmVariant: 'danger',
+        onConfirm: callback
+    });
 }
 
 /**
@@ -91,20 +95,12 @@ function updateApplicationStatus(index, newStatus, dateStr) {
                     loc.reload();
                 }
             } else {
-                if (typeof showToastNotification !== 'undefined') {
-                    showToastNotification(response.data?.message || '不明なエラーが発生しました', 'error');
-                } else {
-                    alert('エラー: ' + (response.data?.message || '不明なエラーが発生しました'));
-                }
+                aiduniteToast(response.data?.message || '不明なエラーが発生しました', 'error');
             }
         },
         error: function(xhr, status, error) {
             console.error('AJAX Error:', xhr.responseText);
-            if (typeof showToastNotification !== 'undefined') {
-                showToastNotification('通信エラーが発生しました。ページを再読み込みしてください。', 'error');
-            } else {
-                alert('通信エラーが発生しました。ページを再読み込みしてください。');
-            }
+            aiduniteToast('通信エラーが発生しました。ページを再読み込みしてください。', 'error');
         },
         complete: function() {
             // ローディング解除
@@ -127,10 +123,14 @@ function handleCancelClick(index, dateStr) {
             updateApplicationStatus(index, 'canceled', dateStr);
         });
     } else {
-        // 通常のキャンセル処理
-        if (confirm('本当にキャンセルしますか？')) {
-            updateApplicationStatus(index, 'canceled', dateStr);
-        }
+        aiduniteConfirm({
+            message: '本当にキャンセルしますか？',
+            confirmLabel: 'キャンセルする',
+            confirmVariant: 'danger',
+            onConfirm: function () {
+                updateApplicationStatus(index, 'canceled', dateStr);
+            }
+        });
     }
 }
 
@@ -138,18 +138,27 @@ function handleCancelClick(index, dateStr) {
  * 承認ボタンクリック処理
  */
 function handleApproveClick(index) {
-    if (confirm('この申請を承認しますか？')) {
-        updateApplicationStatus(index, 'accepted');
-    }
+    aiduniteConfirm({
+        message: 'この申請を承認しますか？',
+        confirmLabel: '承認する',
+        onConfirm: function () {
+            updateApplicationStatus(index, 'accepted');
+        }
+    });
 }
 
 /**
  * 拒否ボタンクリック処理
  */
 function handleRejectClick(index) {
-    if (confirm('この申請を拒否しますか？')) {
-        updateApplicationStatus(index, 'rejected');
-    }
+    aiduniteConfirm({
+        message: 'この申請を拒否しますか？',
+        confirmLabel: '拒否する',
+        confirmVariant: 'danger',
+        onConfirm: function () {
+            updateApplicationStatus(index, 'rejected');
+        }
+    });
 }
 
 /**

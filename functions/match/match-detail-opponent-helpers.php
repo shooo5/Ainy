@@ -177,7 +177,9 @@ function aidunite_match_detail_team_dominant_weekday($team_id, $lookback_days = 
 
     $counts = array_fill(0, 7, 0);
     foreach ($schedules as $sid) {
-        $date = (string) get_post_meta((int) $sid, 'schedule_date', true);
+        $date = function_exists('aidunite_schedule_read_normalized_date')
+            ? aidunite_schedule_read_normalized_date((int) $sid)
+            : (string) get_post_meta((int) $sid, 'schedule_date', true);
         if ($date === '') {
             continue;
         }
@@ -296,4 +298,116 @@ function aidunite_match_detail_team_avatar_initial($team_name) {
     }
 
     return substr($team_name, 0, 1);
+}
+
+/**
+ * 申請ステータス表示ラベル（相手チームカード用）
+ *
+ * @param string $application_status
+ * @return string
+ */
+function aidunite_match_detail_application_status_label($application_status) {
+    $map = [
+        'received'              => '申請中',
+        'applying'              => '申請中',
+        'proposal_pending_accept' => '提案確認中',
+        'reconfirm_required'    => '再確認待ち',
+        'accepted'              => '承認済み',
+        'established'           => '試合確定',
+        'rejected'              => '拒否済み',
+        'canceled'              => 'キャンセル済み',
+    ];
+
+    $status = (string) $application_status;
+    if (isset($map[$status])) {
+        return $map[$status];
+    }
+
+    return function_exists('aidunite_get_match_status_label')
+        ? (string) aidunite_get_match_status_label('not_applied', 'text')
+        : '未申請';
+}
+
+/**
+ * 条件の一致状況行（マッチ詳細 UI）
+ *
+ * @param array<string, mixed> $args
+ * @return array<int, array{key:string,icon:string,status:string,status_label:string,value:string,subtext:string}>
+ */
+function aidunite_match_detail_condition_status_rows(array $args) {
+    $time_level = (string) ($args['time_level'] ?? '');
+    $place_level = (string) ($args['place_level'] ?? '');
+    $gender_mixed = !empty($args['gender_mixed']);
+    $compare_my_place = (string) ($args['compare_my_place'] ?? '');
+    $compare_other_place = (string) ($args['compare_other_place'] ?? '');
+    $compare_my_gender = (string) ($args['compare_my_gender'] ?? '');
+    $compare_other_gender = (string) ($args['compare_other_gender'] ?? '');
+    $time_display = (string) ($args['time_display'] ?? '');
+    $gender_display = (string) ($args['gender_display'] ?? $compare_other_gender);
+
+    if (in_array($time_level, ['TIME_STRONG', 'TIME_OK'], true)) {
+        $time_status = 'match';
+        $time_label = '一致しています';
+    } elseif ($time_level === 'TIME_WEAK') {
+        $time_status = 'partial';
+        $time_label = '一部異なります';
+    } else {
+        $time_status = 'mismatch';
+        $time_label = '異なります';
+    }
+
+    if ($place_level === 'PLACE_EASY' && $compare_my_place === $compare_other_place) {
+        $place_status = 'match';
+        $place_label = '一致しています';
+        $place_subtext = '';
+    } elseif (in_array($place_level, ['PLACE_EASY', 'PLACE_MEDIUM'], true)) {
+        $place_status = 'partial';
+        $place_label = '一部異なります';
+        $place_subtext = 'あなた: ' . $compare_my_place . ' / 相手: ' . $compare_other_place;
+    } else {
+        $place_status = 'mismatch';
+        $place_label = '異なります';
+        $place_subtext = 'あなた: ' . $compare_my_place . ' / 相手: ' . $compare_other_place;
+    }
+
+    if (!$gender_mixed && $compare_my_gender === $compare_other_gender) {
+        $gender_status = 'match';
+        $gender_label = '一致しています';
+        $gender_subtext = '';
+    } elseif (!$gender_mixed) {
+        $gender_status = 'partial';
+        $gender_label = '一部異なります';
+        $gender_subtext = 'あなた: ' . $compare_my_gender . ' / 相手: ' . $compare_other_gender;
+    } else {
+        $gender_status = 'partial';
+        $gender_label = '確認が必要です';
+        $gender_subtext = 'あなた: ' . $compare_my_gender . ' / 相手: ' . $compare_other_gender;
+    }
+
+    return [
+        [
+            'key'          => 'time',
+            'icon'         => 'schedule',
+            'status'       => $time_status,
+            'status_label' => $time_label,
+            'value'        => $time_display,
+            'subtext'      => '',
+        ],
+        [
+            'key'          => 'place',
+            'icon'         => 'home',
+            'status'       => $place_status,
+            'status_label' => $place_label,
+            'value'        => $compare_my_place,
+            'subtext'      => $place_subtext,
+        ],
+        [
+            'key'          => 'gender',
+            'icon'         => 'group',
+            'status'       => $gender_status,
+            'status_label' => $gender_label,
+            'value'        => $gender_display,
+            'subtext'      => $gender_subtext,
+        ],
+    ];
 }

@@ -1,0 +1,114 @@
+.aidunite-schedule-quick-modal .sqm-confirm-dl dd {
+    margin: 0;
+}
+
+/* 男女別アクセント（男子=青 / 女子=ピンク） */
+.aidunite-schedule-quick-modal.sqm--theme-male {
+    --sqm-accent: #1976d2;
+    --sqm-accent-hover: #1565c0;
+    --sqm-accent-soft: rgba(25, 118, 210, 0.12);
+}
+
+.aidunite-schedule-quick-modal.sqm--theme-female {
+    --sqm-accent: #e91e8c;
+    --sqm-accent-hover: #c2185b;
+    --sqm-accent-soft: rgba(233, 30, 140, 0.12);
+}
+
+.aidunite-schedule-quick-modal.sqm--theme-male .btn-primary,
+.aidunite-schedule-quick-modal.sqm--theme-female .btn-primary {
+    background-color: var(--sqm-accent);
+    border-color: var(--sqm-accent);
+}
+
+.aidunite-schedule-quick-modal.sqm--theme-male .btn-primary:hover,
+.aidunite-schedule-quick-modal.sqm--theme-female .btn-primary:hover {
+    background-color: var(--sqm-accent-hover);
+    border-color: var(--sqm-accent-hover);
+}
+
+.aidunite-schedule-quick-modal.sqm--theme-male .sqm-kind-card--selected,
+.aidunite-schedule-quick-modal.sqm--theme-female .sqm-kind-card--selected {
+    border-color: var(--sqm-accent);
+    background: var(--sqm-accent-soft);
+    color: var(--sqm-accent);
+}
+
+.aidunite-schedule-quick-modal .sqm-kind-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-kind-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.5rem;
+    padding: 0.4rem 0.35rem;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 0.78rem;
+    line-height: 1.25;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.aidunite-schedule-quick-modal .sqm-kind-card__input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+}
+
+.aidunite-schedule-quick-modal .sqm-kind-card__label {
+    pointer-events: none;
+}
+
+.aidunite-schedule-quick-modal .sqm-radios--count {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.5rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-radio--count {
+    min-width: 2rem;
+    justify-content: center;
+    padding: 0.25rem 0.4rem;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+}
+
+.aidunite-schedule-quick-modal.sqm--theme-male .sqm-radio--count:has(input:checked),
+.aidunite-schedule-quick-modal.sqm--theme-female .sqm-radio--count:has(input:checked) {
+    border-color: var(--sqm-accent);
+    background: var(--sqm-accent-soft);
+}
+
+.aidunite-schedule-quick-modal .sqm-footer--confirm-only {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.aidunite-schedule-quick-modal .sqm-confirm-lead {
+    margin: 0 0 0.75rem;
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+.aidunite-schedule-quick-modal .sqm-badge--official_match,
+.aidunite-schedule-quick-modal .sqm-badge--practice_match {
+    background: rgba(165, 214, 167, 0.95);
+    color: #212529;
+}
+
+.aidunite-schedule-quick-modal .sqm-badge--joint_practice,
+.aidunite-schedule-quick-modal .sqm-badge--camp,
+.aidunite-schedule-quick-modal .sqm-badge--expedition {
+    background: rgba(255, 224, 178, 0.95);
+    color: #212529;
+}

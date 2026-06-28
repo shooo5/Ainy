@@ -125,7 +125,7 @@ function aidunite_send_team_application_approved_notification($user_id, $team_id
         'title'      => 'チーム申請が承認されました',
         'message'    => "チーム「{$team_name}」の申請が承認されました。\n最初の試合募集を公開しましょう。",
         'related_id' => $team_id,
-        'link_url'   => function_exists('aidunite_get_activation_recruit_edit_url') ? aidunite_get_activation_recruit_edit_url() : home_url('/schedule-edit/'),
+        'link_url'   => function_exists('aidunite_get_activation_recruit_edit_url') ? aidunite_get_activation_recruit_edit_url() : home_url('/mypage/?open_recruit=1'),
         'idempotency_key' => 'team_application_approved:' . $team_id . ':' . $user_id,
     ]);
 }

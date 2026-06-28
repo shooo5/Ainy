@@ -13,7 +13,7 @@ if (!is_user_logged_in()) {
 $current_user = wp_get_current_user();
 $is_representative = false;
 if ($current_user->ID) {
-    $role = get_user_meta($current_user->ID, 'aidunite_role', true);
+    $role = aidunite_user_read_aidunite_role((int) $current_user->ID);
     if ($role === 'team_leader') {
         $is_representative = true;
     } else {
@@ -66,6 +66,14 @@ get_header();
     </div>
     <?php endif; ?>
 
+    <?php if (!$is_representative) : ?>
+    <div class="warning-box general-member-notice">
+      <h3>チーム代表者へのご連絡（推奨）</h3>
+      <p>一般メンバーとして退会する場合、チーム運営に影響が出ることがあります。可能であれば、退会前に<strong>チーム代表者へご連絡</strong>いただくことをおすすめします。</p>
+      <p>代表者の方は、試合やチーム解散の整理が必要な場合があります。一般メンバーは出口ゲートの対象外のため、確認メールのリンクから<strong>即時退会</strong>できます。</p>
+    </div>
+    <?php endif; ?>
+
     <div class="warning-box">
       <h3>⚠️ 退会について</h3>
       <p>退会申請を提出すると、<strong>ご登録のメールアドレスに確認メール</strong>が送信されます。メール内のリンクをクリックすると退会が完了し、以下の処理が行われます。</p>
@@ -83,9 +91,6 @@ get_header();
 
     <div class="user-info">
       <h3>現在のアカウント情報</h3>
-      <?php
-      $user_meta = get_user_meta($current_user->ID);
-      ?>
       <p><strong>ユーザー名：</strong><?php echo esc_html($current_user->user_login); ?></p>
       <p><strong>氏名：</strong><?php echo esc_html($current_user->display_name); ?></p>
       <p><strong>メールアドレス：</strong><?php echo esc_html($current_user->user_email); ?></p>
@@ -165,109 +170,10 @@ get_header();
   </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  const form = document.getElementById('member-withdrawal-form');
-  const submitButton = document.getElementById('submit-button');
-  const loading = document.getElementById('loading');
-  const errorMessage = document.getElementById('error-message');
-  const successMessage = document.getElementById('success-message');
-  const finalConfirmation = document.getElementById('final_confirmation');
-  const repSection = document.getElementById('rep-withdrawal-choice-section');
-  const repChoiceTransfer = document.getElementById('rep_choice_transfer');
-  const repChoiceDissolve = document.getElementById('rep_choice_dissolve');
-  const repTransferLinkWrap = document.getElementById('rep-transfer-link-wrap');
-  const repChoiceRequiredNote = document.getElementById('rep-choice-required-note');
-  const isRep = !!repSection;
-
-  if (isRep) {
-    function updateRepChoiceUI() {
-      const dissolve = repChoiceDissolve && repChoiceDissolve.checked;
-      if (repTransferLinkWrap) repTransferLinkWrap.style.display = repChoiceTransfer && repChoiceTransfer.checked ? 'block' : 'none';
-      if (repChoiceRequiredNote) repChoiceRequiredNote.style.display = repChoiceTransfer && repChoiceTransfer.checked ? 'block' : 'none';
-      submitButton.disabled = !dissolve;
-    }
-    if (repChoiceTransfer) repChoiceTransfer.addEventListener('change', updateRepChoiceUI);
-    if (repChoiceDissolve) repChoiceDissolve.addEventListener('change', updateRepChoiceUI);
-    updateRepChoiceUI();
-  }
-
-  // 最終確認のバリデーション
-  function validateFinalConfirmation() {
-    if (finalConfirmation.value !== '退会する') {
-      finalConfirmation.setCustomValidity('「退会する」と正確に入力してください');
-    } else {
-      finalConfirmation.setCustomValidity('');
-    }
-  }
-
-  finalConfirmation.addEventListener('input', validateFinalConfirmation);
-
-  // フォーム送信処理
-  form.addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    if (isRep && (!repChoiceDissolve || !repChoiceDissolve.checked)) {
-      errorMessage.textContent = '退会するには「チームを解散して退会する」を選択してください。代表者を譲る場合はチーム設定から行ってから退会申請してください。';
-      errorMessage.style.display = 'block';
-      if (repChoiceRequiredNote) repChoiceRequiredNote.style.display = 'block';
-      return;
-    }
-
-    // 最終確認の再チェック
-    if (finalConfirmation.value !== '退会する') {
-      errorMessage.textContent = '最終確認の入力が正しくありません。';
-      errorMessage.style.display = 'block';
-      return;
-    }
-
-    // 確認ダイアログ
-    if (!confirm('本当に退会申請を提出しますか？\nこの操作は取り消すことができません。')) {
-      return;
-    }
-
-    // フォームデータの取得
-    const formData = new FormData(form);
-
-    // 送信ボタンを無効化
-    submitButton.disabled = true;
-    loading.style.display = 'block';
-    errorMessage.style.display = 'none';
-    successMessage.style.display = 'none';
-
-    // AJAX送信
-    fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
-      method: 'POST',
-      body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-      loading.style.display = 'none';
-
-      if (data.success) {
-        successMessage.textContent = data.data.message || '退会確認メールを送信しました。メールのリンクから退会を完了してください。';
-        successMessage.style.display = 'block';
-        form.reset();
-
-        // 10秒後にログアウトしてホームへ（メール確認を促す時間を考慮）
-        setTimeout(() => {
-          window.location.href = '<?php echo esc_url(wp_logout_url(home_url())); ?>';
-        }, 10000);
-      } else {
-        errorMessage.textContent = data.data.message || '退会申請に失敗しました。';
-        errorMessage.style.display = 'block';
-        submitButton.disabled = false;
-      }
-    })
-    .catch(error => {
-      loading.style.display = 'none';
-      errorMessage.textContent = '通信エラーが発生しました。';
-      errorMessage.style.display = 'block';
-      submitButton.disabled = false;
-      console.error('Error:', error);
-    });
-  });
-});
-</script>
-
-<?php get_footer(); ?>
+<?php
+wp_localize_script('aidunite-member-withdrawal', 'aiduniteMemberWithdrawalPage', [
+    'ajaxUrl' => admin_url('admin-ajax.php'),
+    'logoutUrl' => wp_logout_url(home_url()),
+]);
+get_footer();
+?>

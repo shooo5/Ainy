@@ -10,7 +10,7 @@ get_header();
   <!-- ダッシュボードヘッダー -->
   <div class="dashboard-header">
     <h1>利用規約</h1>
-    <p>TUNAGERUの利用に関する規約について</p>
+    <p>Ainyの利用に関する規約について</p>
   </div>
 
   <!-- 利用規約セクション -->
@@ -19,7 +19,7 @@ get_header();
     <div class="main-content-area">
       <div class="terms-container">
         <div class="terms-intro">
-          <p>本利用規約（以下「本規約」）は、TUNAGERU（以下「当社」）が提供するスポーツチーム運営支援サービス（以下「本サービス」）の利用条件を定めるものです。</p>
+          <p>本利用規約（以下「本規約」）は、Ainy（以下「当社」）が提供するスポーツチーム運営支援サービス（以下「本サービス」）の利用条件を定めるものです。</p>
           <p class="terms-date">制定日：2024年1月1日<br>最終更新日：2024年1月1日</p>
         </div>
 
@@ -161,7 +161,7 @@ get_header();
           <h3>お問い合わせ</h3>
           <p>本利用規約に関するお問い合わせは、以下までご連絡ください：</p>
           <div class="contact-info">
-            <p><strong>TUNAGERU運営チーム</strong></p>
+            <p><strong>Ainy運営チーム</strong></p>
             <p>メール：<a href="mailto:terms@tunageru.com">terms@tunageru.com</a></p>
             <p>お問い合わせフォーム：<a href="<?php echo home_url('/feedback'); ?>">こちら</a></p>
           </div>
@@ -189,169 +189,5 @@ get_header();
     </div>
   </section>
 </div>
-
-<style>
-.terms-container {
-  max-width: 900px;
-  margin: 0 auto;
-  line-height: 1.8;
-}
-
-.terms-intro {
-  background: #f8f9fa;
-  padding: 25px;
-  border-radius: 12px;
-  margin-bottom: 30px;
-  border-left: 4px solid var(--primary-color);
-}
-
-.terms-intro p {
-  margin: 0 0 15px 0;
-  color: #495057;
-}
-
-.terms-date {
-  font-size: 0.9rem;
-  color: #6c757d;
-  font-style: italic;
-}
-
-.terms-section {
-  margin-bottom: 35px;
-  padding-bottom: 25px;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.terms-section:last-of-type {
-  border-bottom: none;
-}
-
-.terms-section h3 {
-  color: #495057;
-  font-size: 1.3rem;
-  margin-bottom: 15px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid var(--border-light);
-}
-
-.terms-section p {
-  color: #495057;
-  margin-bottom: 15px;
-}
-
-.terms-section ul {
-  margin: 15px 0;
-  padding-left: 20px;
-}
-
-.terms-section li {
-  color: #495057;
-  margin-bottom: 8px;
-  line-height: 1.6;
-}
-
-.terms-section strong {
-  color: #495057;
-  font-weight: 600;
-}
-
-.terms-section a {
-  color: #667eea;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.terms-section a:hover {
-  text-decoration: underline;
-}
-
-.contact-info {
-  background: #f8f9fa;
-  padding: 20px;
-  border-radius: 8px;
-  margin-top: 15px;
-}
-
-.contact-info p {
-  margin: 0 0 8px 0;
-}
-
-.contact-info a {
-  color: #667eea;
-  text-decoration: none;
-}
-
-.contact-info a:hover {
-  text-decoration: underline;
-}
-
-.related-links {
-  margin-top: 40px;
-  padding-top: 30px;
-  border-top: 2px solid #e9ecef;
-}
-
-.related-links h3 {
-  color: #495057;
-  font-size: 1.3rem;
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-.links-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
-}
-
-.link-card {
-  display: flex;
-  align-items: center;
-  padding: 15px 20px;
-  background: white;
-  border: 2px solid var(--border-light);
-  border-radius: 8px;
-  text-decoration: none;
-  color: #495057;
-  transition: all 0.3s ease;
-}
-
-.link-card:hover {
-  border-color: var(--primary-color);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-}
-
-.link-icon {
-  font-size: 1.5rem;
-  margin-right: 12px;
-}
-
-.link-text {
-  font-weight: 500;
-}
-
-@media (max-width: 768px) {
-  .terms-container {
-    padding: 0 10px;
-  }
-
-  .terms-intro {
-    padding: 20px;
-  }
-
-  .terms-section h3 {
-    font-size: 1.2rem;
-  }
-
-  .links-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .link-card {
-    padding: 12px 15px;
-  }
-}
-</style>
 
 <?php get_footer(); ?>

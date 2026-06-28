@@ -165,10 +165,8 @@ class AinyWebPush {
     showToast(message, type) {
         if (window.formNotifications && typeof window.formNotifications.showToast === 'function') {
             window.formNotifications.showToast(message, type);
-        } else if (typeof showToastNotification === 'function') {
-            showToastNotification(message, type);
         } else {
-            alert(message);
+            aiduniteToast(message, type || 'info');
         }
     }
 

@@ -104,7 +104,11 @@ if (isset($_POST['delete_user_id'])) {
 if (isset($_POST['edit_role_user_id'], $_POST['new_aidunite_role']) && check_admin_referer('edit_role_' . $_POST['edit_role_user_id'])) {
     $edit_user_id = intval($_POST['edit_role_user_id']);
     $new_role = sanitize_text_field($_POST['new_aidunite_role']);
-    update_user_meta($edit_user_id, 'aidunite_role', $new_role);
+    if (function_exists('aidunite_user_write_role_meta')) {
+        aidunite_user_write_role_meta($edit_user_id, $new_role);
+    } else {
+        update_user_meta($edit_user_id, 'aidunite_role', $new_role);
+    }
     echo '<div class="notice notice-success">ユーザーID ' . esc_html($edit_user_id) . ' のロールを ' . esc_html($new_role) . ' に変更しました。</div>';
 }
 
@@ -145,7 +149,9 @@ if (isset($_POST['reconcile_managed_teams_user_id'])) {
             . ' の managed_team_ids を修復しました（publish 件数: '
             . esc_html((string) count($fixed))
             . '）。保存値: <code>'
-            . esc_html((string) get_user_meta($reconcile_user_id, 'managed_team_ids', true))
+            . esc_html((string) (function_exists('aidunite_read_user_managed_team_ids_meta')
+                ? wp_json_encode(aidunite_read_user_managed_team_ids_meta($reconcile_user_id))
+                : get_user_meta($reconcile_user_id, 'managed_team_ids', true)))
             . '</code></div>';
     }
 }
@@ -199,7 +205,7 @@ if (isset($_POST['edit_plan_user_id'], $_POST['edit_plan_team_id'], $_POST['sele
             echo '<div class="notice notice-success">ユーザーID ' . esc_html($edit_user_id) . ' のチームID ' . esc_html($edit_team_id) . ' のプランを ' . esc_html($selected_plan_id) . ' に設定しました。</div>';
         } else {
             // プランIDが空の場合は削除
-            delete_post_meta($edit_team_id, 'selected_plan_id');
+            aidunite_delete_selected_plan_id($edit_team_id);
             echo '<div class="notice notice-success">ユーザーID ' . esc_html($edit_user_id) . ' のチームID ' . esc_html($edit_team_id) . ' のプラン設定を削除しました。</div>';
         }
     } else {
@@ -224,8 +230,7 @@ if (isset($_POST['edit_payment_status_user_id'], $_POST['payment_status'])) {
         aidunite_set_payment_status($edit_user_id, $payment_status);
         echo '<div class="notice notice-success">ユーザーID ' . esc_html($edit_user_id) . ' の支払いステータスを ' . esc_html($payment_status) . ' に変更しました。</div>';
     } else {
-        delete_user_meta($edit_user_id, 'payment_status');
-        delete_user_meta($edit_user_id, 'payment_status_updated');
+        aidunite_set_payment_status($edit_user_id, '');
         echo '<div class="notice notice-success">ユーザーID ' . esc_html($edit_user_id) . ' の支払いステータスを削除しました。</div>';
     }
 }
@@ -273,7 +278,7 @@ if (isset($_POST['edit_team_id_user_id'], $_POST['team_id'])) {
 
             if ($team_post && $team_post->post_type === 'team') {
                 // 保存前の値を確認
-                $before_team_id = get_user_meta($edit_user_id, 'team_id', true);
+                $before_team_id = aidunite_user_read_primary_team_id($edit_user_id);
                 error_log('Before update - user_id: ' . $edit_user_id . ', team_id: ' . var_export($before_team_id, true));
 
                 // チームIDを保存
@@ -281,7 +286,7 @@ if (isset($_POST['edit_team_id_user_id'], $_POST['team_id'])) {
                 error_log('update_user_meta result: ' . var_export($update_result, true));
 
                 // 保存後の値を確認
-                $after_team_id = get_user_meta($edit_user_id, 'team_id', true);
+                $after_team_id = aidunite_user_read_primary_team_id($edit_user_id);
                 error_log('After update - user_id: ' . $edit_user_id . ', team_id: ' . var_export($after_team_id, true));
                 error_log('Expected team_id: ' . $team_id);
 
@@ -384,9 +389,9 @@ $users_all = get_users($user_args);
 if ($role_filter || $status_filter) {
     $filtered_users = [];
     foreach ($users_all as $user) {
-        $user_meta = get_user_meta($user->ID);
-        $user_role = $user_meta['aidunite_role'][0] ?? '';
-        $reg_status = $user_meta['registration_status'][0] ?? '';
+        $user_row = aidunite_user_get_admin_list_display((int) $user->ID);
+        $user_role = (string) ($user_row['aidunite_role'] ?? '');
+        $reg_status = (string) ($user_row['registration_status_raw'] ?? $user_row['registration_status'] ?? '');
         $role_match = !$role_filter || $user_role === $role_filter;
         if (!$status_filter) {
             $status_match = true;
@@ -416,18 +421,18 @@ if (isset($_GET['csv']) && $_GET['csv'] === '1') {
     fprintf($out, "\xEF\xBB\xBF"); // BOM for Excel UTF-8
     fputcsv($out, ['ID', '姓', '名', '氏名', 'メール', 'チームID', '世帯ID', '年齢', '性別', '登録日', '継続月', '登録状態', 'ロール']);
     foreach ($users_all as $u) {
-        $meta = get_user_meta($u->ID);
-        $reg_status = $meta['registration_status'][0] ?? '';
-        $role = $meta['aidunite_role'][0] ?? '';
-        $team_id_csv = get_user_meta($u->ID, 'team_id', true);
-        $family_id_csv = $meta['family_id'][0] ?? '';
-        $reg_date = $meta['registration_date'][0] ?? $u->user_registered;
-        $last_name = $meta['last_name'][0] ?? '';
-        $first_name = $meta['first_name'][0] ?? '';
+        $csv_row = aidunite_user_get_admin_list_display((int) $u->ID);
+        $reg_status = (string) ($csv_row['registration_status_raw'] ?? $csv_row['registration_status'] ?? '');
+        $role = (string) ($csv_row['aidunite_role'] ?? '');
+        $team_id_csv = (int) ($csv_row['team_id'] ?? 0);
+        $family_id_csv = (string) ($csv_row['family_id'] ?? '');
+        $reg_date = (string) ($csv_row['registration_date'] ?? '') ?: $u->user_registered;
+        $last_name = (string) ($csv_row['last_name'] ?? '');
+        $first_name = (string) ($csv_row['first_name'] ?? '');
         $display_name_common = trim($last_name . ' ' . $first_name) ?: $u->display_name;
-        $birth = $meta['user_birth_date'][0] ?? '';
+        $birth = (string) ($csv_row['user_birth_date'] ?? '');
         $age = $birth && function_exists('calculate_user_age') ? calculate_user_age($birth) : '';
-        $gender_key = $meta['user_gender'][0] ?? '';
+        $gender_key = (string) ($csv_row['user_gender'] ?? '');
         $gender_label = $gender_key && function_exists('get_gender_display_name') ? get_gender_display_name($gender_key) : $gender_key;
         $base_date_csv = $reg_date ?: $u->user_registered;
         $months_csv = '';
@@ -474,103 +479,6 @@ if (isset($_GET['debug_file_path'])) {
 
 get_header();
 ?>
-<style>
-.meta-info-section {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    padding: 15px;
-    margin: 10px 0;
-}
-.meta-info-row {
-    display: grid;
-    grid-template-columns: 150px 1fr;
-    gap: 10px;
-    padding: 5px 0;
-    border-bottom: 1px solid var(--border-light);
-}
-.meta-info-row:last-child {
-    border-bottom: none;
-}
-.meta-key {
-    font-weight: bold;
-    color: var(--text-primary);
-}
-.meta-value {
-    color: var(--text-primary);
-}
-.meta-value.empty {
-    color: var(--text-muted);
-    font-style: italic;
-}
-.edit-meta-form {
-    display: inline-flex;
-    gap: 5px;
-    margin-top: 5px;
-}
-.edit-meta-form input[type="text"] {
-    padding: 4px 8px;
-    border: 1px solid var(--border-color);
-    border-radius: 3px;
-}
-.edit-meta-form button {
-    padding: 4px 12px;
-    font-size: 12px;
-}
-.status-badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: bold;
-}
-.status-pending {
-    background: rgba(255, 193, 7, 0.1);
-    color: var(--warning-color);
-}
-.status-accepted {
-    background: rgba(40, 167, 69, 0.1);
-    color: var(--success-color);
-}
-.status-active {
-    background: rgba(23, 162, 184, 0.1);
-    color: var(--info-color);
-}
-.status-invalid {
-    background: rgba(220, 53, 69, 0.1);
-    color: var(--danger-color);
-}
-.details-toggle {
-    cursor: pointer;
-    color: var(--primary-color);
-    text-decoration: underline;
-}
-.details-toggle:hover {
-    color: var(--primary-dark);
-}
-.user-details {
-    display: none;
-}
-.user-details.active {
-    display: table-row;
-}
-.user-details.active td {
-    display: table-cell;
-}
-.user-details td {
-    vertical-align: top;
-}
-.button-danger {
-    background: rgba(220, 53, 69, 0.1);
-    color: var(--danger-color, #dc3545);
-    border: 1px solid var(--danger-color, #dc3545);
-}
-.button-danger:hover {
-    background: var(--danger-color, #dc3545);
-    color: #fff;
-}
-/* 表スタイルは admin-list-table.css */
-</style>
 <div class="wrap page-admin-user-list-wrap" style="width:100%;max-width:100%;margin:auto;">
   <h1>ユーザー管理（Ainy用）</h1>
 
@@ -650,7 +558,7 @@ get_header();
           </select>
         </div>
         <div>
-          <button type="submit" name="bulk_action" value="change_role" class="button button-primary" onclick="return confirmBulkAction('ロール変更')">一括ロール変更</button>
+          <button type="submit" name="bulk_action" value="change_role" class="button button-primary">一括ロール変更</button>
         </div>
       </div>
       <?php wp_nonce_field('bulk_role_change'); ?>
@@ -666,7 +574,7 @@ get_header();
     <form method="post" id="bulk-delete-users-form">
       <div style="display:flex; flex-wrap:wrap; align-items:center; gap:var(--spacing-base);">
         <span id="user-bulk-selected-count" style="color:var(--text-secondary); font-size:var(--font-size-sm, 0.875rem);" aria-live="polite">0件選択</span>
-        <button type="submit" name="bulk_delete_users" value="1" class="button button-danger" id="user-bulk-delete-btn" disabled onclick="return confirmBulkAction('削除');">選択したユーザーを一括削除</button>
+        <button type="submit" name="bulk_delete_users" value="1" class="button button-danger" id="user-bulk-delete-btn" disabled>選択したユーザーを一括削除</button>
       </div>
       <?php wp_nonce_field('bulk_delete_users'); ?>
     </form>
@@ -718,22 +626,21 @@ get_header();
       <?php foreach ($users as $idx => $user):
         $row_no = $offset + $idx + 1;
         $user_id = $user->ID;
-        $meta = get_user_meta($user_id);
+        $user_row = aidunite_user_get_admin_list_display((int) $user_id);
         $role = function_exists('aidunite_get_user_role')
             ? aidunite_get_user_role((int) $user_id)
-            : ($meta['aidunite_role'][0] ?? '');
-        $team_id = get_user_meta($user_id, 'team_id', true);
+            : (string) ($user_row['aidunite_role'] ?? '');
+        $team_id = (int) ($user_row['team_id'] ?? 0);
         if (
             function_exists('aidunite_reconcile_user_managed_team_ids')
-            && ($role === 'team_leader' || !empty($team_id))
+            && ($role === 'team_leader' || $team_id > 0)
         ) {
             aidunite_reconcile_user_managed_team_ids((int) $user_id);
         }
-        $managed_team_ids_raw = get_user_meta($user_id, 'managed_team_ids', true);
         $managed_team_ids = function_exists('aidunite_get_managed_team_ids')
             ? aidunite_get_managed_team_ids((int) $user_id)
             : [];
-        $current_operating_team_id = get_user_meta($user_id, 'current_operating_team_id', true);
+        $current_operating_team_id = (int) ($user_row['current_operating_team_id'] ?? 0);
         $leader_teams_publish = function_exists('aidunite_discover_publish_team_ids_for_leader')
             ? aidunite_discover_publish_team_ids_for_leader((int) $user_id)
             : [];
@@ -741,28 +648,27 @@ get_header();
             ? aidunite_discover_team_ids_for_leader((int) $user_id, ['publish', 'pending', 'draft', 'trash'])
             : [];
         $multi_team_needs_attention = count($leader_teams_publish) > 1 && count($managed_team_ids) < 2;
-        $pending_team_id = $meta['pending_team_id'][0] ?? '';
-        $team_id_display = $team_id ? (string) $team_id : '—';
+        $pending_team_id = (string) ($user_row['pending_team_id'] ?? '');
+        $team_id_display = $team_id > 0 ? (string) $team_id : '—';
         if (count($managed_team_ids) > 1) {
             $team_id_display .= ' (managed:' . count($managed_team_ids) . ')';
         } elseif (count($leader_teams_publish) > 1 && count($managed_team_ids) < 2) {
             $team_id_display .= ' (要修復:' . count($leader_teams_publish) . 'チーム)';
         }
-        $parent_name = $meta['parent_name'][0] ?? '';
-        $player_name = $meta['player_name'][0] ?? '';
-        $reg_date = $meta['registration_date'][0] ?? '';
-        $reg_status = $meta['registration_status'][0] ?? '';
-        $has_token = !empty($meta['registration_token'][0]);
-        $token_time = $meta['registration_token_time'][0] ?? '';
-        // 共通メタ（姓・名・年齢・性別）
-        $last_name = $meta['last_name'][0] ?? '';
-        $first_name = $meta['first_name'][0] ?? '';
+        $parent_name = (string) ($user_row['parent_name'] ?? '');
+        $player_name = (string) ($user_row['player_name'] ?? '');
+        $reg_date = (string) ($user_row['registration_date'] ?? '');
+        $reg_status = (string) ($user_row['registration_status_raw'] ?? $user_row['registration_status'] ?? '');
+        $has_token = !empty($user_row['has_registration_token']);
+        $token_time = (string) ($user_row['registration_token_time'] ?? '');
+        $last_name = (string) ($user_row['last_name'] ?? '');
+        $first_name = (string) ($user_row['first_name'] ?? '');
         $display_name_common = trim($last_name . ' ' . $first_name) ?: $user->display_name;
-        $user_birth_date = $meta['user_birth_date'][0] ?? '';
+        $user_birth_date = (string) ($user_row['user_birth_date'] ?? '');
         $age_display = $user_birth_date && function_exists('calculate_user_age') ? calculate_user_age($user_birth_date) . '歳' : '—';
-        $user_gender_key = $meta['user_gender'][0] ?? '';
+        $user_gender_key = (string) ($user_row['user_gender'] ?? '');
         $gender_display = $user_gender_key && function_exists('get_gender_display_name') ? get_gender_display_name($user_gender_key) : ($user_gender_key ?: '—');
-        $family_id = $meta['family_id'][0] ?? '';
+        $family_id = (string) ($user_row['family_id'] ?? '');
         // 継続月（登録日から今日までの経過月数）
         $base_date = $reg_date ?: $user->user_registered;
         $months_display = '—';
@@ -779,7 +685,7 @@ get_header();
 
         // プラン情報を取得
         $selected_plan_id = '';
-        $payment_status = $meta['payment_status'][0] ?? '';
+        $payment_status = (string) ($user_row['payment_status'] ?? '');
         $available_plans = [];
 
         if (!empty($team_id)) {
@@ -840,7 +746,7 @@ get_header();
         </td>
         <td>
           <?php if ((int) $user_id !== (int) $current_user_id) : ?>
-          <form method="post" class="delete-user-form" style="display:inline;" onsubmit="return confirm('ユーザーID <?php echo esc_js($user_id); ?>（<?php echo esc_js($display_name_common); ?>）を削除しますか？\nWordPressのユーザーも削除され、取り消せません。');">
+          <form method="post" class="delete-user-form" style="display:inline;" data-aidunite-confirm="ユーザーID <?php echo esc_attr($user_id); ?>（<?php echo esc_attr($display_name_common); ?>）を削除しますか？&#10;WordPressのユーザーも削除され、取り消せません。" data-aidunite-confirm-label="削除する">
             <?php wp_nonce_field('delete_user_' . $user_id); ?>
             <input type="hidden" name="delete_user_id" value="<?php echo esc_attr($user_id); ?>">
             <button type="submit" class="button button-small button-danger">削除</button>
@@ -911,14 +817,14 @@ get_header();
             <div class="meta-info-row">
               <div class="meta-key">registration_token:</div>
               <div class="meta-value <?php echo $has_token ? '' : 'empty'; ?>">
-                <?php echo $has_token ? 'あり（' . esc_html(substr($meta['registration_token'][0], 0, 20)) . '...）' : '(なし)'; ?>
+                <?php echo $has_token ? 'あり（' . esc_html(substr((string) ($user_row['registration_token'] ?? ''), 0, 20)) . '...）' : '(なし)'; ?>
                 <?php if ($has_token): ?>
-                <form method="post" class="edit-meta-form">
+                <form method="post" class="edit-meta-form" data-aidunite-confirm="トークンを削除しますか？" data-aidunite-confirm-label="削除する">
                   <?php wp_nonce_field('edit_meta_' . $user_id); ?>
                   <input type="hidden" name="edit_meta_user_id" value="<?php echo esc_attr($user_id); ?>">
                   <input type="hidden" name="meta_key" value="registration_token">
                   <input type="hidden" name="meta_value" value="">
-                  <button type="submit" class="button button-small" onclick="return confirm('トークンを削除しますか？');">削除</button>
+                  <button type="submit" class="button button-small">削除</button>
                 </form>
                 <?php endif; ?>
               </div>
@@ -937,12 +843,12 @@ get_header();
                 }
                 ?>
                 <?php if ($token_time): ?>
-                <form method="post" class="edit-meta-form">
+                <form method="post" class="edit-meta-form" data-aidunite-confirm="トークン時間を削除しますか？" data-aidunite-confirm-label="削除する">
                   <?php wp_nonce_field('edit_meta_' . $user_id); ?>
                   <input type="hidden" name="edit_meta_user_id" value="<?php echo esc_attr($user_id); ?>">
                   <input type="hidden" name="meta_key" value="registration_token_time">
                   <input type="hidden" name="meta_value" value="">
-                  <button type="submit" class="button button-small" onclick="return confirm('トークン時間を削除しますか？');">削除</button>
+                  <button type="submit" class="button button-small">削除</button>
                 </form>
                 <?php endif; ?>
               </div>
@@ -1130,122 +1036,5 @@ get_header();
   </nav>
   <?php endif; ?>
 </div>
-
-<script>
-(function() {
-    const selectAll = document.getElementById('select-all-users');
-    const bulkDeleteBtn = document.getElementById('user-bulk-delete-btn');
-    const bulkCountEl = document.getElementById('user-bulk-selected-count');
-
-    function getUserCheckboxes() {
-        return document.querySelectorAll('.user-checkbox');
-    }
-
-    function updateUserBulkUi() {
-        const boxes = getUserCheckboxes();
-        const checked = document.querySelectorAll('.user-checkbox:checked');
-        if (bulkCountEl) {
-            bulkCountEl.textContent = checked.length + '件選択';
-        }
-        if (bulkDeleteBtn) {
-            bulkDeleteBtn.disabled = checked.length === 0;
-        }
-        if (selectAll && boxes.length > 0) {
-            selectAll.checked = boxes.length === checked.length;
-            selectAll.indeterminate = checked.length > 0 && checked.length < boxes.length;
-        }
-    }
-
-    if (selectAll) {
-        selectAll.addEventListener('change', function() {
-            getUserCheckboxes().forEach(function(box) {
-                box.checked = selectAll.checked;
-            });
-            updateUserBulkUi();
-        });
-    }
-
-    getUserCheckboxes().forEach(function(box) {
-        box.addEventListener('change', updateUserBulkUi);
-    });
-
-    updateUserBulkUi();
-
-    function injectUserIdsToForm(form) {
-        if (!form) {
-            return;
-        }
-        form.querySelectorAll('input.js-user-bulk-hidden-id').forEach(function(el) {
-            el.remove();
-        });
-        document.querySelectorAll('.user-checkbox:checked').forEach(function(box) {
-            const hidden = document.createElement('input');
-            hidden.type = 'hidden';
-            hidden.name = 'user_ids[]';
-            hidden.value = box.value;
-            hidden.className = 'js-user-bulk-hidden-id';
-            form.appendChild(hidden);
-        });
-    }
-
-    const bulkRoleForm = document.getElementById('bulk-actions-form');
-    if (bulkRoleForm) {
-        bulkRoleForm.addEventListener('submit', function() {
-            injectUserIdsToForm(bulkRoleForm);
-        });
-    }
-
-    const bulkDeleteForm = document.getElementById('bulk-delete-users-form');
-    if (bulkDeleteForm) {
-        bulkDeleteForm.addEventListener('submit', function() {
-            injectUserIdsToForm(bulkDeleteForm);
-        });
-    }
-})();
-
-// 一括操作の確認
-function confirmBulkAction(action) {
-    const checkedBoxes = document.querySelectorAll('.user-checkbox:checked');
-    if (checkedBoxes.length === 0) {
-        if (typeof showToastNotification !== 'undefined') {
-            showToastNotification('操作対象のユーザーを選択してください。', 'warning');
-        } else {
-            alert('操作対象のユーザーを選択してください。');
-        }
-        return false;
-    }
-
-    if (action === '削除') {
-        return confirm('選択された ' + checkedBoxes.length + ' 件のユーザーを削除しますか？\nこの操作は取り消せません。');
-    } else if (action === 'ロール変更') {
-        const bulkRole = document.getElementById('bulk_role').value;
-        if (!bulkRole) {
-            if (typeof showToastNotification !== 'undefined') {
-                showToastNotification('ロールを選択してください。', 'warning');
-            } else {
-                alert('ロールを選択してください。');
-            }
-            return false;
-        }
-        return confirm('選択された ' + checkedBoxes.length + ' 件のユーザーのロールを ' + bulkRole + ' に変更しますか？');
-    }
-
-    return true;
-}
-
-// 詳細表示のトグル
-function toggleDetails(userId) {
-    const details = document.getElementById('details-' + userId);
-    const toggleText = document.getElementById('toggle-text-' + userId);
-
-    if (details.classList.contains('active')) {
-        details.classList.remove('active');
-        toggleText.textContent = '詳細表示';
-    } else {
-        details.classList.add('active');
-        toggleText.textContent = '閉じる';
-    }
-}
-</script>
 
 <?php get_footer(); ?>

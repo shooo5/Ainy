@@ -6,7 +6,6 @@
   --team-reg-accent: var(--primary-color);
   --team-reg-accent-soft: rgba(106, 90, 249, 0.14);
   --team-reg-glow: rgba(106, 90, 249, 0.35);
-  --team-reg-navy: #1a2744;
   --team-reg-glass: rgba(255, 255, 255, 0.92);
   --team-reg-glass-border: rgba(106, 90, 249, 0.1);
 
@@ -45,118 +44,6 @@
   margin: 0 auto;
 }
 
-.team-reg-hero {
-  text-align: center;
-  margin-bottom: var(--spacing-md);
-}
-
-.team-reg-title {
-  margin: 0 0 var(--spacing-xs);
-  font-size: clamp(1.35rem, 4vw, 1.65rem);
-  font-weight: 700;
-  color: var(--team-reg-navy);
-  line-height: 1.3;
-  letter-spacing: -0.02em;
-}
-
-.team-reg-note {
-  margin: 0;
-  font-size: var(--font-size-xs);
-  color: var(--text-muted);
-}
-
-/* ステップ進捗 */
-.team-reg-progress {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 0;
-  margin: 0 0 var(--spacing-md);
-  padding: 0;
-  list-style: none;
-}
-
-.team-reg-progress__item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  flex: 0 0 auto;
-  min-width: 64px;
-  text-align: center;
-  transition: transform 0.25s ease;
-}
-
-.team-reg-progress__item.is-active {
-  transform: scale(1.06);
-}
-
-.team-reg-progress__connector {
-  flex: 1 1 auto;
-  min-width: var(--spacing-base);
-  max-width: 64px;
-  height: 2px;
-  margin-top: 11px;
-  background: var(--border-light);
-  border-radius: var(--radius-small);
-  transition: background 0.25s ease;
-}
-
-.team-reg-progress__item.is-completed + .team-reg-progress__connector {
-  background: linear-gradient(90deg, var(--team-reg-accent), rgba(99, 179, 237, 0.55));
-}
-
-.team-reg-progress__dot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 2px solid var(--border-color);
-  background: var(--bg-primary);
-  box-sizing: border-box;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, transform 0.2s ease;
-}
-
-.team-reg-progress__item.is-active .team-reg-progress__dot {
-  width: 26px;
-  height: 26px;
-  border-color: var(--team-reg-accent);
-  background: var(--team-reg-accent);
-  box-shadow: 0 0 0 4px var(--team-reg-accent-soft), 0 0 14px var(--team-reg-glow);
-}
-
-.team-reg-progress__item.is-completed .team-reg-progress__dot {
-  border-color: var(--team-reg-accent);
-  background: var(--team-reg-accent);
-  color: var(--text-light);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.team-reg-progress__item.is-completed .team-reg-progress__dot::after {
-  content: '✓';
-  line-height: 1;
-}
-
-.team-reg-progress__label {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  line-height: 1.25;
-  transition: color 0.2s ease, font-size 0.2s ease;
-}
-
-.team-reg-progress__item.is-active .team-reg-progress__label {
-  font-size: var(--font-size-xs);
-  color: var(--team-reg-navy);
-}
-
-.team-reg-progress__item.is-completed .team-reg-progress__label {
-  color: var(--team-reg-navy);
-}
-
 /* カード */
 .team-reg-card {
   background: var(--team-reg-glass);
@@ -166,6 +53,48 @@
   border-radius: var(--radius-large);
   padding: var(--spacing-lg) var(--spacing-md);
   box-shadow: var(--shadow-md);
+}
+
+.team-reg-card-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.team-reg-card-intro-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--spacing-md);
+  color: var(--primary-color);
+}
+
+.team-reg-card-intro-icon svg {
+  display: block;
+  width: 48px;
+  height: 48px;
+  color: inherit;
+}
+
+.team-reg-title {
+  margin: 0 0 var(--spacing-lg);
+  font-size: clamp(1.35rem, 4vw, 1.75rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+
+.team-reg-note {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
 }
 
 .team-reg-step[hidden] {
@@ -184,7 +113,7 @@
   margin: 0;
   font-size: var(--font-size-base);
   font-weight: 700;
-  color: var(--team-reg-navy);
+  color: var(--text-primary);
 }
 
 /* ロゴアップロード */
@@ -320,7 +249,7 @@
 }
 
 .team-reg-logo-upload__change-btn:hover {
-  color: var(--team-reg-navy);
+  color: var(--primary-dark);
 }
 
 .team-reg-logo-upload__change-btn:focus-visible {
@@ -509,47 +438,32 @@
   }
 }
 
-/* 確認 */
-.team-reg-summary-logo {
+/* 確認（公開プロフィール風カード） */
+.team-reg-confirm-profile {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.team-reg-confirm-hero {
+  margin-bottom: 0;
+}
+
+.team-reg-confirm-hero .team-public-profile__title {
+  font-size: var(--font-size-lg);
+}
+
+.team-reg-confirm-section {
+  margin-bottom: 0;
+}
+
+.team-reg-confirm-section .team-public-profile__section-heading {
+  font-size: var(--font-size-base);
   margin-bottom: var(--spacing-sm);
 }
 
-.team-reg-summary {
-  margin: 0 0 var(--spacing-md);
-  padding: 0;
-}
-
-.team-reg-summary__row {
-  display: grid;
-  grid-template-columns: minmax(88px, 32%) 1fr;
-  gap: var(--spacing-xs);
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.team-reg-summary__row:last-child {
-  border-bottom: none;
-}
-
-.team-reg-summary__row dt {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.team-reg-summary__row dd {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--text-primary);
-  line-height: 1.5;
-  word-break: break-word;
-}
-
-.team-reg-summary__row--logo-text[hidden] {
-  display: none;
+.team-reg-confirm-intro {
+  margin-top: 0;
 }
 
 /* アクション */
@@ -559,11 +473,6 @@
   gap: var(--spacing-sm);
   justify-content: space-between;
   margin-top: var(--spacing-md);
-}
-
-.team-reg-actions--confirm {
-  justify-content: flex-start;
-  margin-top: var(--spacing-sm);
 }
 
 .team-reg-btn {
@@ -595,9 +504,14 @@
   box-shadow: var(--shadow-sm);
 }
 
-.team-reg-btn--primary:hover {
+.team-reg-btn--primary:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
+}
+
+.team-reg-btn--primary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .team-reg-btn--ghost {
@@ -609,36 +523,6 @@
 .team-reg-btn--ghost:hover {
   border-color: var(--team-reg-accent);
   color: var(--team-reg-accent);
-}
-
-.team-reg-submit-wrap {
-  text-align: center;
-}
-
-.team-reg-btn--submit {
-  width: 100%;
-  max-width: 340px;
-  min-height: 52px;
-  background: linear-gradient(135deg, var(--team-reg-navy) 0%, var(--team-reg-accent) 100%);
-  color: var(--text-light);
-  box-shadow: var(--shadow-md);
-}
-
-.team-reg-btn--submit:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-lg);
-}
-
-.team-reg-btn--submit:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-.team-reg-submit-note {
-  margin: var(--spacing-sm) 0 0;
-  font-size: var(--font-size-xs);
-  color: var(--text-muted);
-  line-height: 1.55;
 }
 
 /* 申請ページ専用フッター */
@@ -687,14 +571,6 @@
     padding: var(--spacing-md) var(--spacing-sm);
   }
 
-  .team-reg-progress__item {
-    min-width: 52px;
-  }
-
-  .team-reg-summary__row {
-    grid-template-columns: 1fr;
-  }
-
   .team-reg-actions {
     flex-direction: column-reverse;
   }
@@ -710,12 +586,6 @@
 
   .team-reg-logo-upload__remove {
     right: calc(50% - 68px);
-  }
-}
-
-@media (max-width: 480px) {
-  .team-reg-progress__connector {
-    min-width: var(--spacing-xs);
   }
 }
 
@@ -766,7 +636,8 @@
 
 .team-reg-scope__input:checked + .team-reg-scope__card {
   border-color: var(--primary-color);
-  background: rgba(var(--primary-color-rgb, 102, 126, 234), 0.08);
+  background: rgba(106, 90, 249, 0.08);
+  color: var(--primary-color);
 }
 
 .team-reg-field-hint {
@@ -779,24 +650,37 @@
   margin: 0 0 var(--spacing-sm);
   font-size: var(--font-size-base);
   font-weight: 600;
+  color: var(--primary-color);
+}
+
+.team-reg-confirm-pricing-note {
+  margin: 0 0 var(--spacing-md);
+  padding: var(--spacing-base);
+  font-size: var(--font-size-sm);
+  line-height: 1.65;
+  color: var(--text-secondary);
+  background: rgba(106, 90, 249, 0.08);
+  border: 1px solid rgba(106, 90, 249, 0.12);
+  border-radius: var(--radius-medium);
+}
+
+.team-reg-confirm-pricing-note a {
+  color: var(--primary-color);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.team-reg-confirm-pricing-note a:hover {
+  text-decoration: underline;
+}
+
+.team-reg-confirm-pricing-note a:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
 .team-reg-summary-root {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
-
-.team-reg-summary-block__title {
-  margin: 0 0 var(--spacing-sm);
-  font-size: var(--font-size-base);
-  font-weight: 700;
-}
-
-.team-reg-summary-block__logo-note {
-  margin: var(--spacing-xs) 0 0;
-  font-size: var(--font-size-sm);
-  color: var(--text-muted);
+  margin-bottom: var(--spacing-md);
 }
 
 .mypage-general-pending__team-block + .mypage-general-pending__team-block {

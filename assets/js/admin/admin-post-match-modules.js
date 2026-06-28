@@ -341,7 +341,7 @@
     selectBtn.addEventListener('click', function (e) {
       e.preventDefault();
       if (typeof wp === 'undefined' || !wp.media) {
-        window.alert(cfg.mediaUnavailable || '画像選択を利用できません。');
+        aiduniteToast(cfg.mediaUnavailable || '画像選択を利用できません。', 'warning');
         return;
       }
 

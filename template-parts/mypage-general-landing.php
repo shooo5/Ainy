@@ -27,7 +27,7 @@ $team_image_url = is_readable($team_image_path)
     <section class="ainy-welcome-hero" aria-labelledby="mypage-general-welcome-title">
       <div class="ainy-welcome-left">
         <div class="ainy-welcome-badge">
-          <span class="ainy-badge-icon" aria-hidden="true"><?php echo aidunite_get_chat_icon_svg('basketball', ['width' => '20', 'height' => '20']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+          <span class="ainy-badge-icon" aria-hidden="true"><?php echo aidunite_get_theme_icon_svg('basketball', ['width' => '20', 'height' => '20']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
           <span class="ainy-badge-text">チーム運営をはじめよう</span>
           <span class="ainy-badge-lines" aria-hidden="true"></span>
         </div>

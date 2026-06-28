@@ -178,7 +178,9 @@ function ainy_notification_prepare_item($post, array $match_types) {
         ) {
             $link_url = home_url('/match-detail/?id=' . $related_id);
         } elseif (stripos($type, 'schedule') !== false) {
-            $link_url = home_url('/schedule-edit/?id=' . $related_id);
+            $link_url = function_exists('aidunite_get_schedule_edit_url')
+                ? aidunite_get_schedule_edit_url((int) $related_id)
+                : home_url('/schedule-management/?edit_schedule=' . (int) $related_id);
         } elseif ($type === 'team_application_approved' || $type === 'team_application_rejected') {
             $link_url = home_url('/mypage/');
         } elseif ($type === 'team_approval' || stripos($type, 'team') !== false) {

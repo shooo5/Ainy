@@ -1,0 +1,235 @@
+/**
+ * 申請履歴（page-match-history.php）
+ */
+/* 申請履歴ページ専用スタイル */
+
+.page-match-history .filter-section,
+.page-match-history .search-section {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.page-match-history .filter-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.page-match-history .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.page-match-history .filter-group label {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.page-match-history .filter-select,
+.page-match-history .filter-input {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.page-match-history .search-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.page-match-history .search-input {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.page-match-history .pagination-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.page-match-history .match-history-list {
+    min-height: 200px;
+}
+
+.page-match-history .history-item {
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    transition: box-shadow 0.3s;
+}
+
+.page-match-history .history-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.page-match-history .history-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.page-match-history .history-item-type {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.page-match-history .history-item-type.sent {
+    background: rgba(23, 162, 184, 0.1);
+    color: var(--info-color);
+}
+
+.page-match-history .history-item-type.received {
+    background: rgba(177, 108, 234, 0.1);
+    color: var(--secondary-color);
+}
+
+.page-match-history .status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.page-match-history .status-badge.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.page-match-history .status-badge.status-approved {
+    background: rgba(40, 167, 69, 0.1);
+    color: var(--success-color);
+}
+
+.page-match-history .status-badge.status-rejected {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.page-match-history .status-badge.status-cancelled {
+    background: var(--border-light);
+    color: var(--text-secondary);
+}
+
+.page-match-history .status-badge.status-established {
+    background: rgba(23, 162, 184, 0.1);
+    color: var(--info-color);
+}
+
+.page-match-history .history-item-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.page-match-history .history-item-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.page-match-history .history-item-detail label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.page-match-history .history-item-detail span {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.page-match-history .history-item-message {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+/* ページネーション（デザインリファレンスに合わせたスタイル） */
+.page-match-history .pagination {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.page-match-history .pagination-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-light);
+    background: #fff;
+    color: var(--text-primary);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.page-match-history .pagination-btn:hover:not(:disabled) {
+    background: #f8f9fa;
+    border-color: var(--secondary-color);
+}
+
+.page-match-history .pagination-btn.active {
+    background: #9b8ffa;
+    color: white;
+    border-color: var(--secondary-color);
+    font-weight: 600;
+}
+
+.page-match-history .pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-match-history .pagination-ellipsis {
+    padding: 0.5rem 0.25rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.page-match-history .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+}
+
+.page-match-history .loading {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .page-match-history {
+        padding: 1rem;
+    }
+
+    .page-match-history .filter-controls {
+        grid-template-columns: 1fr;
+    }
+
+    .page-match-history .history-item-details {
+        grid-template-columns: 1fr;
+    }
+}

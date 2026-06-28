@@ -20,7 +20,7 @@ $managed_team_ids = function_exists('aidunite_get_managed_team_ids')
     ? aidunite_get_managed_team_ids((int) $current_user_id)
     : [];
 if (empty($managed_team_ids)) {
-    $lt = (int) get_user_meta($current_user_id, 'team_id', true);
+    $lt = aidunite_user_read_primary_team_id((int) $current_user_id);
     if ($lt > 0) {
         $managed_team_ids = [$lt];
     }
@@ -47,9 +47,15 @@ if (!$match_request || $match_request->post_type !== 'match_request') {
     exit;
 }
 
-$from_team_id = (int) get_post_meta($match_id, 'from_team_id', true);
-$to_team_id = (int) get_post_meta($match_id, 'to_team_id', true);
-$status = get_post_meta($match_id, 'status', true);
+$mr_fb = function_exists('aidunite_match_request_get_canonical_meta')
+    ? aidunite_match_request_get_canonical_meta((int) $match_id)
+    : [];
+$from_team_id = (int) ($mr_fb['from_team_id'] ?? 0);
+$to_team_id = (int) ($mr_fb['to_team_id'] ?? 0);
+if ($to_team_id < 1) {
+    $to_team_id = (int) ($mr_fb['other_team_id'] ?? 0);
+}
+$status = (string) ($mr_fb['status'] ?? '');
 
 $in_from = $from_team_id > 0 && in_array($from_team_id, $managed_team_ids, true);
 $in_to = $to_team_id > 0 && in_array($to_team_id, $managed_team_ids, true);
@@ -81,21 +87,29 @@ $opponent_team_id = ($current_user_team_id === $from_team_id) ? $to_team_id : $f
 $opponent_team_name = $opponent_team_id ? get_the_title($opponent_team_id) : '（不明）';
 
 // スケジュール情報を取得
-$schedule_id = get_post_meta($match_id, 'to_schedule_id', true);
-if (!$schedule_id) {
-    $schedule_id = get_post_meta($match_id, 'from_schedule_id', true);
+$schedule_id = (int) ($mr_fb['to_schedule_id'] ?? 0);
+if ($schedule_id < 1) {
+    $schedule_id = (int) ($mr_fb['from_schedule_id'] ?? 0);
+}
+if ($schedule_id < 1) {
+    $schedule_id = (int) ($mr_fb['my_schedule_id'] ?? 0);
 }
 
-$schedule_date = $schedule_id ? get_post_meta($schedule_id, 'schedule_date', true) : '';
-$schedule_start = $schedule_id ? get_post_meta($schedule_id, 'schedule_start_time', true) : '';
-$schedule_end = $schedule_id ? get_post_meta($schedule_id, 'schedule_end_time', true) : '';
+$sch_fb = ($schedule_id && function_exists('aidunite_schedule_get_api_display_fields'))
+    ? aidunite_schedule_get_api_display_fields((int) $schedule_id)
+    : [];
+$schedule_date = (string) ($sch_fb['date'] ?? '');
+$schedule_start = (string) ($sch_fb['start_time'] ?? '');
+$schedule_end = (string) ($sch_fb['end_time'] ?? '');
 $venue_display = '';
 if ($schedule_id) {
-    $venue_name = trim((string) get_post_meta($schedule_id, 'venue_name', true));
+    $venue_name = trim((string) ($sch_fb['venue_name'] ?? ''));
     if ($venue_name !== '') {
         $venue_display = $venue_name;
     } else {
-        $place_raw = get_post_meta($schedule_id, 'schedule_place', true) ?: get_post_meta($schedule_id, 'schedule_place_option', true);
+        $place_raw = (string) ($sch_fb['place'] ?? (function_exists('aidunite_schedule_read_place_raw')
+            ? aidunite_schedule_read_place_raw((int) $schedule_id)
+            : ''));
         if ($place_raw && function_exists('aidunite_jp_place')) {
             $venue_display = aidunite_jp_place($place_raw);
         } elseif ($place_raw) {

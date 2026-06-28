@@ -116,29 +116,9 @@ function initFooterLinks() {
     });
 }
 
-// モバイル用ボトムナビゲーション
+// ボトムナビ：アクティブ状態は PHP 側で付与（クリック時の class 操作は行わない）
 function initBottomNav() {
-    const bottomNav = document.querySelector('.ainy-bottom-nav');
-
-    if (bottomNav) {
-        const navLinks = bottomNav.querySelectorAll('.ainy-bottom-nav-link:not(.ainy-bottom-nav-menu-trigger)');
-
-        navLinks.forEach(link => {
-            link.addEventListener('click', function() {
-                navLinks.forEach(l => l.classList.remove('active'));
-                this.classList.add('active');
-            });
-        });
-
-        bottomNav.querySelectorAll('.ainy-bottom-nav-menu-trigger').forEach(function(trigger) {
-            trigger.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (typeof openSideMenu === 'function') {
-                    openSideMenu();
-                }
-            });
-        });
-    }
+    // 将来の拡張用フック（現状は no-op）
 }
 
 // ページ読み込み完了時の初期化

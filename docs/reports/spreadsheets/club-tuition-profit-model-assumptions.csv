@@ -1,0 +1,29 @@
+category,parameter,value,unit,notes
+pricing,match_monthly_base,2000,yen/month,Matchプラン基本料（Clubにも含む）
+pricing,club_per_player,500,yen/player/month,payment-config.php default
+pricing,club_minimum_addon,6000,yen/month,max(最低加算, 人数×単価)
+stripe,club_subscription_rate,0.036,ratio,Ainy負担（Club MRRの決済手数料）
+stripe,tuition_connect_rate,0.036,ratio,チーム負担（Ainy P&Lには含めない）
+stripe,ainy_fee_patterns,"0%,1.4%,2.5%,5%,7%",list,月謝GMVに対するAiny従量手数料の比較パターン
+cost,connect_platform_cost_per_team,200,yen/team/month,Connect運用・サポートの目安（要調整）
+growth,conservative_teams_6mo,8,teams,
+growth,conservative_teams_12mo,25,teams,
+growth,standard_teams_6mo,20,teams,
+growth,standard_teams_12mo,60,teams,
+growth,aggressive_teams_6mo,40,teams,
+growth,aggressive_teams_12mo,120,teams,
+ops,low_players_per_team,12,players,
+ops,low_connect_adoption,0.40,ratio,月謝をConnectで徴収する保護者の割合
+ops,low_avg_tuition,4000,yen/month,
+ops,standard_players_per_team,18,players,
+ops,standard_connect_adoption,0.65,ratio,
+ops,standard_avg_tuition,5000,yen/month,
+ops,high_players_per_team,24,players,
+ops,high_connect_adoption,0.80,ratio,
+ops,high_avg_tuition,6000,yen/month,
+formula,club_mrr_per_team,"2000 + MAX(6000, players×500)",yen,1チームあたりClub MRR
+formula,tuition_gmv_per_team,"players × adoption × avg_tuition",yen,1チームあたり月謝GMV
+formula,club_revenue_net,"club_mrr_total × (1 - 0.036)",yen,AinyのClub売上（Stripe控除後）
+formula,ainy_tuition_revenue,"tuition_gmv_total × ainy_fee_pct",yen,月謝従量のAiny収益
+formula,gross_profit_monthly,"club_revenue_net + ainy_tuition_revenue - connect_cost",yen,月次粗利（人件費・インフラ除く）
+messaging,team_total_fee_at_1_4pct,5.0%,display,Ainy 1.4% + Stripe 3.6% ≒ 保護者・チーム向け「合計約5%」

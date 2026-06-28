@@ -1,0 +1,951 @@
+﻿/**
+ * マイページ Joy UI（試合決定・安心感中心）
+ * 色は --theme-* / body[data-team-theme] のトークンを使用
+ */
+
+.mypage-joy {
+  --mypage-joy-radius: var(--radius-large, 16px);
+  --mypage-joy-gap: var(--spacing-md, 1rem);
+  color: var(--text-primary);
+}
+
+/* Happy Feed：感情温度ベースの色（KPI・強い成功色は使わない） */
+body.mypage-joy-dashboard {
+  --happy-established: var(--success-color);
+  --happy-established-bg: color-mix(in srgb, var(--success-color) 12%, transparent);
+  --happy-application: var(--primary-color);
+  --happy-application-bg: color-mix(in srgb, var(--primary-color) 12%, transparent);
+  --happy-connection: var(--warning-color);
+  --happy-connection-bg: color-mix(in srgb, var(--warning-color) 12%, transparent);
+  --happy-empty: var(--text-muted);
+  --happy-empty-bg: color-mix(in srgb, var(--text-muted) 8%, transparent);
+}
+
+.mypage-joy-hero {
+  padding-bottom: var(--spacing-sm, 0.75rem);
+}
+
+/* プロフィール：左チームロゴ / 右チーム名＋ログイン名 */
+.mypage-joy-profile {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--spacing-base, 1rem);
+  max-width: var(--ainy-webapp-shell-max-width, 1200px);
+  margin: 0 auto;
+  padding: var(--spacing-sm, 0.75rem) var(--spacing-base, 1rem) var(--spacing-md, 1rem);
+}
+
+.mypage-joy-profile__logo-wrap {
+  flex-shrink: 0;
+}
+
+.mypage-joy-profile__logo {
+  display: block;
+  width: 88px;
+  height: 88px;
+  border-radius: var(--radius-medium, 12px);
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+}
+
+.mypage-joy-profile__logo--placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--text-on-dark, var(--bg-primary));
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.mypage-joy-profile__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  text-align: left;
+}
+
+.mypage-joy-profile__team {
+  margin: 0;
+  font-size: clamp(1.375rem, 4.8vw, 1.75rem);
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--text-on-dark, var(--bg-primary));
+  letter-spacing: -0.02em;
+}
+
+.mypage-joy-profile__login {
+  margin: 0;
+  font-size: clamp(1rem, 3.4vw, 1.125rem);
+  font-weight: 600;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.mypage-joy-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--radius-full, 999px);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--theme-accent) 35%, rgba(255, 255, 255, 0.2));
+  color: var(--text-on-dark, var(--bg-primary));
+  border: 1px solid color-mix(in srgb, var(--theme-accent) 50%, transparent);
+}
+
+.mypage-joy-badge--preview {
+  background: color-mix(in srgb, var(--theme-primary) 25%, rgba(255, 255, 255, 0.15));
+  border-color: color-mix(in srgb, var(--theme-primary) 40%, transparent);
+}
+
+.mypage-joy-content {
+  margin-top: -12px;
+  background: var(--bg-primary, var(--bg-primary));
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
+  padding: var(--spacing-md, 1rem) var(--spacing-md, 1rem) var(--spacing-xl, 2rem);
+}
+
+.mypage-joy-layout,
+.mypage-joy-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mypage-joy-gap);
+  max-width: var(--ainy-webapp-shell-max-width, 1200px);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.mypage-joy-pending-sibling {
+  padding: var(--spacing-base);
+  text-align: center;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-sm);
+}
+
+.mypage-joy-pending-sibling__title {
+  margin: 0 0 var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.mypage-joy-pending-sibling__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-base);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mypage-joy-pending-sibling__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.mypage-joy-pending-sibling__item + .mypage-joy-pending-sibling__item {
+  padding-top: var(--spacing-base);
+  border-top: 1px solid var(--border-light);
+}
+
+.mypage-joy-pending-sibling__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: color-mix(in srgb, var(--warning-color) 65%, var(--text-primary));
+  background: color-mix(in srgb, var(--warning-color) 12%, transparent);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.mypage-joy-pending-sibling__name {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.mypage-joy-pending-sibling__note {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.mypage-joy-pending-sibling__note strong {
+  color: var(--success-color);
+  font-weight: 700;
+}
+
+.mypage-joy-hero-card--mission .mypage-joy-hero-card__title {
+  font-size: var(--font-size-lg);
+}
+
+/* ヒーローカード（v2: コンパクト3行構成） */
+.mypage-joy-hero-card--pending {
+  display: none;
+}
+
+.mypage-joy-hero-card {
+  position: relative;
+  border-radius: var(--mypage-joy-radius);
+  padding: var(--spacing-base, 1rem) var(--spacing-base, 1rem);
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(15, 23, 42, 0.08));
+  overflow: hidden;
+}
+
+.mypage-joy-hero-card--compact .mypage-joy-hero-card__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  text-align: center;
+}
+
+.mypage-joy-hero-card__head {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.mypage-joy-hero-card__head-cluster {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.mypage-joy-hero-card__head-main {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm, 0.625rem);
+  max-width: 100%;
+}
+
+.mypage-joy-hero-card__icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mypage-joy-hero-accent, var(--theme-primary));
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.mypage-joy-hero-card__icon .aidunite-icon,
+.mypage-joy-hero-card__icon .aidunite-icon svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+
+.mypage-joy-hero-card__head-accent {
+  --mypage-joy-hero-accent-overshoot: 0.625rem;
+  display: block;
+  align-self: center;
+  width: calc(100% + (var(--mypage-joy-hero-accent-overshoot) * 2));
+  height: 3px;
+  border-radius: var(--radius-full, 999px);
+  background: var(--mypage-joy-hero-accent, var(--theme-primary));
+  opacity: 0.82;
+}
+
+.mypage-joy-hero-card--celebration {
+  --mypage-joy-hero-accent: var(--success-color);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--success-color) 22%, var(--bg-primary)) 0%,
+    var(--bg-primary) 42%,
+    color-mix(in srgb, var(--theme-accent) 16%, var(--bg-primary)) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--success-color) 38%, transparent);
+}
+
+.mypage-joy-hero-card--urgent {
+  --mypage-joy-hero-accent: var(--danger-color);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--danger-color) 10%, var(--bg-primary)),
+    var(--bg-primary)
+  );
+  border: 1px solid color-mix(in srgb, var(--danger-color) 25%, transparent);
+}
+
+.mypage-joy-hero-card--action {
+  --mypage-joy-hero-accent: var(--theme-primary);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--theme-primary) 8%, var(--bg-primary)),
+    var(--bg-primary)
+  );
+  border: 1px solid color-mix(in srgb, var(--theme-primary) 18%, transparent);
+}
+
+.mypage-joy-hero-card--reply {
+  --mypage-joy-hero-accent: var(--danger-color);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--danger-color) 8%, var(--bg-primary)),
+    var(--bg-primary)
+  );
+  border: 1px solid color-mix(in srgb, var(--danger-color) 20%, transparent);
+}
+
+.mypage-joy-hero-card--discover {
+  --mypage-joy-hero-accent: var(--theme-accent);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--theme-primary) 12%, var(--bg-primary)),
+    color-mix(in srgb, var(--theme-secondary) 8%, var(--bg-primary))
+  );
+  border: 1px solid color-mix(in srgb, var(--theme-primary) 28%, transparent);
+}
+
+.mypage-joy-hero-card--praise {
+  --mypage-joy-hero-accent: var(--success-color);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--success-color) 20%, var(--bg-primary)),
+    color-mix(in srgb, var(--theme-accent) 10%, var(--bg-primary))
+  );
+  border: 1px solid color-mix(in srgb, var(--success-color) 35%, transparent);
+}
+
+.mypage-joy-hero-card--calm {
+  --mypage-joy-hero-accent: var(--success-color);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--success-color) 14%, var(--bg-primary)),
+    color-mix(in srgb, var(--theme-secondary) 8%, var(--bg-primary))
+  );
+  border: 1px solid color-mix(in srgb, var(--success-color) 28%, transparent);
+}
+
+.mypage-joy-hero-card--waiting {
+  --mypage-joy-hero-accent: var(--theme-primary);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--theme-primary) 10%, var(--bg-primary)),
+    var(--bg-primary)
+  );
+  border: 1px solid color-mix(in srgb, var(--theme-primary) 22%, transparent);
+}
+
+.mypage-joy-hero-card--match-day {
+  --mypage-joy-hero-accent: var(--theme-accent);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--theme-accent) 20%, var(--bg-primary)) 0%,
+    var(--bg-primary) 50%,
+    color-mix(in srgb, var(--theme-secondary) 14%, var(--bg-primary)) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--theme-accent) 32%, transparent);
+}
+
+.mypage-joy-hero-card__title {
+  margin: 0;
+  min-width: 0;
+  font-size: clamp(1.0625rem, 4vw, 1.25rem);
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.mypage-joy-hero-card__head + .mypage-joy-hero-card__meta,
+.mypage-joy-hero-card__head + .mypage-joy-hero-card__extra {
+  margin-top: var(--spacing-sm, 0.75rem);
+}
+
+.mypage-joy-hero-card__meta {
+  margin: 0;
+  width: 100%;
+  font-size: var(--font-size-sm, 0.875rem);
+  line-height: 1.5;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.mypage-joy-hero-card__meta + .mypage-joy-hero-card__extra {
+  margin-top: var(--spacing-xs, 0.375rem);
+}
+
+.mypage-joy-hero-card__extra {
+  margin: 0;
+  width: 100%;
+  font-size: var(--font-size-sm, 0.875rem);
+  line-height: 1.5;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.mypage-joy-hero-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs, 0.375rem);
+  justify-content: center;
+  width: 100%;
+  margin-top: var(--spacing-base, 1rem);
+}
+
+.mypage-joy-hero-card__actions .mypage-joy-btn {
+  min-height: 34px;
+  padding: 0 0.75rem;
+  font-size: 0.8125rem;
+  border-radius: var(--radius-small, 8px);
+}
+
+.mypage-joy-hero-card__actions .mypage-joy-btn--primary {
+  min-width: 0;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--theme-accent) 28%, transparent);
+}
+
+.mypage-joy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 var(--spacing-base, 1rem);
+  border-radius: var(--radius-medium, 10px);
+  font-weight: 700;
+  font-size: var(--font-size-sm, 0.875rem);
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.mypage-joy-btn:hover {
+  opacity: 0.92;
+}
+
+.mypage-joy-btn--primary {
+  background: linear-gradient(135deg, var(--theme-secondary), var(--theme-accent));
+  color: var(--text-on-dark, var(--bg-primary));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--theme-accent) 35%, transparent);
+  min-width: 9rem;
+}
+
+.mypage-joy-btn--outline {
+  background: var(--bg-primary, var(--bg-primary));
+  color: var(--theme-primary);
+  border: 1px solid color-mix(in srgb, var(--theme-primary) 35%, transparent);
+}
+
+.mypage-joy-btn--success {
+  background: var(--success-color);
+  color: var(--text-light);
+}
+
+/* スタックカード共通（最近のチームの様子・今週の予定） */
+.mypage-joy-stack-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 0.625rem);
+}
+
+.mypage-joy-stack-card {
+  display: block;
+  padding: var(--spacing-sm, 0.75rem) var(--spacing-base, 1rem);
+  border-radius: var(--radius-medium, 12px);
+  background: var(--bg-primary, var(--bg-primary));
+  border: 1px solid var(--border-light);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+a.mypage-joy-stack-card:hover {
+  background: color-mix(in srgb, var(--theme-accent) 5%, var(--bg-primary));
+  border-color: color-mix(in srgb, var(--theme-primary) 22%, var(--border-light));
+}
+
+/* 最近のチームの様子 */
+.mypage-joy-feed-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm, 0.625rem);
+}
+
+.mypage-joy-feed-card__main {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 0.75rem);
+  min-width: 0;
+  flex: 1;
+}
+
+.mypage-joy-feed-card__icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-small, 8px);
+}
+
+.mypage-joy-feed-card__icon .aidunite-icon,
+.mypage-joy-feed-card__icon svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.mypage-joy-feed-card--established .mypage-joy-feed-card__icon {
+  color: var(--happy-established);
+  background: var(--happy-established-bg);
+}
+
+.mypage-joy-feed-card--application .mypage-joy-feed-card__icon {
+  color: var(--happy-application);
+  background: var(--happy-application-bg);
+}
+
+.mypage-joy-feed-card--connection .mypage-joy-feed-card__icon {
+  color: var(--happy-connection);
+  background: var(--happy-connection-bg);
+}
+
+.mypage-joy-feed-card--fallback .mypage-joy-feed-card__icon {
+  color: var(--happy-empty);
+  background: var(--happy-empty-bg);
+}
+
+.mypage-joy-happy-feed .mypage-joy-empty-calm {
+  color: var(--happy-empty);
+}
+
+.mypage-joy-feed-card__text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mypage-joy-feed-card__chev {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+/* 今週の予定 */
+.mypage-joy-block {
+  border-radius: var(--mypage-joy-radius);
+  overflow: hidden;
+  background: var(--bg-primary, var(--bg-primary));
+  box-shadow: var(--shadow-md, 0 4px 14px rgba(15, 23, 42, 0.08));
+}
+
+.mypage-joy-block + .mypage-joy-block {
+  margin-top: var(--mypage-joy-gap);
+}
+
+.mypage-joy-block__body {
+  padding: var(--spacing-sm, 0.75rem) var(--spacing-base, 1rem) var(--spacing-base, 1rem);
+}
+
+.mypage-joy-block__body.mypage-joy-week-list,
+.mypage-joy-block__body.mypage-joy-happy-feed {
+  padding-top: var(--spacing-xs, 0.5rem);
+}
+
+/* ブロックタイトル（男女テーマ色グラデーション・現行 v2 と同型） */
+body.mypage-joy-dashboard {
+  --mypage-joy-section-bar-shadow: 0 4px 14px rgba(15, 58, 104, 0.14);
+}
+
+body.mypage-joy-dashboard[data-team-theme="girls"] {
+  --mypage-joy-section-bar-shadow: 0 4px 14px rgba(91, 33, 182, 0.18);
+}
+
+.mypage-joy-section-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm, 0.5rem);
+  min-height: 44px;
+  padding: var(--spacing-xs, 0.375rem) var(--spacing-sm, 0.75rem);
+  background: linear-gradient(
+    90deg,
+    var(--theme-primary) 0%,
+    color-mix(in srgb, var(--theme-accent-dark) 88%, var(--theme-primary) 12%) 100%
+  );
+  color: var(--text-on-dark, var(--bg-primary));
+  box-shadow: var(--mypage-joy-section-bar-shadow);
+}
+
+.mypage-joy-section-bar--priority {
+  box-shadow: var(--shadow-md, 0 6px 18px rgba(15, 58, 104, 0.2));
+}
+
+body.mypage-joy-dashboard[data-team-theme="girls"] .mypage-joy-section-bar--priority {
+  box-shadow: 0 6px 18px rgba(91, 33, 182, 0.22);
+}
+
+.mypage-joy-section-bar__main {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 0.5rem);
+  min-width: 0;
+  flex: 1;
+}
+
+.mypage-joy-section-bar__icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: inherit;
+}
+
+.mypage-joy-section-bar__icon svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.mypage-joy-section-bar__title {
+  margin: 0;
+  font-size: var(--font-size-sm, 0.9375rem);
+  font-weight: 700;
+  line-height: 1.35;
+  color: inherit;
+}
+
+.mypage-joy-section-bar__subtitle {
+  font-weight: 500;
+  font-size: var(--font-size-xs, 0.75rem);
+  opacity: 0.9;
+}
+
+.mypage-joy-section-bar__link {
+  flex-shrink: 0;
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: 700;
+  color: inherit;
+  text-decoration: none;
+  min-height: 32px;
+  padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
+  border-radius: var(--radius-small, 8px);
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.92;
+  white-space: nowrap;
+}
+
+.mypage-joy-section-bar__link:hover {
+  background: rgba(255, 255, 255, 0.14);
+  opacity: 1;
+}
+
+.mypage-joy-section-bar__link:focus-visible {
+  outline: 2px solid var(--text-on-dark, var(--bg-primary));
+  outline-offset: 2px;
+}
+
+.mypage-joy-week-list {
+  min-width: 0;
+}
+
+/* 今週の予定：タイムラインカード（Phase A） */
+.mypage-joy-week-card__row1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm, 0.5rem);
+  margin-bottom: 6px;
+}
+
+.mypage-joy-week-card__date {
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* 種別バッジ（--schedule-badge-* / --schedule-card-border-* 正本） */
+.mypage-joy-dashboard .schedule-list-badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: var(--radius-full, 999px);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.mypage-joy-dashboard .schedule-list-badge--practice {
+  background: var(--schedule-badge-practice-bg);
+  color: var(--primary-color);
+  border-color: var(--schedule-card-border-practice);
+}
+
+.mypage-joy-dashboard .schedule-list-badge--match-confirmed {
+  background: var(--schedule-badge-match-confirmed-bg);
+  color: var(--success-color);
+  border-color: var(--schedule-card-border-match-confirmed);
+}
+
+.mypage-joy-dashboard .schedule-list-badge--match-recruit {
+  background: var(--schedule-badge-recruit-bg);
+  color: var(--warning-color);
+  border-color: var(--schedule-card-border-match-recruit);
+}
+
+.mypage-joy-dashboard .schedule-list-badge--meeting {
+  background: var(--schedule-badge-meeting-bg);
+  color: var(--secondary-color);
+  border-color: var(--schedule-card-border-meeting);
+}
+
+.mypage-joy-dashboard .schedule-list-badge--event {
+  background: var(--schedule-badge-event-bg);
+  color: var(--schedule-filter-tentative-text, var(--text-primary));
+  border-color: var(--schedule-card-border-event);
+}
+
+.mypage-joy-dashboard .schedule-list-badge--off {
+  background: var(--schedule-badge-off-bg);
+  color: var(--text-secondary);
+  border-color: var(--schedule-card-border-off);
+}
+
+.mypage-joy-dashboard .schedule-list-badge--tentative {
+  background: var(--schedule-badge-tentative-bg);
+  color: var(--schedule-filter-tentative-text, var(--text-primary));
+  border-color: var(--schedule-card-border-tentative);
+}
+
+/* 左アクセント線（schedule-month-card と同型・種別色は --schedule-card-border-*） */
+.mypage-joy-week-card.mypage-joy-stack-card {
+  border: 1px solid var(--border-light);
+  border-left-width: 4px;
+  border-left-color: var(--mypage-joy-week-accent, var(--border-light));
+  background: var(--mypage-joy-week-bg, var(--bg-primary, var(--bg-primary)));
+}
+
+.mypage-joy-week-card--practice {
+  --mypage-joy-week-accent: var(--schedule-card-border-practice);
+  --mypage-joy-week-bg: var(--schedule-card-bg-practice);
+}
+
+.mypage-joy-week-card--match-confirmed {
+  --mypage-joy-week-accent: var(--schedule-card-border-match-confirmed);
+  --mypage-joy-week-bg: var(--schedule-card-bg-match-confirmed);
+}
+
+.mypage-joy-week-card--match-recruit {
+  --mypage-joy-week-accent: var(--schedule-card-border-match-recruit);
+  --mypage-joy-week-bg: var(--schedule-card-bg-match-recruit);
+}
+
+.mypage-joy-week-card--meeting {
+  --mypage-joy-week-accent: var(--schedule-card-border-meeting);
+  --mypage-joy-week-bg: var(--schedule-card-bg-meeting);
+}
+
+.mypage-joy-week-card--event {
+  --mypage-joy-week-accent: var(--schedule-card-border-event);
+  --mypage-joy-week-bg: var(--schedule-card-bg-event);
+}
+
+.mypage-joy-week-card--off {
+  --mypage-joy-week-accent: var(--schedule-card-border-off);
+  --mypage-joy-week-bg: var(--schedule-card-bg-off);
+}
+
+.mypage-joy-week-card--tentative {
+  --mypage-joy-week-accent: var(--schedule-card-border-tentative);
+  --mypage-joy-week-bg: var(--schedule-card-bg-tentative);
+  border-style: dashed;
+  border-left-style: solid;
+}
+
+a.mypage-joy-week-card.mypage-joy-stack-card:hover {
+  border-color: var(--border-light);
+  border-left-color: var(--mypage-joy-week-accent, var(--border-light));
+  background: color-mix(
+    in srgb,
+    var(--mypage-joy-week-bg, var(--bg-primary)) 92%,
+    var(--mypage-joy-week-accent, var(--border-light)) 8%
+  );
+}
+
+.mypage-joy-week-card__row2 {
+  margin: 0;
+  font-size: var(--font-size-sm, 0.875rem);
+  line-height: 1.45;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* クイックアクション */
+.mypage-joy-quick {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-sm, 0.5rem);
+  text-align: center;
+}
+
+.mypage-joy-quick--three {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.mypage-joy-quick--one {
+  grid-template-columns: minmax(0, 120px);
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.mypage-joy-quick--two {
+  grid-template-columns: repeat(2, 1fr);
+  max-width: 220px;
+  margin: 0 auto;
+}
+
+.mypage-joy-quick__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+.mypage-joy-quick__icon {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-on-dark, var(--bg-primary));
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.15));
+}
+
+.mypage-joy-quick__icon--recruit {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--warning-color) 85%, var(--text-primary)), var(--warning-color));
+}
+
+.mypage-joy-quick__icon--confirm {
+  background: linear-gradient(135deg, var(--success-color), var(--success-color));
+}
+
+.mypage-joy-quick__icon--chat {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--success-color) 75%, var(--bg-primary)), var(--success-color));
+}
+
+.mypage-joy-quick__item.has-badge .mypage-joy-quick__icon::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--danger-color);
+  border: 2px solid var(--bg-primary, var(--bg-primary));
+}
+
+.mypage-joy-quick__label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+/* パネル本文（旧 panel クラス互換） */
+.mypage-joy-empty-calm {
+  margin: 0;
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* チームのやること（カード） */
+.mypage-joy-secondary__list {
+  margin: 0;
+}
+
+.mypage-joy-secondary__cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm, 0.625rem);
+}
+
+.mypage-joy-secondary-card {
+  display: block;
+  padding: var(--spacing-sm, 0.75rem) var(--spacing-base, 1rem);
+  border-radius: var(--radius-medium, 12px);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  text-decoration: none;
+  color: inherit;
+}
+
+.mypage-joy-secondary-card__title {
+  display: block;
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.mypage-joy-secondary-card__desc {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+@media (min-width: 900px) {
+  .mypage-joy-stack {
+    padding-bottom: var(--spacing-lg, 1.5rem);
+  }
+}
+
+@media (max-width: 380px) {
+  .mypage-joy-quick,
+  .mypage-joy-quick--three {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-xs, 0.375rem);
+  }
+
+  .mypage-joy-quick__label {
+    font-size: 0.5625rem;
+  }
+}

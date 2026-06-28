@@ -454,6 +454,10 @@
   min-height: 120px;
 }
 
+.team-settings-dash__menu-card--locked {
+  opacity: 0.92;
+}
+
 .team-settings-dash__menu-card--attention {
   border-color: var(--warning-color, #ffc107);
   background: rgba(255, 193, 7, 0.06);

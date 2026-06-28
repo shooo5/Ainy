@@ -1,273 +1,318 @@
 /* ========================================
-  ボタン コンポーネント
-  ======================================== */
-/*========================================
-  ボタンコンポーネント（統一標準）
-  designリファレンスページに準拠
-  ======================================== */
-/* 基本ボタン */
+   ボタンコンポーネント（統一標準）
+   Base = 構造のみ / Variant = 見た目 + 全状態
+   design-reference 準拠
+   ======================================== */
+
+/* ── Base: 構造のみ（variant 必須） ── */
 .btn {
   display: inline-flex;
   align-items: center;
- justify-content: center;
- gap: var(--spacing-sm);
-  padding: var(--spacing-base) var(--spacing-md);
-  border: none;
- border-radius: var(--radius-medium);
-  font-size: var(--font-size-base); /* 1rem = 16px */
- font-weight: 600;
- font-family: inherit;
- text-decoration: none;
- cursor: pointer;
- transition: all 0.3s ease;
- position: relative;
- overflow: hidden;
- white-space: nowrap;
- user-select: none;
- box-sizing: border-box;
-  min-height: 44px; /* タッチターゲットの最小サイズ */
+  justify-content: center;
+  gap: var(--spacing-sm);
+  font-family: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  box-sizing: border-box;
+  border: 2px solid transparent;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease,
+    filter 0.2s ease;
 }
-/* ボタンのホバーエフェクト */
-.btn::before {
- content: '';
- position: absolute;
- top: 0;
- left: -100%;
- width: 100%;
- height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
- transition: left 0.5s;
-}
-  .btn:hover::before {
- left: 100%;
-}
-/* プライマリボタン */
+
+/* ── Variant: primary（--btn-primary-* でコンテキスト上書き可） ── */
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  color: white;
-  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+  min-height: var(--btn-primary-min-height, 44px);
+  padding: var(--btn-primary-padding, var(--spacing-base) var(--spacing-md));
+  border-radius: var(--btn-primary-radius, var(--radius-medium));
+  font-size: var(--btn-primary-font-size, var(--font-size-base));
+  font-weight: 600;
+  background: var(--btn-primary-background, linear-gradient(135deg, var(--primary-color), var(--secondary-color)));
+  color: var(--btn-primary-color, var(--text-light));
+  border-color: var(--btn-primary-border-color, transparent);
+  box-shadow: var(--btn-primary-shadow, var(--shadow-sm));
 }
-  .btn-primary:hover {
- transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  filter: brightness(0.88);
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+  pointer-events: none;
 }
-  .btn-primary:active {
- transform: translateY(0);
-  box-shadow: var(--shadow-sm);
+
+.btn-primary:hover {
+  transform: var(--btn-primary-hover-transform, translateY(-2px));
+  box-shadow: var(--btn-primary-shadow-hover, var(--shadow-md));
+  filter: var(--btn-primary-hover-filter, brightness(0.88));
+  background: var(--btn-primary-background-hover, var(--btn-primary-background, linear-gradient(135deg, var(--primary-color), var(--secondary-color))));
 }
-  .btn-primary:focus-visible {
- outline: 2px solid var(--primary-color);
- outline-offset: 2px;
+
+.btn-primary:hover::before {
+  left: 100%;
 }
-/* セカンダリボタン */
-.btn-secondary {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 2px solid var(--border-light);
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: var(--btn-primary-shadow, var(--shadow-sm));
 }
-  .btn-secondary:hover {
-  background: var(--border-light);
- transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+
+.btn-primary:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
-  .btn-secondary:active {
- transform: translateY(0);
-}
-  .btn-secondary:focus-visible {
- outline: 2px solid var(--primary-color);
- outline-offset: 2px;
-}
-/* 成功ボタン */
-.btn-success {
-  background: linear-gradient(135deg, var(--success-color), #20c997);
-  color: white;
-  box-shadow: var(--shadow-sm);
-}
-  .btn-success:hover {
- transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-  .btn-success:focus-visible {
- outline: 2px solid var(--success-color);
- outline-offset: 2px;
-}
-/* 警告ボタン */
-.btn-warning {
-  background: linear-gradient(135deg, var(--warning-color), #fd7e14);
-  color: white;
-  box-shadow: var(--shadow-sm);
-}
-  .btn-warning:hover {
- transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-  .btn-warning:focus-visible {
- outline: 2px solid var(--warning-color);
- outline-offset: 2px;
-}
-/* 危険ボタン */
-.btn-danger {
-  background: linear-gradient(135deg, var(--danger-color), #e74c3c);
-  color: white;
-  box-shadow: var(--shadow-sm);
-}
-  .btn-danger:hover {
- transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-  .btn-danger:focus-visible {
- outline: 2px solid var(--danger-color);
- outline-offset: 2px;
-}
-/* 情報ボタン */
-.btn-info {
-  background: linear-gradient(135deg, var(--info-color), #17a2b8);
-  color: white;
-  box-shadow: var(--shadow-sm);
-}
-  .btn-info:hover {
- transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-  .btn-info:focus-visible {
- outline: 2px solid var(--info-color);
- outline-offset: 2px;
-}
-/* アウトラインボタン */
-.btn-outline {
-  background: transparent;
-  color: var(--primary-color);
-  border: 2px solid var(--primary-color);
-}
-  .btn-outline:hover {
-  background: var(--primary-color);
-  color: white;
- transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-  .btn-outline:focus-visible {
- outline: 2px solid var(--primary-color);
- outline-offset: 2px;
-}
-/* ボタンサイズ（統一フォントサイズ変数を使用） */
-.btn-sm {
-  padding: var(--spacing-sm) var(--spacing-base);
-  font-size: var(--font-size-sm); /* 0.875rem = 14px */
-  min-height: 36px;
-}
-  .btn-lg {
-  padding: var(--spacing-base) var(--spacing-lg);
-  font-size: var(--font-size-lg); /* 1.125rem = 18px */
-  min-height: 52px;
-}
-  .btn-xl {
-  padding: calc(var(--spacing-base) + var(--spacing-xs)) calc(var(--spacing-lg) + var(--spacing-sm));
-  font-size: var(--font-size-xl); /* 1.25rem = 20px */
-  min-height: 60px;
-}
-/* ボタンの状態 */
-.btn:disabled,
-.btn.disabled {
- opacity: 0.6;
- cursor: not-allowed;
- transform: none;
+
+.btn-primary:disabled,
+.btn-primary.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
   box-shadow: none;
+  filter: none;
 }
-  .btn:disabled:focus-visible,
-.btn.disabled:focus-visible {
- outline: 2px solid var(--text-muted);
- outline-offset: 2px;
- opacity: 0.8;
-}
-  .btn:disabled::before,
-.btn.disabled::before {
+
+.btn-primary:disabled::before,
+.btn-primary.disabled::before {
   display: none;
 }
-/*ボタンアイコン */
-.btn-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  line-height: 0;
-  font-size: var(--font-size-lg); /* 1.125rem = 18px（1.1remに近い値） */
-  transition: transform 0.3s ease;
+
+.btn-primary:disabled:focus-visible,
+.btn-primary.disabled:focus-visible {
+  outline: 2px solid var(--text-muted);
+  outline-offset: 2px;
+  opacity: 0.8;
 }
 
-.btn-icon .aidunite-icon,
-.btn-icon svg {
-  display: block;
-}
-  .btn:hover  .btn-icon {
- transform: scale(1.1);
-}
-/* ボタングループ */
-.btn-group {
-  display: flex;
- gap: var(--spacing-sm);
-  align-items: center;
-}
-/* ========================================
-  レスポンシブ対応
-  ======================================== */
-@media (max-width: 768px) {
-  .btn {
-   padding: calc(var(--spacing-sm) + var(--spacing-xs)) calc(var(--spacing-base) + var(--spacing-xs));
-   font-size: var(--font-size-base); /* 1rem = 16px */
-   min-height: 48px;
- }
-    .btn-sm {
-   padding: calc(var(--spacing-sm) + var(--spacing-xs)) calc(var(--spacing-sm) + var(--spacing-xs));
-   font-size: var(--font-size-sm); /* 0.875rem = 14px */
-   min-height: 40px;
- }
-    .btn-lg {
-   padding: calc(var(--spacing-base) + var(--spacing-xs)) calc(var(--spacing-md) + var(--spacing-sm));
-   font-size: var(--font-size-lg); /* 1.125rem = 18px */
-   min-height: 56px;
- }
-    .btn-xl {
-   padding: calc(var(--spacing-base) + var(--spacing-sm)) calc(var(--spacing-lg) + var(--spacing-base));
-   font-size: var(--font-size-xl); /* 1.25rem = 20px */
-   min-height: 64px;
- }
-   .btn-group {
-  flex-direction: column;
-  width: 100%;
- }
-   .btn-group  .btn {
-  width: 100%;
- }
-}
-  @media (max-width: 480px) {
-  .btn {
-   padding: var(--spacing-base) var(--spacing-base);
-   font-size: var(--font-size-sm); /* 0.875rem = 14px */
-   min-height: 44px;
- }
-    .btn-sm {
-   padding: var(--spacing-sm) calc(var(--spacing-sm) + var(--spacing-xs));
-   font-size: var(--font-size-xs); /* 0.75rem = 12px */
-   min-height: 36px;
- }
-    .btn-lg {
-   padding: var(--spacing-base) var(--spacing-md);
-   font-size: var(--font-size-base); /* 1rem = 16px */
-   min-height: 52px;
- }
-    .btn-xl {
-   padding: calc(var(--spacing-base) + var(--spacing-xs)) var(--spacing-lg);
-   font-size: var(--font-size-lg); /* 1.125rem = 18px */
-   min-height: 60px;
- }
+/* ── Variant: secondary ── */
+.btn-secondary {
+  min-height: 44px;
+  padding: var(--spacing-base) var(--spacing-md);
+  border-radius: var(--radius-medium);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-light);
 }
 
-/* ゴースト（ウィザード戻る等） */
+.btn-secondary:hover {
+  background: var(--border-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.btn-secondary:disabled,
+.btn-secondary.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Variant: success ── */
+.btn-success {
+  min-height: 44px;
+  padding: var(--spacing-base) var(--spacing-md);
+  border-radius: var(--radius-medium);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--success-color), #20c997);
+  color: var(--text-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-success:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-success:active {
+  transform: translateY(0);
+}
+
+.btn-success:focus-visible {
+  outline: 2px solid var(--success-color);
+  outline-offset: 2px;
+}
+
+.btn-success:disabled,
+.btn-success.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Variant: warning ── */
+.btn-warning {
+  min-height: 44px;
+  padding: var(--spacing-base) var(--spacing-md);
+  border-radius: var(--radius-medium);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--warning-color), #fd7e14);
+  color: var(--text-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-warning:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-warning:active {
+  transform: translateY(0);
+}
+
+.btn-warning:focus-visible {
+  outline: 2px solid var(--warning-color);
+  outline-offset: 2px;
+}
+
+.btn-warning:disabled,
+.btn-warning.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Variant: danger ── */
+.btn-danger {
+  min-height: 44px;
+  padding: var(--spacing-base) var(--spacing-md);
+  border-radius: var(--radius-medium);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--danger-color), #e74c3c);
+  color: var(--text-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-danger:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-danger:active {
+  transform: translateY(0);
+}
+
+.btn-danger:focus-visible {
+  outline: 2px solid var(--danger-color);
+  outline-offset: 2px;
+}
+
+.btn-danger:disabled,
+.btn-danger.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Variant: info ── */
+.btn-info {
+  min-height: 44px;
+  padding: var(--spacing-base) var(--spacing-md);
+  border-radius: var(--radius-medium);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--info-color), #17a2b8);
+  color: var(--text-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-info:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-info:active {
+  transform: translateY(0);
+}
+
+.btn-info:focus-visible {
+  outline: 2px solid var(--info-color);
+  outline-offset: 2px;
+}
+
+.btn-info:disabled,
+.btn-info.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Variant: outline ── */
+.btn-outline {
+  min-height: 44px;
+  padding: var(--spacing-base) var(--spacing-md);
+  border-radius: var(--radius-medium);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  background: transparent;
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.btn-outline:hover {
+  background: var(--primary-color);
+  color: var(--text-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-outline:active {
+  transform: translateY(0);
+}
+
+.btn-outline:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.btn-outline:disabled,
+.btn-outline.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Variant: ghost ── */
 .btn-ghost {
+  min-height: 44px;
+  padding: var(--spacing-base) var(--spacing-md);
+  border-radius: var(--radius-medium);
+  font-size: var(--font-size-base);
+  font-weight: 600;
   background: transparent;
   color: var(--text-secondary);
-  border: 1px solid var(--border-light);
+  border-color: var(--border-light);
+  border-width: 1px;
 }
 
 .btn-ghost:hover {
@@ -276,12 +321,75 @@
   color: var(--text-primary);
 }
 
+.btn-ghost:active {
+  background: var(--bg-secondary);
+}
+
 .btn-ghost:focus-visible {
   outline: 2px solid var(--primary-color);
   outline-offset: 2px;
 }
 
-/* 詳細ボタン用（幅いっぱいを防ぐ） */
+.btn-ghost:disabled,
+.btn-ghost.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── サイズ modifier（variant と併用） ── */
+.btn-sm {
+  padding: var(--spacing-sm) var(--spacing-base);
+  font-size: var(--font-size-sm);
+  min-height: 36px;
+}
+
+.btn-lg {
+  padding: var(--spacing-base) var(--spacing-lg);
+  font-size: var(--font-size-lg);
+  min-height: 52px;
+}
+
+.btn-xl {
+  padding: calc(var(--spacing-base) + var(--spacing-xs)) calc(var(--spacing-lg) + var(--spacing-sm));
+  font-size: var(--font-size-xl);
+  min-height: 60px;
+}
+
+/* ── アイコン要素 ── */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  align-self: center;
+  line-height: 1;
+  font-size: var(--font-size-lg);
+  transition: transform 0.2s ease;
+}
+
+.btn-icon .aidunite-icon,
+.btn-icon svg {
+  display: block;
+}
+
+.btn-primary:hover .btn-icon,
+.btn-secondary:hover .btn-icon,
+.btn-success:hover .btn-icon,
+.btn-warning:hover .btn-icon,
+.btn-danger:hover .btn-icon,
+.btn-info:hover .btn-icon,
+.btn-outline:hover .btn-icon {
+  transform: scale(1.1);
+}
+
+/* ── ボタングループ ── */
+.btn-group {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+/* ── コンパクト（詳細ボタン等） ── */
 .btn-compact,
 .adjust-detail-btn {
   width: auto;
@@ -297,23 +405,143 @@
 .btn-compact.btn-sm,
 .adjust-detail-btn.btn-sm {
   min-height: 24px;
-  padding: 4px 8px;
-  font-size: 11px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-xs);
   border-radius: var(--radius-medium);
 }
 
 .btn-compact.btn-xs,
 .adjust-detail-btn.btn-xs {
   min-height: 20px;
-  padding: 2px 6px;
+  padding: 2px var(--spacing-xs);
   font-size: 10px;
-  border-radius: 10px;
+  border-radius: var(--radius-small);
 }
 
 .btn-compact.btn-xxs,
 .adjust-detail-btn.btn-xxs {
   min-height: 18px;
-  padding: 1px 4px;
+  padding: 1px var(--spacing-xs);
   font-size: 9px;
-  border-radius: 9px;
+  border-radius: var(--radius-small);
+}
+
+/* ── レスポンシブ（スマホファースト・variant 単位） ── */
+.btn-primary,
+.btn-secondary,
+.btn-success,
+.btn-warning,
+.btn-danger,
+.btn-info,
+.btn-outline,
+.btn-ghost {
+  padding: var(--spacing-base);
+  font-size: var(--font-size-sm);
+  min-height: 44px;
+}
+
+.btn-sm {
+  padding: var(--spacing-sm) calc(var(--spacing-sm) + var(--spacing-xs));
+  font-size: var(--font-size-xs);
+  min-height: 36px;
+}
+
+.btn-lg {
+  padding: var(--spacing-base) var(--spacing-md);
+  font-size: var(--font-size-base);
+  min-height: 52px;
+}
+
+.btn-xl {
+  padding: calc(var(--spacing-base) + var(--spacing-xs)) var(--spacing-lg);
+  font-size: var(--font-size-lg);
+  min-height: 60px;
+}
+
+.btn-group {
+  flex-direction: column;
+  width: 100%;
+}
+
+.btn-group .btn {
+  width: 100%;
+}
+
+@media (min-width: 481px) {
+  .btn-primary,
+  .btn-secondary,
+  .btn-success,
+  .btn-warning,
+  .btn-danger,
+  .btn-info,
+  .btn-outline,
+  .btn-ghost {
+    padding: calc(var(--spacing-sm) + var(--spacing-xs)) calc(var(--spacing-base) + var(--spacing-xs));
+    font-size: var(--font-size-base);
+    min-height: 48px;
+  }
+
+  .btn-sm {
+    padding: calc(var(--spacing-sm) + var(--spacing-xs));
+    font-size: var(--font-size-sm);
+    min-height: 40px;
+  }
+
+  .btn-lg {
+    padding: calc(var(--spacing-base) + var(--spacing-xs)) calc(var(--spacing-md) + var(--spacing-sm));
+    font-size: var(--font-size-lg);
+    min-height: 56px;
+  }
+
+  .btn-xl {
+    padding: calc(var(--spacing-base) + var(--spacing-sm)) calc(var(--spacing-lg) + var(--spacing-base));
+    font-size: var(--font-size-xl);
+    min-height: 64px;
+  }
+}
+
+@media (min-width: 769px) {
+  .btn-primary,
+  .btn-secondary,
+  .btn-success,
+  .btn-warning,
+  .btn-danger,
+  .btn-info,
+  .btn-outline,
+  .btn-ghost {
+    padding: var(--btn-primary-padding, var(--spacing-base) var(--spacing-md));
+    font-size: var(--btn-primary-font-size, var(--font-size-base));
+    min-height: var(--btn-primary-min-height, 44px);
+  }
+
+  .btn-secondary {
+    padding: var(--spacing-base) var(--spacing-md);
+  }
+
+  .btn-sm {
+    padding: var(--spacing-sm) var(--spacing-base);
+    font-size: var(--font-size-sm);
+    min-height: 36px;
+  }
+
+  .btn-lg {
+    padding: var(--spacing-base) var(--spacing-lg);
+    font-size: var(--font-size-lg);
+    min-height: 52px;
+  }
+
+  .btn-xl {
+    padding: calc(var(--spacing-base) + var(--spacing-xs)) calc(var(--spacing-lg) + var(--spacing-sm));
+    font-size: var(--font-size-xl);
+    min-height: 60px;
+  }
+
+  .btn-group {
+    flex-direction: row;
+    width: auto;
+  }
+
+  .btn-group .btn {
+    width: auto;
+  }
 }

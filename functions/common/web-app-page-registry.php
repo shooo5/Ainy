@@ -33,6 +33,7 @@ function aidunite_get_public_fixed_page_slugs() {
         'team-registration-preview',
         'team-apply',
         'guardian-signup',
+        'guardian-registration-pending',
         'member-register',
         'member-registration',
         'approve-registration',
@@ -41,6 +42,7 @@ function aidunite_get_public_fixed_page_slugs() {
         'member-withdrawal',
         'payment-required',
         'system-maintenance',
+        'competition-event',
     ];
 }
 
@@ -52,8 +54,13 @@ function aidunite_is_web_app_page() {
         return false;
     }
 
-    // general マイページはグローバルヘッダー（ainy-header）を表示する
+    // general マイページは原則グローバルヘッダー。承認待ち（Joy シェル）のみ一体型 UI
     if (function_exists('aidunite_is_general_mypage_screen') && aidunite_is_general_mypage_screen()) {
+        if (function_exists('aidunite_mypage_general_state')
+            && aidunite_mypage_general_state() === 'pending') {
+            return true;
+        }
+
         return false;
     }
 
@@ -88,7 +95,7 @@ function aidunite_is_web_app_page() {
     $legacy = [
         'mypage',
         'notifications',
-        'schedule-list',
+        'schedule-management',
         'schedule-edit',
         'schedule-create',
         'match-list',
@@ -110,18 +117,23 @@ function aidunite_is_web_app_page() {
         'match-history',
         'match-detail',
         'notification-settings',
-        'schedule-management',
+        'payment-setup',
+        'payment-checkout',
+        'parent-payment',
+        'plan-info',
         'team-payment-management',
+        'team-tuition-collections',
         'invite-guardian',
         'mypage-favorite-teams',
         'profile-edit',
-        'tournaments',
-        'tournament-new',
         'team-management',
+        'system-management',
+        'ainy-dashboard',
         'match-feedback',
         'team-approval',
         'feedback',
         'contact',
+        'faq',
         'regulation',
         'communication',
         'communication-main',
@@ -130,6 +142,7 @@ function aidunite_is_web_app_page() {
         'invite-guardian',
         'team-members',
         'team-payment-management',
+        'team-tuition-collections',
         'profile-edit',
         'player-add',
         'edit-player',

@@ -24,11 +24,21 @@ function aidunite_get_operating_team_header_switcher_config($user_id) {
     if (!function_exists('aidunite_get_managed_team_ids') || !function_exists('aidunite_get_current_team_id')) {
         return ['enabled' => false];
     }
+
     $role = function_exists('aidunite_get_user_role') ? aidunite_get_user_role($user_id) : '';
-    if ($role !== 'team_leader' && !user_can($user_id, 'manage_options')) {
+    $user_type = function_exists('aidunite_get_user_type') ? aidunite_get_user_type($user_id) : '';
+    $on_schedule_management = is_page('schedule-management') || is_page_template('page-schedule-management.php');
+
+    $is_leader = ($role === 'team_leader' || user_can($user_id, 'manage_options'));
+    $is_member_viewer = in_array($user_type, ['parent', 'player'], true) && !$is_leader;
+
+    if (!$is_leader && !($is_member_viewer && $on_schedule_management)) {
         return ['enabled' => false];
     }
-    $managed = aidunite_get_managed_team_ids($user_id);
+
+    $managed = $is_member_viewer && function_exists('aidunite_get_member_team_ids_for_schedule_view')
+        ? aidunite_get_member_team_ids_for_schedule_view($user_id)
+        : aidunite_get_managed_team_ids($user_id);
     if (count($managed) < 2) {
         return ['enabled' => false];
     }
@@ -58,6 +68,8 @@ function aidunite_get_operating_team_header_switcher_config($user_id) {
         'teamPublicProfileUrls' => $team_public_profile_urls,
         'teamSettingsUrl' => $team_settings_url,
         'matchBoardUrl' => home_url('/match-board-own'),
+        'memberViewerMode' => $is_member_viewer,
+        'switchLabel' => $is_member_viewer ? '表示チーム' : '操作中',
     ];
 }
 
@@ -70,15 +82,17 @@ function aidunite_render_operating_team_switcher_select(array $args = []) {
     if (!is_user_logged_in()) {
         return;
     }
+    $cfg = aidunite_get_operating_team_header_switcher_config(get_current_user_id());
     $args = wp_parse_args($args, [
         'select_id' => 'ainy-operating-team-select',
-        'label' => '操作中',
+        'label' => !empty($cfg['switchLabel']) ? (string) $cfg['switchLabel'] : '操作中',
         'wrapper_class' => 'ainy-operating-team',
         'label_class' => 'ainy-operating-team__label',
         'select_class' => 'ainy-operating-team__select',
-        'aria_label' => '操作中のチームを切り替え',
+        'aria_label' => !empty($cfg['memberViewerMode'])
+            ? '表示するチームを切り替え'
+            : '操作中のチームを切り替え',
     ]);
-    $cfg = aidunite_get_operating_team_header_switcher_config(get_current_user_id());
     if (empty($cfg['enabled']) || empty($cfg['teams'])) {
         return;
     }

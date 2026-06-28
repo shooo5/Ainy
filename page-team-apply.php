@@ -63,12 +63,15 @@ $public_teams = get_posts($args);
       <?php foreach ($public_teams as $team): ?>
         <li style="border:1px solid var(--border-color);margin-bottom:15px;padding:10px;">
           <h3><?php echo esc_html($team->post_title); ?></h3>
-          <p><?php echo esc_html(get_post_meta($team->ID, 'description', true)); ?></p>
-
           <?php
-            $accepting = get_post_meta($team->ID, 'accepting_applications', true);
-            $has_secret = get_post_meta($team->ID, 'secret_code', true);
+            $apply_display = function_exists('aidunite_team_get_display_bundle')
+                ? aidunite_team_get_display_bundle((int) $team->ID)
+                : [];
+            $apply_description = (string) ($apply_display['team_description'] ?? $apply_display['description_legacy'] ?? '');
+            $accepting = (string) ($apply_display['accepting_applications'] ?? '');
+            $has_secret = (string) ($apply_display['secret_code'] ?? '');
           ?>
+          <p><?php echo esc_html($apply_description); ?></p>
 
           <?php if ($accepting === 'true' && empty($has_secret)): ?>
             <!-- ➀ 公開申請受付中 -->

@@ -35,10 +35,9 @@ if (!function_exists('aidunite_resolve_home_anchor_schedule_id_for_match_request
             if ($lock === 'home') {
                 return $sid;
             }
-            $place = (string) get_post_meta($sid, 'schedule_place', true);
-            if ($place === '') {
-                $place = (string) get_post_meta($sid, 'schedule_place_option', true);
-            }
+            $place = function_exists('aidunite_schedule_read_place_raw')
+                ? aidunite_schedule_read_place_raw((int) $sid)
+                : '';
             if ($place === 'home') {
                 return $sid;
             }

@@ -42,6 +42,32 @@ let confirmModalLastFocus = null;
 let confirmModalKeyHandler = null;
 
 /**
+ * @param {'danger'|'primary'|'success'|string} variant
+ * @returns {'danger'|'primary'|'success'}
+ */
+function normalizeConfirmVariant(variant) {
+    if (variant === 'primary' || variant === 'success') {
+        return variant;
+    }
+    return 'danger';
+}
+
+/**
+ * @param {'danger'|'primary'|'success'} variant
+ * @returns {string}
+ */
+function confirmModalVariantClass(variant) {
+    switch (variant) {
+        case 'primary':
+            return 'btn btn-primary';
+        case 'success':
+            return 'btn btn-success';
+        default:
+            return 'btn btn-danger';
+    }
+}
+
+/**
  * 確認モーダルを閉じる
  * @param {boolean} invokeCancel
  * @param {Function|null} onCancel
@@ -84,7 +110,7 @@ function closeConfirmModal(invokeCancel, onCancel) {
  * @param {string} [options.message='']
  * @param {string} [options.confirmLabel='OK']
  * @param {string} [options.cancelLabel='キャンセル']
- * @param {'danger'|'primary'} [options.confirmVariant='danger']
+ * @param {'danger'|'primary'|'success'} [options.confirmVariant='danger']
  * @param {Function|null} [options.onConfirm=null]
  * @param {Function|null} [options.onCancel=null]
  */
@@ -97,7 +123,8 @@ function showConfirmModal(options = {}) {
         message: options.message || '',
         confirmLabel: options.confirmLabel || 'OK',
         cancelLabel: options.cancelLabel || 'キャンセル',
-        confirmVariant: options.confirmVariant === 'primary' ? 'primary' : 'danger',
+        confirmVariant: normalizeConfirmVariant(options.confirmVariant),
+        messageAlign: options.messageAlign === 'center' ? 'center' : '',
         onConfirm: options.onConfirm || null,
         onCancel: options.onCancel || null
     };
@@ -111,7 +138,10 @@ function showConfirmModal(options = {}) {
 
     confirmModalLastFocus = doc.activeElement;
 
-    const confirmBtnClass = config.confirmVariant === 'primary' ? 'btn btn-primary' : 'btn btn-danger';
+    const confirmBtnClass = confirmModalVariantClass(config.confirmVariant);
+    const messageClass = config.messageAlign === 'center'
+        ? 'aidunite-confirm-dialog__message aidunite-confirm-dialog__message--center'
+        : 'aidunite-confirm-dialog__message';
 
     const overlay = doc.createElement('div');
     overlay.className = 'aidunite-confirm-overlay';
@@ -130,7 +160,7 @@ function showConfirmModal(options = {}) {
                 <button type="button" class="aidunite-confirm-dialog__close" aria-label="閉じる">&times;</button>
             </div>
             <div class="aidunite-confirm-dialog__body">
-                <p class="aidunite-confirm-dialog__message">${confirmModalEscapeHtml(config.message)}</p>
+                <p class="${messageClass}">${confirmModalEscapeHtml(config.message)}</p>
             </div>
             <div class="aidunite-confirm-dialog__footer">
                 <button type="button" class="btn btn-secondary aidunite-confirm-cancel">${confirmModalEscapeHtml(config.cancelLabel)}</button>

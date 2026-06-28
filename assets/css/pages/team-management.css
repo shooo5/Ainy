@@ -29,7 +29,7 @@ body.page-template-page-team-management-php .full-container {
 @media (max-width: 768px) {
   body.page-team-management .team-management-page,
   body.page-template-page-team-management-php .team-management-page {
-    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0) + var(--spacing-xl));
+    padding-bottom: var(--spacing-xl);
   }
 }
 

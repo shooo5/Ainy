@@ -25,7 +25,7 @@ $fp_create_team_url = home_url( '/member-registration' );
       <section class="ainy-welcome-hero" aria-labelledby="ainy-welcome-title">
           <div class="ainy-welcome-left">
             <div class="ainy-welcome-badge">
-              <span class="ainy-badge-icon" aria-hidden="true"><?php echo aidunite_get_chat_icon_svg('basketball', ['width' => '20', 'height' => '20']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+              <span class="ainy-badge-icon" aria-hidden="true"><?php echo aidunite_get_theme_icon_svg('basketball', ['width' => '20', 'height' => '20']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
               <span class="ainy-badge-text">Ainyへようこそ！</span>
               <span class="ainy-badge-lines" aria-hidden="true"></span>
             </div>
@@ -233,6 +233,29 @@ $fp_create_team_url = home_url( '/member-registration' );
           </a>
         </div>
 
+      </div>
+    </section>
+
+    <!-- 料金プラン（デザイン調整用プレースホルダー） -->
+    <section class="ainy-pricing-placeholder" aria-labelledby="fp-pricing-placeholder-title">
+      <div class="aidunite-fp-container">
+        <h2 id="fp-pricing-placeholder-title" class="ainy-section-title">料金プラン</h2>
+        <p class="ainy-pricing-placeholder__lead">
+          アカウント登録・チーム申請は無料です。本格利用時の Match / Club プランはサービスページでご確認いただけます。
+        </p>
+        <div class="ainy-pricing-placeholder__grid">
+          <div class="ainy-pricing-placeholder__slot" aria-hidden="true">
+            <span class="ainy-pricing-placeholder__slot-label">Match プラン</span>
+            <span class="ainy-pricing-placeholder__slot-note">デザイン調整予定</span>
+          </div>
+          <div class="ainy-pricing-placeholder__slot" aria-hidden="true">
+            <span class="ainy-pricing-placeholder__slot-label">Club プラン</span>
+            <span class="ainy-pricing-placeholder__slot-note">デザイン調整予定</span>
+          </div>
+        </div>
+        <p class="ainy-pricing-placeholder__link-wrap">
+          <a href="<?php echo esc_url( home_url( '/service/' ) ); ?>" class="ainy-pricing-placeholder__link">サービス・料金の詳細</a>
+        </p>
       </div>
     </section>
 

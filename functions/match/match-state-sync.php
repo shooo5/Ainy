@@ -13,10 +13,13 @@ if (!defined('ABSPATH')) {
 if (!function_exists('aidunite_get_request_schedule_ids')) {
     function aidunite_get_request_schedule_ids($request_id) {
         $request_id = (int) $request_id;
-        $to_schedule_id = (int) get_post_meta($request_id, 'to_schedule_id', true);
-        $my_schedule_id = (int) get_post_meta($request_id, 'my_schedule_id', true);
+        $mr = function_exists('aidunite_match_request_get_canonical_meta')
+            ? aidunite_match_request_get_canonical_meta($request_id)
+            : [];
+        $to_schedule_id = (int) ($mr['to_schedule_id'] ?? 0);
+        $my_schedule_id = (int) ($mr['my_schedule_id'] ?? 0);
         if (!$my_schedule_id) {
-            $my_schedule_id = (int) get_post_meta($request_id, 'from_schedule_id', true);
+            $my_schedule_id = (int) ($mr['from_schedule_id'] ?? 0);
         }
 
         return [$to_schedule_id, $my_schedule_id];
@@ -76,12 +79,18 @@ if (!function_exists('_aidunite_resolve_selected_place_for_established')) {
             return 'home';
         }
 
+        $to_place_raw = function_exists('aidunite_schedule_read_place_raw')
+            ? aidunite_schedule_read_place_raw((int) $to_schedule_id)
+            : '';
+        $my_place_raw = function_exists('aidunite_schedule_read_place_raw')
+            ? aidunite_schedule_read_place_raw((int) $my_schedule_id)
+            : '';
         $to_place = function_exists('aidunite_normalize_place_for_lock')
-            ? aidunite_normalize_place_for_lock(get_post_meta((int) $to_schedule_id, 'schedule_place', true) ?: get_post_meta((int) $to_schedule_id, 'schedule_place_option', true))
-            : (string) (get_post_meta((int) $to_schedule_id, 'schedule_place', true) ?: get_post_meta((int) $to_schedule_id, 'schedule_place_option', true));
+            ? aidunite_normalize_place_for_lock($to_place_raw)
+            : (string) $to_place_raw;
         $my_place = function_exists('aidunite_normalize_place_for_lock')
-            ? aidunite_normalize_place_for_lock(get_post_meta((int) $my_schedule_id, 'schedule_place', true) ?: get_post_meta((int) $my_schedule_id, 'schedule_place_option', true))
-            : (string) (get_post_meta((int) $my_schedule_id, 'schedule_place', true) ?: get_post_meta((int) $my_schedule_id, 'schedule_place_option', true));
+            ? aidunite_normalize_place_for_lock($my_place_raw)
+            : (string) $my_place_raw;
 
         if ($to_place === 'home') {
             return 'away';
@@ -114,7 +123,6 @@ if (!function_exists('aidunite_apply_established_to_schedules')) {
         }
 
         aidunite_update_match_request_status_meta($request_id, 'established');
-        update_post_meta($request_id, 'established_at', current_time('mysql'));
 
         if (function_exists('aidunite_match_flow_debug_log')) {
             aidunite_match_flow_debug_log('apply_established', [
@@ -124,31 +132,51 @@ if (!function_exists('aidunite_apply_established_to_schedules')) {
             ]);
         }
 
-        if ($my_schedule_id) {
-            update_post_meta($my_schedule_id, 'intent', 'confirmed');
-            update_post_meta($my_schedule_id, 'matching', '0');
-            update_post_meta($my_schedule_id, 'is_match_requested', '0');
-            $my_date = get_post_meta($my_schedule_id, 'schedule_date', true);
+        if ($my_schedule_id && function_exists('aidunite_schedule_finalize_applicant_on_established')) {
+            aidunite_schedule_finalize_applicant_on_established($my_schedule_id);
+        } elseif ($my_schedule_id && function_exists('aidunite_schedule_persist_intent_flags')) {
+            aidunite_schedule_persist_intent_flags($my_schedule_id, 'confirmed', false);
+            $my_bundle_est = function_exists('aidunite_schedule_get_display_bundle')
+                ? aidunite_schedule_get_display_bundle((int) $my_schedule_id)
+                : [];
+            $my_date = (string) ($my_bundle_est['date'] ?? (function_exists('aidunite_schedule_read_normalized_date')
+                ? aidunite_schedule_read_normalized_date((int) $my_schedule_id)
+                : ''));
             wp_update_post([
                 'ID'         => $my_schedule_id,
                 'post_title' => $my_date ? ($my_date . ' 練習試合') : '練習試合',
             ]);
         }
 
-        $selected_start = (string) get_post_meta($request_id, 'selected_start_time', true);
-        $selected_end = (string) get_post_meta($request_id, 'selected_end_time', true);
-        $selected_gender = (string) get_post_meta($request_id, 'selected_gender', true);
-        $selected_place = (string) get_post_meta($request_id, 'selected_place', true);
+        $mr_est = function_exists('aidunite_match_request_get_canonical_meta')
+            ? aidunite_match_request_get_canonical_meta($request_id)
+            : [];
+        $selected_start = (string) ($mr_est['selected_start_time'] ?? '');
+        $selected_end = (string) ($mr_est['selected_end_time'] ?? '');
+        $selected_gender = (string) ($mr_est['selected_gender'] ?? '');
+        $selected_place = (string) ($mr_est['selected_place'] ?? '');
         if ($selected_place === 'both') {
             $selected_place = 'either';
         }
 
         // selected_* が欠落していても承認時は確定値へ寄せる（主催固定）。
         if (($selected_start === '' || $selected_end === '') && $to_schedule_id && $my_schedule_id) {
-            $to_start = (string) get_post_meta($to_schedule_id, 'schedule_start_time', true);
-            $to_end = (string) get_post_meta($to_schedule_id, 'schedule_end_time', true);
-            $my_start = (string) get_post_meta($my_schedule_id, 'schedule_start_time', true);
-            $my_end = (string) get_post_meta($my_schedule_id, 'schedule_end_time', true);
+            $to_bundle_est = function_exists('aidunite_schedule_get_display_bundle')
+                ? aidunite_schedule_get_display_bundle((int) $to_schedule_id)
+                : [];
+            $my_bundle_time = function_exists('aidunite_schedule_get_display_bundle')
+                ? aidunite_schedule_get_display_bundle((int) $my_schedule_id)
+                : [];
+            $to_api = function_exists('aidunite_schedule_get_api_display_fields')
+                ? aidunite_schedule_get_api_display_fields((int) $to_schedule_id)
+                : [];
+            $my_api = function_exists('aidunite_schedule_get_api_display_fields')
+                ? aidunite_schedule_get_api_display_fields((int) $my_schedule_id)
+                : [];
+            $to_start = (string) ($to_bundle_est['start_time'] ?? $to_api['start_time'] ?? '');
+            $to_end = (string) ($to_bundle_est['end_time'] ?? $to_api['end_time'] ?? '');
+            $my_start = (string) ($my_bundle_time['start_time'] ?? $my_api['start_time'] ?? '');
+            $my_end = (string) ($my_bundle_time['end_time'] ?? $my_api['end_time'] ?? '');
             if ($to_start !== '' && $to_end !== '' && $my_start !== '' && $my_end !== '') {
                 $start = max($to_start, $my_start);
                 $end = min($to_end, $my_end);
@@ -159,15 +187,22 @@ if (!function_exists('aidunite_apply_established_to_schedules')) {
                     if ($selected_end === '') {
                         $selected_end = $end;
                     }
-                    update_post_meta($request_id, 'selected_start_time', $selected_start);
-                    update_post_meta($request_id, 'selected_end_time', $selected_end);
+                    if (function_exists('aidunite_match_request_persist_established_selection')) {
+                        aidunite_match_request_persist_established_selection($request_id, [
+                            'selected_start_time' => $selected_start,
+                            'selected_end_time' => $selected_end,
+                        ]);
+                    }
                 }
             }
         }
         if ($to_schedule_id && $my_schedule_id) {
             $selected_place = _aidunite_resolve_selected_place_for_established($selected_place, $to_schedule_id, $my_schedule_id);
-            update_post_meta($request_id, 'selected_place', $selected_place);
-            update_post_meta($request_id, 'preferred_place', $selected_place);
+            if (function_exists('aidunite_match_request_persist_established_selection')) {
+                aidunite_match_request_persist_established_selection($request_id, [
+                    'selected_place' => $selected_place,
+                ]);
+            }
         }
 
         $from_team_id = (int) get_post_meta($request_id, 'from_team_id', true);
@@ -178,46 +213,32 @@ if (!function_exists('aidunite_apply_established_to_schedules')) {
                 continue;
             }
 
-            // Backup only once to support cancellation rollback.
-            if (get_post_meta($sid, 'pre_established_saved', true) !== '1') {
-                update_post_meta($sid, 'pre_established_start_time', get_post_meta($sid, 'schedule_start_time', true));
-                update_post_meta($sid, 'pre_established_end_time', get_post_meta($sid, 'schedule_end_time', true));
-                update_post_meta($sid, 'pre_established_place', get_post_meta($sid, 'schedule_place', true));
-                update_post_meta($sid, 'pre_established_place_option', get_post_meta($sid, 'schedule_place_option', true));
-                update_post_meta($sid, 'pre_established_gender', get_post_meta($sid, 'schedule_gender', true));
-                update_post_meta($sid, 'pre_established_male_slots', get_post_meta($sid, 'male_slots', true));
-                update_post_meta($sid, 'pre_established_female_slots', get_post_meta($sid, 'female_slots', true));
-                update_post_meta($sid, 'pre_established_place_lock', get_post_meta($sid, 'place_lock', true));
-                update_post_meta($sid, 'pre_established_match_status', get_post_meta($sid, 'match_status', true));
-                update_post_meta($sid, 'pre_established_match_opponent_team_id', get_post_meta($sid, 'match_opponent_team_id', true));
-                update_post_meta($sid, 'pre_established_match_opponent_name', get_post_meta($sid, 'match_opponent_name', true));
-                update_post_meta($sid, 'pre_established_saved', '1');
+            if (function_exists('aidunite_schedule_backup_pre_established_once')) {
+                aidunite_schedule_backup_pre_established_once($sid);
             }
 
-            if ($selected_start !== '') {
-                update_post_meta($sid, 'schedule_start_time', $selected_start);
-            }
-            if ($selected_end !== '') {
-                update_post_meta($sid, 'schedule_end_time', $selected_end);
-            }
-            // 申請側スケジュールのみ、今回の申請で確定した性別を反映する。
-            // 募集側（to_schedule_id）に selected_gender を書くと、女子1件の成立で schedule_gender が「女子」だけに上書きされ、
-            // 男女別枠の募集が残り枠表示・他申請と矛盾する（matching_gender_condition は both のまま等）。
-            if ($my_schedule_id && $sid === (int) $my_schedule_id
-                && in_array($selected_gender, ['male', 'female', 'both'], true)) {
-                update_post_meta($sid, 'schedule_gender', $selected_gender);
-            }
-
+            $place_for_schedule = '';
             if (in_array($selected_place, ['home', 'away', 'either'], true)) {
-                $place_for_schedule = aidunite_resolve_place_for_viewer($selected_place, $from_team_id, $to_team_id, (int) get_post_meta($sid, 'team_id', true));
-                if (function_exists('aidunite_schedule_write_place_meta')) {
-                    aidunite_schedule_write_place_meta($sid, $place_for_schedule);
-                } else {
-                    update_post_meta($sid, 'schedule_place', $place_for_schedule);
-                }
-                if (in_array($place_for_schedule, ['home', 'away', 'either'], true)) {
-                    update_post_meta($sid, 'venue_name', '');
-                }
+                $place_for_schedule = aidunite_resolve_place_for_viewer(
+                    $selected_place,
+                    $from_team_id,
+                    $to_team_id,
+                    (function_exists('aidunite_schedule_read_team_id')
+                        ? aidunite_schedule_read_team_id((int) $sid)
+                        : (int) get_post_meta($sid, 'team_id', true))
+                );
+            }
+
+            if (function_exists('aidunite_schedule_apply_established_selection')) {
+                aidunite_schedule_apply_established_selection($sid, [
+                    'selected_start' => $selected_start,
+                    'selected_end' => $selected_end,
+                    'selected_place' => $selected_place,
+                    'selected_gender' => $selected_gender,
+                    'apply_gender' => true,
+                    'my_schedule_id' => $my_schedule_id,
+                    'place_for_schedule' => $place_for_schedule,
+                ]);
             }
         }
 
@@ -225,10 +246,18 @@ if (!function_exists('aidunite_apply_established_to_schedules')) {
             $opponent_gender = function_exists('aidunite_get_schedule_gender') ? aidunite_get_schedule_gender($my_schedule_id) : '';
             $to_male_now = function_exists('aidunite_get_schedule_male_slots') ? aidunite_get_schedule_male_slots($to_schedule_id) : 0;
             $decrement_male = ($opponent_gender === 'male') || ($opponent_gender === 'both' && $to_male_now >= 1);
-            update_post_meta($request_id, 'established_gender_slot', $decrement_male ? 'male' : 'female');
+            if (function_exists('aidunite_match_request_persist_established_selection')) {
+                aidunite_match_request_persist_established_selection($request_id, [
+                    'established_gender_slot' => $decrement_male ? 'male' : 'female',
+                ]);
+            }
 
-            $my_place = get_post_meta($my_schedule_id, 'schedule_place', true) ?: get_post_meta($my_schedule_id, 'schedule_place_option', true);
-            $to_place = get_post_meta($to_schedule_id, 'schedule_place', true) ?: get_post_meta($to_schedule_id, 'schedule_place_option', true);
+            $my_place = function_exists('aidunite_schedule_read_place_raw')
+                ? aidunite_schedule_read_place_raw((int) $my_schedule_id)
+                : '';
+            $to_place = function_exists('aidunite_schedule_read_place_raw')
+                ? aidunite_schedule_read_place_raw((int) $to_schedule_id)
+                : '';
 
             foreach ([$to_schedule_id, $my_schedule_id] as $sid) {
                 if (!$sid) {
@@ -278,7 +307,13 @@ if (!function_exists('aidunite_apply_established_to_schedules')) {
                     $host_slots_empty = ((int) ($rem['male'] ?? 0)) < 1 && ((int) ($rem['female'] ?? 0)) < 1;
                 }
             }
-            if ($host_slots_empty) {
+            if (function_exists('aidunite_schedule_persist_intent_flags')) {
+                if ($host_slots_empty) {
+                    aidunite_schedule_persist_intent_flags($anchor_sid, 'confirmed', false);
+                } else {
+                    aidunite_schedule_persist_intent_flags($anchor_sid, 'recruit', true);
+                }
+            } elseif ($host_slots_empty) {
                 update_post_meta($anchor_sid, 'intent', 'confirmed');
                 update_post_meta($anchor_sid, 'is_match_requested', '0');
                 update_post_meta($anchor_sid, 'matching', '0');
@@ -288,6 +323,28 @@ if (!function_exists('aidunite_apply_established_to_schedules')) {
                 update_post_meta($anchor_sid, 'is_match_requested', '1');
             }
         }
+
+        // 申請先の募集 schedule（anchor と別 ID の away 募集など）: 成立後は募集を閉じる
+        if ($to_schedule_id > 0 && (int) $to_schedule_id !== (int) $anchor_sid
+            && function_exists('aidunite_schedule_read_intent')
+            && aidunite_schedule_read_intent($to_schedule_id) === 'recruit'
+            && function_exists('aidunite_count_established_for_schedule')
+            && aidunite_count_established_for_schedule($to_schedule_id) > 0) {
+            $to_canon = function_exists('aidunite_market_recruitment_gender_canonical')
+                ? aidunite_market_recruitment_gender_canonical($to_schedule_id)
+                : '';
+            if (in_array($to_canon, ['male', 'female'], true)) {
+                if (function_exists('aidunite_schedule_persist_intent_flags')) {
+                    aidunite_schedule_persist_intent_flags($to_schedule_id, 'confirmed', false);
+                } else {
+                    update_post_meta($to_schedule_id, 'intent', 'confirmed');
+                    update_post_meta($to_schedule_id, 'matching', '0');
+                    update_post_meta($to_schedule_id, 'is_match_requested', '0');
+                }
+            }
+        }
+
+        do_action('aidunite_match_established', $request_id);
     }
 }
 
@@ -337,19 +394,23 @@ if (!function_exists('aidunite_cancel_superseded_pending_for_same_applicant_recr
             }
 
             aidunite_update_match_request_status_meta((int) $p->ID, 'canceled');
-            update_post_meta($p->ID, 'canceled_at', current_time('mysql'));
-            delete_post_meta($p->ID, 'canceled_by_team_id');
-            if (function_exists('aidunite_update_match_request_cancel_reason_meta')) {
+            if (function_exists('aidunite_match_request_persist_superseded_cancel')) {
+                aidunite_match_request_persist_superseded_cancel(
+                    (int) $p->ID,
+                    $winner_request_id,
+                    'superseded_established',
+                    '別の申請が試合確定したため、この申請は自動キャンセルされました。'
+                );
+            } elseif (function_exists('aidunite_update_match_request_cancel_reason_meta')) {
+                update_post_meta($p->ID, 'canceled_at', current_time('mysql'));
+                delete_post_meta($p->ID, 'canceled_by_team_id');
                 aidunite_update_match_request_cancel_reason_meta(
                     (int) $p->ID,
                     'superseded_established',
                     '別の申請が試合確定したため、この申請は自動キャンセルされました。'
                 );
-            } else {
-                update_post_meta($p->ID, 'aidunite_cancel_reason', 'superseded_established');
-                update_post_meta($p->ID, 'canceled_reason', 'superseded_established');
+                update_post_meta($p->ID, 'aidunite_superseded_by_request_id', $winner_request_id);
             }
-            update_post_meta($p->ID, 'aidunite_superseded_by_request_id', $winner_request_id);
 
             if (function_exists('aidunite_match_flow_debug_log')) {
                 aidunite_match_flow_debug_log('supersede_duplicate_mr', [
@@ -415,7 +476,11 @@ if (!function_exists('aidunite_cancel_mirror_pending_for_established')) {
         if ($winner_to_schedule_id === 9999) {
             return [];
         }
-        $winner_to_team_id = $winner_to_schedule_id > 0 ? (int) get_post_meta($winner_to_schedule_id, 'team_id', true) : 0;
+        $winner_to_team_id = $winner_to_schedule_id > 0
+            ? (function_exists('aidunite_schedule_read_team_id')
+                ? aidunite_schedule_read_team_id($winner_to_schedule_id)
+                : (int) get_post_meta($winner_to_schedule_id, 'team_id', true))
+            : 0;
         if ($winner_to_team_id <= 0) {
             $winner_to_team_id = (int) get_post_meta($winner_request_id, 'to_team_id', true);
         }
@@ -449,7 +514,9 @@ if (!function_exists('aidunite_cancel_mirror_pending_for_established')) {
                 $candidate_to_team_id = 0;
                 $candidate_to_schedule_id = (int) get_post_meta($rid, 'to_schedule_id', true);
                 if ($candidate_to_schedule_id > 0) {
-                    $candidate_to_team_id = (int) get_post_meta($candidate_to_schedule_id, 'team_id', true);
+                    $candidate_to_team_id = function_exists('aidunite_schedule_read_team_id')
+                        ? aidunite_schedule_read_team_id($candidate_to_schedule_id)
+                        : (int) get_post_meta($candidate_to_schedule_id, 'team_id', true);
                 }
                 if ($candidate_to_team_id <= 0) {
                     $candidate_to_team_id = (int) get_post_meta($rid, 'to_team_id', true);
@@ -569,15 +636,17 @@ if (!function_exists('aidunite_match_request_sync_outcome_after_established_cont
         ]);
 
         $outcome = aidunite_match_request_project_outcome_from_blocking_codes($collected['blocking_codes']);
-        update_post_meta($request_id, 'mr_outcome_code', $outcome);
-        update_post_meta($request_id, 'mr_outcome_updated_at', current_time('mysql'));
+        if (function_exists('aidunite_match_request_persist_outcome_code')) {
+            aidunite_match_request_persist_outcome_code($request_id, $outcome);
+        }
 
         if ($outcome === 'keep_pending') {
             if (function_exists('aidunite_clear_match_request_reconfirm_meta')) {
                 aidunite_clear_match_request_reconfirm_meta($request_id);
             }
-            delete_post_meta($request_id, 'mr_outcome_code');
-            delete_post_meta($request_id, 'mr_outcome_updated_at');
+            if (function_exists('aidunite_match_request_persist_outcome_code')) {
+                aidunite_match_request_persist_outcome_code($request_id, '');
+            }
             return;
         }
 
@@ -599,28 +668,40 @@ if (!function_exists('aidunite_mark_match_request_reconfirm_required')) {
     function aidunite_mark_match_request_reconfirm_required($request_id, $winner_request_id, $reason = 'schedule_condition_changed') {
         $request_id = (int) $request_id;
         $winner_request_id = (int) $winner_request_id;
-        if ($request_id <= 0 || $winner_request_id <= 0) return;
-        $to_schedule_id = (int) get_post_meta($request_id, 'to_schedule_id', true);
-        // 募集条件の差分用: MR の selected_* ではなく募集 schedule の会場・性別をスナップショットする
+        if ($request_id <= 0 || $winner_request_id <= 0) {
+            return;
+        }
+        $mr = function_exists('aidunite_match_request_get_canonical_meta')
+            ? aidunite_match_request_get_canonical_meta($request_id)
+            : [];
+        $to_schedule_id = (int) ($mr['to_schedule_id'] ?? 0);
         $before_place = '';
         $before_gender = '';
         if ($to_schedule_id > 0) {
-            $before_place = (string) (get_post_meta($to_schedule_id, 'schedule_place', true) ?: get_post_meta($to_schedule_id, 'schedule_place_option', true));
-            $before_gender = (string) (get_post_meta($to_schedule_id, 'schedule_gender', true) ?: get_post_meta($to_schedule_id, 'matching_gender_condition', true));
+            $before_place = function_exists('aidunite_schedule_read_place_raw')
+                ? aidunite_schedule_read_place_raw($to_schedule_id)
+                : '';
+            $before_gender = function_exists('aidunite_schedule_read_gender_raw')
+                ? aidunite_schedule_read_gender_raw($to_schedule_id)
+                : '';
         }
-        update_post_meta($request_id, 'requires_reconfirm', 1);
-        update_post_meta($request_id, 'reconfirm_reason', $reason);
-        update_post_meta($request_id, 'reconfirm_detected_at', current_time('mysql'));
-        update_post_meta($request_id, 'superseded_by_request_id', $winner_request_id);
-        update_post_meta($request_id, 'reconfirm_before_schedule_place', $before_place);
-        update_post_meta($request_id, 'reconfirm_before_schedule_gender', $before_gender);
+        $before = [
+            'before_place' => $before_place,
+            'before_gender' => $before_gender,
+        ];
         if ($to_schedule_id > 0) {
-            $male = function_exists('aidunite_get_schedule_male_slots') ? (int) aidunite_get_schedule_male_slots($to_schedule_id) : (int) get_post_meta($to_schedule_id, 'male_slots', true);
-            $female = function_exists('aidunite_get_schedule_female_slots') ? (int) aidunite_get_schedule_female_slots($to_schedule_id) : (int) get_post_meta($to_schedule_id, 'female_slots', true);
-            $plock = function_exists('aidunite_get_schedule_place_lock') ? (string) aidunite_get_schedule_place_lock($to_schedule_id) : (string) get_post_meta($to_schedule_id, 'place_lock', true);
-            update_post_meta($request_id, 'reconfirm_before_male_slots', $male);
-            update_post_meta($request_id, 'reconfirm_before_female_slots', $female);
-            update_post_meta($request_id, 'reconfirm_before_place_lock', $plock);
+            $before['male'] = function_exists('aidunite_get_schedule_male_slots')
+                ? (int) aidunite_get_schedule_male_slots($to_schedule_id)
+                : 0;
+            $before['female'] = function_exists('aidunite_get_schedule_female_slots')
+                ? (int) aidunite_get_schedule_female_slots($to_schedule_id)
+                : 0;
+            $before['place_lock'] = function_exists('aidunite_get_schedule_place_lock')
+                ? (string) aidunite_get_schedule_place_lock($to_schedule_id)
+                : '';
+        }
+        if (function_exists('aidunite_match_request_persist_reconfirm_required')) {
+            aidunite_match_request_persist_reconfirm_required($request_id, $winner_request_id, $reason, $before);
         }
     }
 }
@@ -823,86 +904,11 @@ if (!function_exists('aidunite_restore_schedule_from_pre_established_backup')) {
      * @return bool バックアップありで復元したら true
      */
     function aidunite_restore_schedule_from_pre_established_backup($schedule_id, array $options = []) {
-        $schedule_id = (int) $schedule_id;
-        if ($schedule_id <= 0) {
-            return false;
+        if (function_exists('aidunite_schedule_restore_from_pre_established_backup')) {
+            return aidunite_schedule_restore_from_pre_established_backup($schedule_id, $options);
         }
 
-        $set_recruit_matching = !empty($options['set_recruit_matching']);
-        $had_backup           = (get_post_meta($schedule_id, 'pre_established_saved', true) === '1');
-
-        if ($had_backup) {
-            update_post_meta($schedule_id, 'schedule_start_time', get_post_meta($schedule_id, 'pre_established_start_time', true));
-            update_post_meta($schedule_id, 'schedule_end_time', get_post_meta($schedule_id, 'pre_established_end_time', true));
-            $restore_place = (string) (get_post_meta($schedule_id, 'pre_established_place', true)
-                ?: get_post_meta($schedule_id, 'pre_established_place_option', true));
-            if (function_exists('aidunite_schedule_write_place_meta')) {
-                aidunite_schedule_write_place_meta($schedule_id, $restore_place);
-            } else {
-                update_post_meta($schedule_id, 'schedule_place', $restore_place);
-            }
-            update_post_meta($schedule_id, 'schedule_gender', get_post_meta($schedule_id, 'pre_established_gender', true));
-            update_post_meta($schedule_id, 'male_slots', get_post_meta($schedule_id, 'pre_established_male_slots', true));
-            update_post_meta($schedule_id, 'female_slots', get_post_meta($schedule_id, 'pre_established_female_slots', true));
-
-            $pre_match_status = get_post_meta($schedule_id, 'pre_established_match_status', true);
-            if ($pre_match_status === '' || $pre_match_status === null) {
-                update_post_meta($schedule_id, 'match_status', 'planned');
-            } else {
-                update_post_meta($schedule_id, 'match_status', $pre_match_status);
-            }
-            $pre_opponent_team_id = get_post_meta($schedule_id, 'pre_established_match_opponent_team_id', true);
-            $pre_opponent_name    = get_post_meta($schedule_id, 'pre_established_match_opponent_name', true);
-            if ($pre_opponent_team_id === '' || $pre_opponent_team_id === null) {
-                delete_post_meta($schedule_id, 'match_opponent_team_id');
-            } else {
-                update_post_meta($schedule_id, 'match_opponent_team_id', $pre_opponent_team_id);
-            }
-            if ($pre_opponent_name === '' || $pre_opponent_name === null) {
-                delete_post_meta($schedule_id, 'match_opponent_name');
-            } else {
-                update_post_meta($schedule_id, 'match_opponent_name', $pre_opponent_name);
-            }
-            $pre_lock = get_post_meta($schedule_id, 'pre_established_place_lock', true);
-            if ($pre_lock === '' || $pre_lock === null) {
-                delete_post_meta($schedule_id, 'place_lock');
-            } else {
-                update_post_meta($schedule_id, 'place_lock', $pre_lock);
-            }
-
-            delete_post_meta($schedule_id, 'pre_established_start_time');
-            delete_post_meta($schedule_id, 'pre_established_end_time');
-            delete_post_meta($schedule_id, 'pre_established_place');
-            delete_post_meta($schedule_id, 'pre_established_place_option');
-            delete_post_meta($schedule_id, 'pre_established_gender');
-            delete_post_meta($schedule_id, 'pre_established_male_slots');
-            delete_post_meta($schedule_id, 'pre_established_female_slots');
-            delete_post_meta($schedule_id, 'pre_established_place_lock');
-            delete_post_meta($schedule_id, 'pre_established_match_status');
-            delete_post_meta($schedule_id, 'pre_established_match_opponent_team_id');
-            delete_post_meta($schedule_id, 'pre_established_match_opponent_name');
-            delete_post_meta($schedule_id, 'pre_established_saved');
-        } else {
-            update_post_meta($schedule_id, 'match_status', 'planned');
-            delete_post_meta($schedule_id, 'match_opponent_team_id');
-            delete_post_meta($schedule_id, 'match_opponent_name');
-            delete_post_meta($schedule_id, 'place_lock');
-        }
-
-        if ($set_recruit_matching) {
-            update_post_meta($schedule_id, 'intent', 'recruit');
-            update_post_meta($schedule_id, 'matching', '1');
-            update_post_meta($schedule_id, 'is_match_requested', '1');
-            $my_date = get_post_meta($schedule_id, 'schedule_date', true);
-            if ($my_date) {
-                wp_update_post([
-                    'ID'         => $schedule_id,
-                    'post_title' => $my_date . ' 練習試合',
-                ]);
-            }
-        }
-
-        return $had_backup;
+        return false;
     }
 }
 
@@ -919,18 +925,18 @@ if (!function_exists('aidunite_restore_anchor_schedule_on_game_dissolve')) {
             return;
         }
 
-        $schedule_origin = get_post_meta($match_game_id, 'aidunite_schedule_origin', true);
-        if ($schedule_origin === 'match_apply_tentative') {
-            update_post_meta($match_game_id, 'intent', 'tentative');
-        } else {
-            update_post_meta($match_game_id, 'intent', 'recruit');
+        if (function_exists('aidunite_schedule_rollback_intent_after_established_cancel')) {
+            aidunite_schedule_rollback_intent_after_established_cancel($match_game_id);
         }
 
         $had_backup = function_exists('aidunite_restore_schedule_from_pre_established_backup')
             ? aidunite_restore_schedule_from_pre_established_backup($match_game_id, ['set_recruit_matching' => false])
             : false;
 
-        $schedule_type = (string) get_post_meta($match_game_id, 'schedule_type', true);
+        $anchor_bundle = function_exists('aidunite_schedule_get_display_bundle')
+            ? aidunite_schedule_get_display_bundle($match_game_id)
+            : [];
+        $schedule_type = (string) ($anchor_bundle['schedule_type'] ?? '');
         $is_practice     = in_array($schedule_type, ['practice_match', 'joint_practice', '練習試合', '合同練習'], true)
             || (function_exists('mb_strpos') && mb_strpos($schedule_type, '練習試合') !== false)
             || (function_exists('mb_strpos') && mb_strpos($schedule_type, '合同練習') !== false);
@@ -938,7 +944,10 @@ if (!function_exists('aidunite_restore_anchor_schedule_on_game_dissolve')) {
             update_post_meta($match_game_id, 'match_status', 'planned');
         }
 
-        if ((string) get_post_meta($match_game_id, 'intent', true) === 'recruit') {
+        $anchor_intent = function_exists('aidunite_schedule_read_intent')
+            ? aidunite_schedule_read_intent($match_game_id)
+            : (string) get_post_meta($match_game_id, 'intent', true);
+        if ($anchor_intent === 'recruit') {
             $slots_remain = true;
             if (function_exists('aidunite_get_remaining_gender_slots')) {
                 $rem   = aidunite_get_remaining_gender_slots($match_game_id);
@@ -1002,6 +1011,18 @@ if (!function_exists('aidunite_restore_all_participant_schedules_on_game_dissolv
                 continue;
             }
             $restored_schedule_ids[$my_sid] = true;
+
+            if (function_exists('aidunite_schedule_delete_match_apply_tentative_on_established_cancel')
+                && aidunite_schedule_delete_match_apply_tentative_on_established_cancel($my_sid, $my_sid)) {
+                if (function_exists('aidunite_match_flow_debug_log')) {
+                    aidunite_match_flow_debug_log('game_dissolve_participant_delete_tentative', [
+                        'match_game_id' => $match_game_id,
+                        'request_id'    => $rid,
+                        'schedule_id'   => $my_sid,
+                    ]);
+                }
+                continue;
+            }
 
             if (!function_exists('aidunite_restore_schedule_from_pre_established_backup')) {
                 continue;
@@ -1074,41 +1095,29 @@ if (!function_exists('aidunite_rollback_established_from_schedules')) {
         }
 
         $had_backup_by_schedule = [];
+        $deleted_apply_tentative = [];
         foreach ([$to_schedule_id, $my_schedule_id] as $sid) {
             if (!$sid) {
                 continue;
             }
+
+            if (function_exists('aidunite_schedule_delete_match_apply_tentative_on_established_cancel')
+                && aidunite_schedule_delete_match_apply_tentative_on_established_cancel($sid, $my_schedule_id)) {
+                $deleted_apply_tentative[(int) $sid] = true;
+                continue;
+            }
+
             $had_backup = (get_post_meta($sid, 'pre_established_saved', true) === '1');
             $had_backup_by_schedule[(int) $sid] = $had_backup;
-            // 相手のみ申請で自動作成された仮日程は recruit にするとカレンダー・掲示板の意味が崩れるため tentative に戻す
-            $schedule_origin = get_post_meta($sid, 'aidunite_schedule_origin', true);
-            if ($schedule_origin === 'match_apply_tentative') {
-                update_post_meta($sid, 'intent', 'tentative');
-            } else {
-                update_post_meta($sid, 'intent', 'recruit');
+
+            if (function_exists('aidunite_schedule_rollback_intent_after_established_cancel')) {
+                aidunite_schedule_rollback_intent_after_established_cancel($sid);
             }
-            // 成立時に matching=0 へ落とした主催募集を、ロールバック後も掲示板・行判定で拾えるように戻す
-            if ((string) get_post_meta($sid, 'intent', true) === 'recruit') {
-                $slots_remain = true;
-                if (function_exists('aidunite_get_remaining_gender_slots')) {
-                    $rem = aidunite_get_remaining_gender_slots($sid);
-                    $canon = function_exists('aidunite_market_recruitment_gender_canonical')
-                        ? aidunite_market_recruitment_gender_canonical($sid)
-                        : '';
-                    if ($canon === 'male') {
-                        $slots_remain = ((int) ($rem['male'] ?? 0)) > 0;
-                    } elseif ($canon === 'female') {
-                        $slots_remain = ((int) ($rem['female'] ?? 0)) > 0;
-                    } else {
-                        $slots_remain = ((int) ($rem['male'] ?? 0)) > 0 || ((int) ($rem['female'] ?? 0)) > 0;
-                    }
-                }
-                if ($slots_remain) {
-                    update_post_meta($sid, 'matching', '1');
-                    update_post_meta($sid, 'is_match_requested', '1');
-                }
-            }
-            $schedule_type = (string) get_post_meta($sid, 'schedule_type', true);
+
+            $sid_bundle = function_exists('aidunite_schedule_get_display_bundle')
+                ? aidunite_schedule_get_display_bundle((int) $sid)
+                : [];
+            $schedule_type = (string) ($sid_bundle['schedule_type'] ?? '');
             $is_practice_schedule_type = in_array($schedule_type, ['practice_match', 'joint_practice', '練習試合', '合同練習'], true)
                 || (function_exists('mb_strpos') && mb_strpos($schedule_type, '練習試合') !== false)
                 || (function_exists('mb_strpos') && mb_strpos($schedule_type, '合同練習') !== false);
@@ -1117,57 +1126,8 @@ if (!function_exists('aidunite_rollback_established_from_schedules')) {
                 update_post_meta($sid, 'match_status', 'planned');
             }
 
-            if ($had_backup) {
-                update_post_meta($sid, 'schedule_start_time', get_post_meta($sid, 'pre_established_start_time', true));
-                update_post_meta($sid, 'schedule_end_time', get_post_meta($sid, 'pre_established_end_time', true));
-                $restore_place = (string) (get_post_meta($sid, 'pre_established_place', true)
-                    ?: get_post_meta($sid, 'pre_established_place_option', true));
-                if (function_exists('aidunite_schedule_write_place_meta')) {
-                    aidunite_schedule_write_place_meta($sid, $restore_place);
-                } else {
-                    update_post_meta($sid, 'schedule_place', $restore_place);
-                }
-                update_post_meta($sid, 'schedule_gender', get_post_meta($sid, 'pre_established_gender', true));
-                update_post_meta($sid, 'male_slots', get_post_meta($sid, 'pre_established_male_slots', true));
-                update_post_meta($sid, 'female_slots', get_post_meta($sid, 'pre_established_female_slots', true));
-                $pre_match_status = get_post_meta($sid, 'pre_established_match_status', true);
-                $pre_opponent_team_id = get_post_meta($sid, 'pre_established_match_opponent_team_id', true);
-                $pre_opponent_name = get_post_meta($sid, 'pre_established_match_opponent_name', true);
-                if ($pre_match_status === '' || $pre_match_status === null) {
-                    // バックアップが空でも募集表示に固定
-                    update_post_meta($sid, 'match_status', 'planned');
-                } else {
-                    update_post_meta($sid, 'match_status', $pre_match_status);
-                }
-                if ($pre_opponent_team_id === '' || $pre_opponent_team_id === null) {
-                    delete_post_meta($sid, 'match_opponent_team_id');
-                } else {
-                    update_post_meta($sid, 'match_opponent_team_id', $pre_opponent_team_id);
-                }
-                if ($pre_opponent_name === '' || $pre_opponent_name === null) {
-                    delete_post_meta($sid, 'match_opponent_name');
-                } else {
-                    update_post_meta($sid, 'match_opponent_name', $pre_opponent_name);
-                }
-                $pre_lock = get_post_meta($sid, 'pre_established_place_lock', true);
-                if ($pre_lock === '' || $pre_lock === null) {
-                    delete_post_meta($sid, 'place_lock');
-                } else {
-                    update_post_meta($sid, 'place_lock', $pre_lock);
-                }
-
-                delete_post_meta($sid, 'pre_established_start_time');
-                delete_post_meta($sid, 'pre_established_end_time');
-                delete_post_meta($sid, 'pre_established_place');
-                delete_post_meta($sid, 'pre_established_place_option');
-                delete_post_meta($sid, 'pre_established_gender');
-                delete_post_meta($sid, 'pre_established_male_slots');
-                delete_post_meta($sid, 'pre_established_female_slots');
-                delete_post_meta($sid, 'pre_established_place_lock');
-                delete_post_meta($sid, 'pre_established_match_status');
-                delete_post_meta($sid, 'pre_established_match_opponent_team_id');
-                delete_post_meta($sid, 'pre_established_match_opponent_name');
-                delete_post_meta($sid, 'pre_established_saved');
+            if ($had_backup && function_exists('aidunite_schedule_restore_pre_established_fields')) {
+                aidunite_schedule_restore_pre_established_fields($sid);
             } else {
                 // 旧データ互換: バックアップがない成立キャンセルでも、確定表示メタを除去して募集表示へ戻す
                 update_post_meta($sid, 'match_status', 'planned');
@@ -1188,7 +1148,7 @@ if (!function_exists('aidunite_rollback_established_from_schedules')) {
         $inc_male = ($slot_used === 'male');
 
         foreach ([$to_schedule_id, $my_schedule_id] as $sid) {
-            if (!$sid) {
+            if (!$sid || !empty($deleted_apply_tentative[(int) $sid])) {
                 continue;
             }
             // If no backup exists (legacy data), keep old incremental fallback behavior.
@@ -1286,8 +1246,21 @@ if (!function_exists('aidunite_restore_participant_my_schedule_on_shared_cancel'
         }
 
         $from_team_id = (int) get_post_meta($request_id, 'from_team_id', true);
-        $my_team_id   = (int) get_post_meta($my_schedule_id, 'team_id', true);
+        $my_team_id   = function_exists('aidunite_schedule_read_team_id')
+            ? aidunite_schedule_read_team_id($my_schedule_id)
+            : (int) get_post_meta($my_schedule_id, 'team_id', true);
         if ($from_team_id > 0 && $my_team_id > 0 && $from_team_id !== $my_team_id) {
+            return;
+        }
+
+        if (function_exists('aidunite_schedule_delete_match_apply_tentative_on_established_cancel')
+            && aidunite_schedule_delete_match_apply_tentative_on_established_cancel($my_schedule_id, $my_schedule_id)) {
+            if (function_exists('aidunite_match_flow_debug_log')) {
+                aidunite_match_flow_debug_log('restore_participant_my_schedule_deleted_tentative', [
+                    'request_id'     => $request_id,
+                    'my_schedule_id' => $my_schedule_id,
+                ]);
+            }
             return;
         }
 

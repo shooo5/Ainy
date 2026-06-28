@@ -36,14 +36,20 @@ add_action('rest_api_init', function() {
 if (!function_exists('aidunite_get_match_end_time')) {
 function aidunite_get_match_end_time($match_request_id) {
     try {
-        $from_schedule_id = get_post_meta($match_request_id, 'from_schedule_id', true);
-        $to_schedule_id = get_post_meta($match_request_id, 'to_schedule_id', true);
-        $schedule_id = $from_schedule_id ?: $to_schedule_id;
+        $canonical = function_exists('aidunite_match_request_get_canonical_meta')
+            ? aidunite_match_request_get_canonical_meta((int) $match_request_id)
+            : [];
+        $from_schedule_id = (int) ($canonical['from_schedule_id'] ?? 0);
+        $to_schedule_id = (int) ($canonical['to_schedule_id'] ?? 0);
+        $schedule_id = $from_schedule_id > 0 ? $from_schedule_id : $to_schedule_id;
         if (!$schedule_id) {
             return null;
         }
-        $schedule_date = get_post_meta($schedule_id, 'schedule_date', true);
-        $schedule_end_time = get_post_meta($schedule_id, 'schedule_end_time', true);
+        $sched_api = function_exists('aidunite_schedule_get_api_display_fields')
+            ? aidunite_schedule_get_api_display_fields((int) $schedule_id)
+            : [];
+        $schedule_date = (string) ($sched_api['date'] ?? '');
+        $schedule_end_time = (string) ($sched_api['end_time'] ?? '');
         if (!$schedule_date || !$schedule_end_time) {
             return null;
         }
@@ -62,15 +68,7 @@ function aidunite_get_match_end_time($match_request_id) {
 function aidunite_save_match_feedback($request) {
     try {
         $current_user_id = get_current_user_id();
-        $team_scope = function_exists('aidunite_get_managed_team_ids')
-            ? aidunite_get_managed_team_ids($current_user_id)
-            : [];
-        if (empty($team_scope)) {
-            $legacy = (int) get_user_meta($current_user_id, 'team_id', true);
-            if ($legacy > 0) {
-                $team_scope = [$legacy];
-            }
-        }
+        $team_scope = aidunite_match_resolve_user_team_scope($current_user_id);
 
         if (empty($team_scope)) {
             error_log('[MATCH_FEEDBACK_API] Error: Team ID not found for user ' . $current_user_id);
@@ -103,25 +101,8 @@ function aidunite_save_match_feedback($request) {
         }
 
         // 既に回答済みかチェック
-        $existing_feedback = get_posts([
-            'post_type' => 'match_feedback',
-            'posts_per_page' => 1,
-            'meta_query' => [
-                'relation' => 'AND',
-                [
-                    'key' => 'match_id',
-                    'value' => $match_id,
-                    'compare' => '='
-                ],
-                [
-                    'key' => 'team_id',
-                    'value' => $team_id,
-                    'compare' => '='
-                ]
-            ]
-        ]);
-
-        if (!empty($existing_feedback)) {
+        if (function_exists('aidunite_match_feedback_read_exists')
+            && aidunite_match_feedback_read_exists($match_id, $team_id)) {
             error_log('[MATCH_FEEDBACK_API] Error: Feedback already exists for match_id=' . $match_id . ', team_id=' . $team_id);
             return new WP_Error('already_answered', '既に回答済みです', ['status' => 400]);
         }
@@ -139,32 +120,20 @@ function aidunite_save_match_feedback($request) {
             'venue_improvement' => isset($params['venue_improvement']) ? sanitize_textarea_field($params['venue_improvement']) : '',
             'rematch_interest' => isset($params['rematch_interest']) ? sanitize_text_field($params['rematch_interest']) : '',
             'rematch_reason' => isset($params['rematch_reason']) ? sanitize_textarea_field($params['rematch_reason']) : '',
-            'comment' => isset($params['comment']) ? sanitize_textarea_field($params['comment']) : ''
+            'comment' => isset($params['comment']) ? sanitize_textarea_field($params['comment']) : '',
         ];
 
-        // カスタム投稿タイプとして保存
-        $feedback_post_id = wp_insert_post([
-            'post_type' => 'match_feedback',
-            'post_status' => 'publish',
-            'post_title' => 'マッチアンケート - マッチID: ' . $match_id . ', チームID: ' . $team_id,
-            'post_author' => $current_user_id
-        ]);
-
-        if (is_wp_error($feedback_post_id)) {
-            error_log('[MATCH_FEEDBACK_API] Error: Failed to create feedback post - ' . $feedback_post_id->get_error_message());
+        if (!function_exists('aidunite_match_feedback_persist_save')) {
             return new WP_Error('save_failed', 'アンケートの保存に失敗しました', ['status' => 500]);
         }
 
-        // メタデータを保存
-        foreach ($feedback_data as $key => $value) {
-            if ($key === 'satisfaction_reasons' || $key === 'opponent_reasons') {
-                update_post_meta($feedback_post_id, $key, $value);
-            } else {
-                update_post_meta($feedback_post_id, $key, $value);
-            }
+        $save_result = aidunite_match_feedback_persist_save($feedback_data, $current_user_id);
+        if (empty($save_result['success'])) {
+            error_log('[MATCH_FEEDBACK_API] Error: Failed to create feedback post');
+            return new WP_Error('save_failed', 'アンケートの保存に失敗しました', ['status' => 500]);
         }
 
-        update_post_meta($feedback_post_id, 'created_at', current_time('mysql'));
+        $feedback_post_id = (int) ($save_result['feedback_id'] ?? 0);
 
         error_log('[MATCH_FEEDBACK_API] Success: Feedback saved with ID ' . $feedback_post_id);
 
@@ -194,15 +163,7 @@ function aidunite_save_match_feedback($request) {
 function aidunite_get_match_feedback($request) {
     try {
         $current_user_id = get_current_user_id();
-        $team_scope = function_exists('aidunite_get_managed_team_ids')
-            ? aidunite_get_managed_team_ids($current_user_id)
-            : [];
-        if (empty($team_scope)) {
-            $legacy = (int) get_user_meta($current_user_id, 'team_id', true);
-            if ($legacy > 0) {
-                $team_scope = [$legacy];
-            }
-        }
+        $team_scope = aidunite_match_resolve_user_team_scope($current_user_id);
         if (empty($team_scope)) {
             return new WP_REST_Response([
                 'success' => true,
@@ -213,49 +174,18 @@ function aidunite_get_match_feedback($request) {
         $params = $request->get_params();
         $match_id = isset($params['match_id']) ? intval($params['match_id']) : 0;
 
-        $team_meta = count($team_scope) === 1
-            ? [
-                'key' => 'team_id',
-                'value' => (int) $team_scope[0],
-                'compare' => '=',
-            ]
-            : [
-                'key' => 'team_id',
-                'value' => array_map('intval', $team_scope),
-                'compare' => 'IN',
-            ];
-
-        $args = [
-            'post_type' => 'match_feedback',
-            'posts_per_page' => -1,
-            'meta_query' => [
-                'relation' => 'AND',
-                $team_meta,
-            ]
-        ];
-
-        if ($match_id) {
-            $args['meta_query'][] = [
-                'key' => 'match_id',
-                'value' => $match_id,
-                'compare' => '='
-            ];
-        }
-
-        $feedbacks = get_posts($args);
+        $feedbacks = function_exists('aidunite_match_feedback_read_posts_for_teams')
+            ? aidunite_match_feedback_read_posts_for_teams($team_scope, $match_id)
+            : [];
 
         $results = [];
         foreach ($feedbacks as $feedback) {
-            $results[] = [
-                'id' => $feedback->ID,
-                'match_id' => get_post_meta($feedback->ID, 'match_id', true),
-                'team_id' => get_post_meta($feedback->ID, 'team_id', true),
-                'satisfaction' => get_post_meta($feedback->ID, 'satisfaction', true),
-                'opponent_rating' => get_post_meta($feedback->ID, 'opponent_rating', true),
-                'venue_rating' => get_post_meta($feedback->ID, 'venue_rating', true),
-                'rematch_interest' => get_post_meta($feedback->ID, 'rematch_interest', true),
-                'created_at' => get_post_meta($feedback->ID, 'created_at', true)
-            ];
+            $row = function_exists('aidunite_match_feedback_format_rest_row')
+                ? aidunite_match_feedback_format_rest_row((int) $feedback->ID)
+                : [];
+            if ($row !== []) {
+                $results[] = $row;
+            }
         }
 
         return new WP_REST_Response([

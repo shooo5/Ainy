@@ -281,11 +281,11 @@ function aidunite_render_meta_key_migration_page() {
             </div>
         <?php endif; ?>
 
-        <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
+        <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" data-aidunite-confirm="移行を実行しますか？既存の統一キーは上書きされません。" data-aidunite-confirm-label="実行する">
             <?php wp_nonce_field('aidunite_meta_key_migration'); ?>
             <input type="hidden" name="action" value="aidunite_migrate_meta_keys">
             <p>
-                <input type="submit" class="button button-primary" value="移行を実行" onclick="return confirm('移行を実行しますか？既存の統一キーは上書きされません。');">
+                <input type="submit" class="button button-primary" value="移行を実行">
             </p>
         </form>
 
@@ -511,11 +511,11 @@ function aidunite_render_meta_key_cleanup_section() {
         </div>
     <?php endif; ?>
 
-    <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
+    <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" data-aidunite-confirm="旧メタキーを削除しますか？統一キーが存在しない場合はスキップされます。" data-aidunite-confirm-label="実行する">
         <?php wp_nonce_field('aidunite_meta_key_cleanup'); ?>
         <input type="hidden" name="action" value="aidunite_cleanup_meta_keys">
         <p>
-            <input type="submit" class="button button-primary" value="クリーンアップを実行" onclick="return confirm('旧メタキーを削除しますか？統一キーが存在しない場合はスキップされます。');">
+            <input type="submit" class="button button-primary" value="クリーンアップを実行">
         </p>
     </form>
     <?php

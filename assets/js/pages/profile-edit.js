@@ -19,14 +19,19 @@ function initializeProfileEdit() {
     const newPassword = document.getElementById('new_password');
     const confirmPassword = document.getElementById('confirm_password');
     const userBio = document.getElementById('user_bio');
-    const profileForm = document.querySelector('form');
+    const profileFormLegacy = document.querySelector('form');
 
     // アバター絵文字選択機能
     if (avatarOptions.length > 0) {
         initializeAvatarSelection(avatarOptions, avatarPreview, avatarEmoji, selectedEmojiInput);
     }
 
+    initializeAvatarUpload(avatarOptions, avatarPreview, selectedEmojiInput);
 
+    const profileForm = document.getElementById('profileEditForm');
+    if (profileForm && typeof AidUniteFormUtils !== 'undefined') {
+        initializeProfileFormAjaxSubmit(profileForm);
+    }
 
     // パスワード確認機能
     if (newPassword && confirmPassword) {
@@ -38,13 +43,105 @@ function initializeProfileEdit() {
         initializeCharacterLimit(userBio, 500);
     }
 
-    // フォーム送信前のバリデーション
-    if (profileForm) {
-        initializeFormValidation(profileForm);
+    // フォーム送信前のバリデーション（AidUniteFormUtils 未使用時のフォールバック）
+    if (profileFormLegacy && typeof AidUniteFormUtils === 'undefined') {
+        initializeFormValidation(profileFormLegacy);
     }
 
     // リアルタイムプレビュー機能
     initializeRealTimePreview();
+}
+
+/**
+ * 画像アップロードを初期化
+ */
+function initializeAvatarUpload(avatarOptions, avatarPreview, selectedEmojiInput) {
+    const avatarUpload = document.getElementById('avatarUpload');
+    if (!avatarUpload || !avatarPreview) {
+        return;
+    }
+
+    avatarUpload.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (!file) {
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            if (typeof aiduniteToast === 'function') {
+                aiduniteToast('ファイルサイズは5MB以下にしてください。', 'warning');
+            }
+            this.value = '';
+            return;
+        }
+
+        if (!file.type.startsWith('image/')) {
+            if (typeof aiduniteToast === 'function') {
+                aiduniteToast('画像ファイルを選択してください。', 'warning');
+            }
+            this.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            avatarPreview.innerHTML = `<img src="${event.target.result}" alt="アバター">`;
+            if (avatarOptions && avatarOptions.length) {
+                avatarOptions.forEach((opt) => opt.classList.remove('selected'));
+            }
+            if (selectedEmojiInput) {
+                selectedEmojiInput.value = '';
+            }
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+/**
+ * AidUniteFormUtils による AJAX 送信
+ */
+function initializeProfileFormAjaxSubmit(form) {
+    AidUniteFormUtils.handleFormSubmit(form, {
+        validationRules: {
+            email: ['user_email'],
+            minLength: { new_password: 8 },
+            custom: [
+                {
+                    field: 'confirm_password',
+                    validator: (value, formData) => {
+                        const newPassword = formData.get('new_password');
+                        return !newPassword || value === newPassword;
+                    },
+                    message: 'パスワードが一致しません',
+                },
+            ],
+        },
+        onSubmit: (formData) => {
+            const params = new URLSearchParams();
+            Object.entries(formData).forEach(([key, value]) => {
+                params.append(key, value);
+            });
+            params.append('update_profile', '1');
+
+            fetch(form.action || window.location.href, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: params.toString(),
+            })
+                .then((response) => {
+                    if (response.redirected) {
+                        window.location.href = response.url;
+                    } else {
+                        window.location.reload();
+                    }
+                })
+                .catch(() => {
+                    form.submit();
+                });
+        },
+    });
 }
 
 /**

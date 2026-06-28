@@ -137,22 +137,14 @@ function get_match_requests_list($request) {
   $formatted_requests = [];
 
   foreach ($match_requests as $request) {
-    $from_team_id = get_post_meta($request->ID, 'from_team_id', true);
-    $from_team_name = $from_team_id ? get_the_title($from_team_id) : '不明';
-
-    $formatted_requests[] = [
-      'ID' => $request->ID,
-      'from_team_id' => $from_team_id,
-      'from_team_name' => $from_team_name,
-      'to_schedule_id' => get_post_meta($request->ID, 'to_schedule_id', true),
-      'my_schedule_id' => get_post_meta($request->ID, 'my_schedule_id', true),
-      'status' => get_post_meta($request->ID, 'status', true),
-      'selected_start_time' => get_post_meta($request->ID, 'selected_start_time', true),
-      'selected_end_time' => get_post_meta($request->ID, 'selected_end_time', true),
-      'selected_place' => get_post_meta($request->ID, 'selected_place', true),
-      'selected_gender' => get_post_meta($request->ID, 'selected_gender', true),
-      'post_date' => $request->post_date
-    ];
+    $row = function_exists('aidunite_match_request_format_rest_row')
+      ? aidunite_match_request_format_rest_row((int) $request->ID)
+      : [];
+    if ($row === []) {
+      continue;
+    }
+    $row['post_date'] = $request->post_date;
+    $formatted_requests[] = $row;
   }
 
   return new WP_REST_Response([
@@ -172,20 +164,9 @@ function delete_single_match_request($request) {
     ], 400);
   }
 
-  // メタデータを削除
-  delete_post_meta($request_id, 'from_team_id');
-  delete_post_meta($request_id, 'request_team_id');
-  delete_post_meta($request_id, 'to_schedule_id');
-  delete_post_meta($request_id, 'my_schedule_id');
-  delete_post_meta($request_id, 'status');
-  delete_post_meta($request_id, 'request_status');
-  delete_post_meta($request_id, 'selected_start_time');
-  delete_post_meta($request_id, 'selected_end_time');
-  delete_post_meta($request_id, 'selected_place');
-  delete_post_meta($request_id, 'selected_gender');
-
-  // 投稿を削除
-  $result = wp_delete_post($request_id, true);
+  $result = function_exists('aidunite_match_request_persist_admin_delete')
+    ? aidunite_match_request_persist_admin_delete($request_id)
+    : (bool) wp_delete_post($request_id, true);
 
   if ($result) {
     error_log("✅ 申請ID {$request_id}を削除しました");
@@ -203,32 +184,9 @@ function delete_single_match_request($request) {
 }
 
 function delete_all_match_requests($request) {
-  $match_requests = get_posts([
-    'post_type' => 'match_request',
-    'post_status' => 'any',
-    'posts_per_page' => -1
-  ]);
-
-  $deleted_count = 0;
-
-  foreach ($match_requests as $request) {
-    // メタデータを削除
-    delete_post_meta($request->ID, 'from_team_id');
-    delete_post_meta($request->ID, 'request_team_id');
-    delete_post_meta($request->ID, 'to_schedule_id');
-    delete_post_meta($request->ID, 'my_schedule_id');
-    delete_post_meta($request->ID, 'status');
-    delete_post_meta($request->ID, 'request_status');
-    delete_post_meta($request->ID, 'selected_start_time');
-    delete_post_meta($request->ID, 'selected_end_time');
-    delete_post_meta($request->ID, 'selected_place');
-    delete_post_meta($request->ID, 'selected_gender');
-
-    // 投稿を削除
-    if (wp_delete_post($request->ID, true)) {
-      $deleted_count++;
-    }
-  }
+  $deleted_count = function_exists('aidunite_match_request_persist_admin_delete_all')
+    ? aidunite_match_request_persist_admin_delete_all()
+    : 0;
 
   error_log("✅ 全マッチリクエスト {$deleted_count}件を削除しました");
 

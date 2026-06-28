@@ -18,6 +18,132 @@ function aidunite_attendance_canonical_statuses() {
 }
 
 /**
+ * 任意 status を canonical に正規化
+ *
+ * @param mixed $raw
+ * @return string
+ */
+function aidunite_attendance_normalize_status($raw) {
+    if (function_exists('aidunite_normalize_attendance_status_value')) {
+        return aidunite_normalize_attendance_status_value($raw);
+    }
+    return strtolower(trim((string) $raw));
+}
+
+/**
+ * 未回答か（no_response / pending / 空）
+ *
+ * @param mixed $raw
+ * @return bool
+ */
+function aidunite_attendance_status_is_unanswered($raw) {
+    $status = aidunite_attendance_normalize_status($raw);
+    return $status === '' || $status === 'no_response';
+}
+
+/**
+ * 参加（present / attending）
+ *
+ * @param mixed $raw
+ * @return bool
+ */
+function aidunite_attendance_status_is_present($raw) {
+    return aidunite_attendance_normalize_status($raw) === 'present';
+}
+
+/**
+ * 不参加（absent / not_attending）
+ *
+ * @param mixed $raw
+ * @return bool
+ */
+function aidunite_attendance_status_is_absent($raw) {
+    return aidunite_attendance_normalize_status($raw) === 'absent';
+}
+
+/**
+ * フィルター用: UI legacy 値と canonical の一致判定
+ *
+ * @param mixed  $stored_status attendance_data 内の status
+ * @param string $filter        attending|not_attending|pending
+ * @return bool
+ */
+function aidunite_attendance_status_matches_filter($stored_status, $filter) {
+    $filter = strtolower(trim((string) $filter));
+    if ($filter === 'attending') {
+        return aidunite_attendance_status_is_present($stored_status);
+    }
+    if ($filter === 'not_attending') {
+        return aidunite_attendance_status_is_absent($stored_status);
+    }
+    if ($filter === 'pending') {
+        $raw = trim((string) $stored_status);
+        if ($raw === '') {
+            return true;
+        }
+
+        return aidunite_attendance_normalize_status($stored_status) === 'pending';
+    }
+    if ($filter === 'maybe') {
+        return aidunite_attendance_normalize_status($stored_status) === 'no_response';
+    }
+
+    return aidunite_attendance_normalize_status($stored_status) === $filter;
+}
+
+/**
+ * UI 表示用ラベル（参加 / 不参加 / 遅刻 等）
+ *
+ * @param mixed $raw
+ * @return string
+ */
+function aidunite_attendance_status_ui_label($raw) {
+    $status = aidunite_attendance_normalize_status($raw);
+    $labels = [
+        'present' => '参加',
+        'absent' => '不参加',
+        'late' => '遅刻',
+        'leave_early' => '早退',
+        'no_response' => '未回答',
+    ];
+
+    return $labels[$status] ?? '未回答';
+}
+
+/**
+ * フォーム POST 用 legacy 値。no_response かつ回答済み行は maybe（未定）
+ *
+ * @param mixed $raw
+ * @param bool  $has_row attendance_data に行があるか
+ * @return string
+ */
+function aidunite_attendance_status_form_value($raw, $has_row = false) {
+    if (aidunite_attendance_status_is_present($raw)) {
+        return 'attending';
+    }
+    if (aidunite_attendance_status_is_absent($raw)) {
+        return 'not_attending';
+    }
+    if ($has_row && aidunite_attendance_status_is_unanswered($raw)) {
+        return 'maybe';
+    }
+
+    return '';
+}
+
+/**
+ * UI 表示用ステータスキー
+ *
+ * @param mixed $raw
+ * @param bool  $has_row
+ * @return string
+ */
+function aidunite_attendance_status_ui_key($raw, $has_row = false) {
+    $form = aidunite_attendance_status_form_value($raw, $has_row);
+    return $form !== '' ? $form : 'unanswered';
+}
+
+/**
  * @param array<string, mixed> $raw
  * @return array<string, mixed>
  */
@@ -123,37 +249,15 @@ function aidunite_attendance_write_user_row($schedule_id, $user_id, array $row) 
         return false;
     }
 
-    $existing = get_post_meta($schedule_id, 'attendance_data', true);
+    $existing = function_exists('aidunite_attendance_read_data_map')
+        ? aidunite_attendance_read_data_map($schedule_id)
+        : [];
     if (!is_array($existing)) {
         $existing = [];
     }
     $existing[$user_id] = $norm;
 
     return aidunite_attendance_persist_save_data($schedule_id, $existing);
-}
-
-/**
- * @param int $schedule_id
- * @return array<string, mixed>
- */
-function aidunite_attendance_get_canonical_data($schedule_id) {
-    $schedule_id = (int) $schedule_id;
-    if ($schedule_id <= 0 || get_post_type($schedule_id) !== 'schedule') {
-        return [];
-    }
-
-    $raw = get_post_meta($schedule_id, 'attendance_data', true);
-    if (!is_array($raw)) {
-        $raw = [];
-    }
-
-    return [
-        'schedule_id' => $schedule_id,
-        'attendance_required' => (string) get_post_meta($schedule_id, 'attendance_required', true),
-        'attendance_data' => aidunite_attendance_normalize_data_array($raw),
-        'attendance_data_raw' => $raw,
-        'respondent_count' => count($raw),
-    ];
 }
 
 /**

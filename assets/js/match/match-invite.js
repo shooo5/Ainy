@@ -75,48 +75,49 @@
 
         // 拒否ボタンクリック
         rejectBtn.on('click', function() {
-            if (!confirm('この試合招待を拒否しますか？')) {
-                return;
-            }
-
-            const token = $('input[name="token"]').val();
             const btn = $(this);
-            btn.prop('disabled', true).text('処理中...');
+            aiduniteConfirm({
+                message: 'この試合招待を拒否しますか？',
+                confirmLabel: '拒否する',
+                confirmVariant: 'danger',
+                onConfirm: function() {
+                    const token = $('input[name="token"]').val();
+                    btn.prop('disabled', true).text('処理中...');
 
-            // REST API呼び出し
-            const root = typeof matchInviteSettings !== 'undefined' ? matchInviteSettings.root : '/wp-json/';
-            const nonce = typeof matchInviteSettings !== 'undefined' ? matchInviteSettings.nonce : '';
+                    const root = typeof matchInviteSettings !== 'undefined' ? matchInviteSettings.root : '/wp-json/';
+                    const nonce = typeof matchInviteSettings !== 'undefined' ? matchInviteSettings.nonce : '';
 
-            $.ajax({
-                url: root + 'aidunite/v1/match-invite-reject',
-                method: 'POST',
-                headers: {
-                    'X-WP-Nonce': nonce
-                },
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    token: token
-                }),
-                success: function(response) {
-                    if (response.success) {
-                        showMessage('拒否が完了しました', 'success');
-                        form.hide();
-                        // 3秒後にホームにリダイレクト
-                        setTimeout(function() {
-                            window.location.href = '/';
-                        }, 3000);
-                    } else {
-                        showMessage(response.message || '拒否処理に失敗しました', 'error');
-                        btn.prop('disabled', false).text('拒否');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    let errorMsg = '拒否処理に失敗しました';
-                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                        errorMsg = xhr.responseJSON.message;
-                    }
-                    showMessage(errorMsg, 'error');
-                    btn.prop('disabled', false).text('拒否');
+                    $.ajax({
+                        url: root + 'aidunite/v1/match-invite-reject',
+                        method: 'POST',
+                        headers: {
+                            'X-WP-Nonce': nonce
+                        },
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            token: token
+                        }),
+                        success: function(response) {
+                            if (response.success) {
+                                showMessage('拒否が完了しました', 'success');
+                                form.hide();
+                                setTimeout(function() {
+                                    window.location.href = '/';
+                                }, 3000);
+                            } else {
+                                showMessage(response.message || '拒否処理に失敗しました', 'error');
+                                btn.prop('disabled', false).text('拒否');
+                            }
+                        },
+                        error: function(xhr) {
+                            let errorMsg = '拒否処理に失敗しました';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMsg = xhr.responseJSON.message;
+                            }
+                            showMessage(errorMsg, 'error');
+                            btn.prop('disabled', false).text('拒否');
+                        }
+                    });
                 }
             });
         });
