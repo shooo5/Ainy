@@ -2,10 +2,11 @@
     "name": "aidunite/payment-system",
     "description": "AidUnite会費徴収システム",
     "type": "wordpress-theme",
+    "license": "proprietary",
     "require": {
         "php": ">=7.4",
         "php-webdriver/webdriver": "^1.15",
-        "stripe/stripe-php": "*",
+        "stripe/stripe-php": "^19.0",
         "tecnickcom/tcpdf": "^6.6"
     },
     "require-dev": {
