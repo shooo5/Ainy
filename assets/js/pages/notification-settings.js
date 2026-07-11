@@ -5,11 +5,18 @@
   'use strict';
 
   function setTestResultWithIcon(el, basename, message) {
-    if (typeof AidUniteThemeIcons !== 'undefined') {
-      el.innerHTML = AidUniteThemeIcons.html(basename, 16) + ' ' + message;
-    } else {
-      el.textContent = message;
+    if (!el) {
+      return;
     }
+    el.textContent = '';
+    if (typeof AidUniteThemeIcons !== 'undefined') {
+      var iconWrap = document.createElement('span');
+      iconWrap.className = 'notification-test-result__icon';
+      iconWrap.innerHTML = AidUniteThemeIcons.html(basename, 16);
+      el.appendChild(iconWrap);
+      el.appendChild(document.createTextNode(' '));
+    }
+    el.appendChild(document.createTextNode(String(message || '')));
   }
 
   function initEmailToggle() {
@@ -85,8 +92,24 @@
     });
   }
 
+  function initSaveToast() {
+    var cfg = typeof aiduniteNotificationSettings !== 'undefined' ? aiduniteNotificationSettings : {};
+    if (!cfg.settingsSaved) {
+      return;
+    }
+    if (typeof showToastNotification === 'function') {
+      showToastNotification('設定を保存しました', 'success');
+    }
+    if (window.history && window.history.replaceState) {
+      var url = new URL(window.location.href);
+      url.searchParams.delete('settings_saved');
+      window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+    }
+  }
+
   function init() {
     initEmailToggle();
+    initSaveToast();
     initAdminTestSend();
   }
 

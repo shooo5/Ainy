@@ -13,6 +13,41 @@
         return (typeof AidUniteThemeIcons !== 'undefined') ? AidUniteThemeIcons.html(basename, size || 18) : '';
     }
 
+    function setIconButtonContent(button, iconBasename, text, iconClassName, textClassName) {
+        if (!button) {
+            return;
+        }
+        button.textContent = '';
+        const iconWrap = document.createElement('span');
+        iconWrap.className = iconClassName || 'post-icon';
+        if (iconBasename && typeof AidUniteThemeIcons !== 'undefined') {
+            iconWrap.innerHTML = AidUniteThemeIcons.html(iconBasename, 18);
+        }
+        button.appendChild(iconWrap);
+        const label = document.createElement('span');
+        label.className = textClassName || 'post-text';
+        label.textContent = String(text || '');
+        button.appendChild(label);
+    }
+
+    function captureIconButtonHtml(button) {
+        if (!button || button.dataset.originalHtml) {
+            return;
+        }
+        button.dataset.originalHtml = button.innerHTML;
+    }
+
+    function restoreIconButtonHtml(button, iconBasename, text, iconClassName, textClassName) {
+        if (!button) {
+            return;
+        }
+        if (button.dataset.originalHtml) {
+            button.innerHTML = button.dataset.originalHtml;
+            return;
+        }
+        setIconButtonContent(button, iconBasename, text, iconClassName, textClassName);
+    }
+
     function relocateCommunicationDomNodes() {
         if (!document.body) {
             return;
@@ -21,7 +56,7 @@
         if (wrap) {
             document.body.appendChild(wrap);
         }
-        ['startChatModal', 'messageModal'].forEach(function(id) {
+        ['startChatModal', 'messageModal', 'timelineDetailModal'].forEach(function(id) {
             var el = document.getElementById(id);
             if (el) {
                 document.body.appendChild(el);
@@ -41,6 +76,176 @@
         const filterBtns = document.querySelectorAll('.filter-btn');
         const postBtn = document.getElementById('postBtn');
         const draftBtn = document.getElementById('draftBtn');
+        const timelineDetailModal = document.getElementById('timelineDetailModal');
+        const timelineDetailModalClose = document.getElementById('timelineDetailModalClose');
+        const timelineDetailModalChatBtn = document.getElementById('timelineDetailModalChatBtn');
+        let timelineDetailModalLastFocus = null;
+        let timelineDetailModalRoomId = null;
+
+        const CONTENT_PREVIEW_LEN = 120;
+
+        function isContentPreviewTruncated(rawContent) {
+            const text = String(rawContent || '').trim();
+            if (!text) return false;
+            if (text.length > CONTENT_PREVIEW_LEN) return true;
+            return text.indexOf('\n') !== -1;
+        }
+
+        function getTimelineItemFromCard(card) {
+            if (!card) return null;
+            const key = card.getAttribute('data-timeline-key');
+            if (!key) return null;
+            for (let i = 0; i < filteredItems.length; i += 1) {
+                if (getTimelineItemKey(filteredItems[i]) === key) {
+                    return filteredItems[i];
+                }
+            }
+            return null;
+        }
+
+        function getTimelineDetailTypeLabel(item) {
+            const isBoard = item && item.item_type === 'board';
+            const isHidden = isTimelineChatHidden(item);
+            const roomStatus = (item && item.room_status) || 'active';
+            if (isBoard) return 'お知らせ';
+            if (isHidden) return '削除済み';
+            if (roomStatus === 'completed') return '完了済み';
+            return 'チャット';
+        }
+
+        function getTimelineDetailTypeClass(item) {
+            if (!item) return 'chat';
+            if (item.item_type === 'board') return 'board';
+            if (isTimelineChatHidden(item)) return 'deleted';
+            if ((item.room_status || 'active') === 'completed') return 'completed';
+            return 'chat';
+        }
+
+        function closeTimelineDetailModal() {
+            if (!timelineDetailModal || !timelineDetailModal.classList.contains('is-open')) return;
+            timelineDetailModal.classList.remove('is-open');
+            timelineDetailModal.setAttribute('aria-hidden', 'true');
+            timelineDetailModal.setAttribute('hidden', 'hidden');
+            document.body.classList.remove('comm-timeline-detail-modal-open');
+            timelineDetailModalRoomId = null;
+            if (timelineDetailModalChatBtn) {
+                timelineDetailModalChatBtn.hidden = true;
+            }
+            if (timelineDetailModalLastFocus && typeof timelineDetailModalLastFocus.focus === 'function') {
+                timelineDetailModalLastFocus.focus();
+            }
+            timelineDetailModalLastFocus = null;
+        }
+
+        function openTimelineDetailModal(item) {
+            if (!timelineDetailModal || !item) return;
+
+            const titleEl = document.getElementById('timelineDetailModalTitle');
+            const timeEl = document.getElementById('timelineDetailModalTime');
+            const bodyEl = document.getElementById('timelineDetailModalBody');
+            const metaEl = document.getElementById('timelineDetailModalMeta');
+            const rawContent = String(item.content || '').replace(/\\n/g, '\n').trim();
+            const gameTitle = item.title || item.room_name || 'タイトルなし';
+            const opponentLabel = getOpponentTeamLabel(item);
+            const isBoard = item.item_type === 'board';
+            const roomId = isBoard
+                ? (item.thread_room_id || item.room_id || null)
+                : (item.room_id || null);
+
+            if (titleEl) titleEl.textContent = gameTitle;
+            if (timeEl) {
+                const createdAt = item.created_at || '';
+                timeEl.textContent = createdAt
+                    ? new Date(createdAt).toLocaleString('ja-JP', {
+                        year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+                    })
+                    : '';
+                if (createdAt) {
+                    timeEl.setAttribute('datetime', createdAt);
+                } else {
+                    timeEl.removeAttribute('datetime');
+                }
+            }
+            if (bodyEl) {
+                bodyEl.textContent = rawContent || (isBoard ? '本文がありません。' : 'メッセージがありません。');
+            }
+            if (metaEl) {
+                metaEl.textContent = '';
+                const typeClass = getTimelineDetailTypeClass(item);
+                const typeLabel = document.createElement('span');
+                typeLabel.className = 'timeline-card-type-label timeline-card-type-label--' + typeClass;
+                typeLabel.textContent = getTimelineDetailTypeLabel(item);
+                metaEl.appendChild(typeLabel);
+                if (item.priority && item.priority !== 'normal') {
+                    const priClass = timelinePriorityClass(item.priority);
+                    if (priClass) {
+                        const badge = document.createElement('span');
+                        badge.className = 'priority-badge ' + priClass;
+                        badge.textContent = getPriorityLabel(item.priority);
+                        metaEl.appendChild(badge);
+                    }
+                }
+                if (opponentLabel) {
+                    const opponent = document.createElement('span');
+                    opponent.className = 'comm-timeline-detail-modal__opponent';
+                    opponent.textContent = '相手: ' + opponentLabel;
+                    metaEl.appendChild(opponent);
+                }
+                if (item.author_name) {
+                    const author = document.createElement('span');
+                    author.className = 'comm-timeline-detail-modal__author';
+                    author.textContent = item.author_name;
+                    metaEl.appendChild(author);
+                }
+            }
+
+            timelineDetailModalRoomId = roomId || null;
+            if (timelineDetailModalChatBtn) {
+                if (roomId) {
+                    timelineDetailModalChatBtn.hidden = false;
+                    timelineDetailModalChatBtn.textContent = isBoard ? 'チャットを開く' : 'チャットルームを開く';
+                } else {
+                    timelineDetailModalChatBtn.hidden = true;
+                }
+            }
+
+            timelineDetailModalLastFocus = document.activeElement;
+            timelineDetailModal.removeAttribute('hidden');
+            timelineDetailModal.setAttribute('aria-hidden', 'false');
+            timelineDetailModal.classList.add('is-open');
+            document.body.classList.add('comm-timeline-detail-modal-open');
+
+            const focusTarget = timelineDetailModalClose || timelineDetailModal.querySelector('[data-close-timeline-detail]');
+            if (focusTarget && typeof focusTarget.focus === 'function') {
+                focusTarget.focus();
+            }
+        }
+
+        function bindTimelineDetailModalEvents() {
+            if (!timelineDetailModal) return;
+
+            timelineDetailModal.querySelectorAll('[data-close-timeline-detail]').forEach(function(el) {
+                el.addEventListener('click', function() {
+                    closeTimelineDetailModal();
+                });
+            });
+
+            if (timelineDetailModalChatBtn) {
+                timelineDetailModalChatBtn.addEventListener('click', function() {
+                    const roomId = timelineDetailModalRoomId;
+                    closeTimelineDetailModal();
+                    if (roomId) openChatRoom(roomId);
+                });
+            }
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && timelineDetailModal.classList.contains('is-open')) {
+                    e.preventDefault();
+                    closeTimelineDetailModal();
+                }
+            });
+        }
+        bindTimelineDetailModalEvents();
 
         let timelineItems = [];
         let filteredItems = [];
@@ -235,12 +440,23 @@
                     startChatMemberList.innerHTML = '';
                     if (startChatMemberLoading) startChatMemberLoading.style.display = 'none';
                     if (startChatMembers.length === 0) {
-                        startChatMemberList.innerHTML = '<p class="start-chat-no-members">チームに他のメンバーがいません</p>';
+                        startChatMemberList.innerHTML = typeof aiduniteCompactEmptyHtml === 'function'
+                            ? aiduniteCompactEmptyHtml('チームに他のメンバーがいません', 'start-chat-no-members')
+                            : '<p class="start-chat-no-members">チームに他のメンバーがいません</p>';
                     } else {
                         startChatMembers.forEach(function(m) {
                             const label = document.createElement('label');
                             label.className = 'start-chat-member-item';
-                            label.innerHTML = '<input type="checkbox" class="start-chat-member-check" data-user-id="' + Number(m.user_id) + '"> <span class="start-chat-member-name">' + (m.display_name || 'ユーザー#' + m.user_id) + '</span>';
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.className = 'start-chat-member-check';
+                            checkbox.dataset.userId = String(Number(m.user_id) || 0);
+                            const name = document.createElement('span');
+                            name.className = 'start-chat-member-name';
+                            name.textContent = m.display_name || ('ユーザー#' + m.user_id);
+                            label.appendChild(checkbox);
+                            label.appendChild(document.createTextNode(' '));
+                            label.appendChild(name);
                             startChatMemberList.appendChild(label);
                         });
                         startChatMemberList.querySelectorAll('.start-chat-member-check').forEach(function(cb) {
@@ -251,7 +467,8 @@
                     if (startChatMemberLoading) startChatMemberLoading.textContent = '取得に失敗しました';
                 }
             })
-            .catch(function() {
+            .catch(function (err) {
+                console.warn('start-chat members fetch failed:', err);
                 if (startChatMemberLoading) startChatMemberLoading.textContent = '取得に失敗しました';
             });
         }
@@ -346,8 +563,9 @@
         if (messageForm) {
             messageForm.addEventListener('submit', function(e) {
                 e.preventDefault();
+                captureIconButtonHtml(postBtn);
                 postBtn.disabled = true;
-                postBtn.innerHTML = '<span class="post-icon">' + themeIconHtml('hourglass_empty', 18) + '</span><span class="post-text">投稿中...</span>';
+                setIconButtonContent(postBtn, 'hourglass_empty', '投稿中...', 'post-icon', 'post-text');
 
                 const formData = new FormData(messageForm);
                 formData.append('action', 'post_message');
@@ -361,7 +579,7 @@
                     aiduniteToast('投稿に失敗しました。もう一度お試しください。', 'error');
                 }).finally(() => {
                     postBtn.disabled = false;
-                    postBtn.innerHTML = '<span class="post-icon">' + themeIconHtml('send', 18) + '</span><span class="post-text">投稿</span>';
+                    restoreIconButtonHtml(postBtn, 'send', '投稿', 'post-icon', 'post-text');
                 });
             });
         }
@@ -372,8 +590,9 @@
                 formData.append('action', 'save_message_draft');
                 formData.append('team_id', getTeamId());
 
+                captureIconButtonHtml(draftBtn);
                 draftBtn.disabled = true;
-                draftBtn.innerHTML = '<span class="draft-icon">' + themeIconHtml('hourglass_empty', 18) + '</span><span class="draft-text">保存中...</span>';
+                setIconButtonContent(draftBtn, 'hourglass_empty', '保存中...', 'draft-icon', 'draft-text');
 
                 saveMessageDraft(formData).then(() => {
                     aiduniteToast('下書きを保存しました！', 'success');
@@ -381,7 +600,7 @@
                     aiduniteToast('保存に失敗しました。', 'error');
                 }).finally(() => {
                     draftBtn.disabled = false;
-                    draftBtn.innerHTML = '<span class="draft-icon">' + themeIconHtml('save', 18) + '</span><span class="draft-text">下書き保存</span>';
+                    restoreIconButtonHtml(draftBtn, 'save', '下書き保存', 'draft-icon', 'draft-text');
                 });
             });
         }
@@ -425,7 +644,9 @@
             const showLoading = !hasTimelineLoaded;
             try {
                 if (showLoading) {
-                    timelineList.innerHTML = '<div class="loading-message">タイムラインを読み込み中...</div>';
+                    timelineList.innerHTML = typeof aiduniteListLoadingHtml === 'function'
+                        ? aiduniteListLoadingHtml('タイムラインを読み込み中...')
+                        : '<div class="loading-message">タイムラインを読み込み中...</div>';
                 }
 
                 const teamId = getTeamId();
@@ -448,7 +669,9 @@
             } catch (error) {
                 console.error('タイムライン読み込みエラー:', error);
                 if (showLoading) {
-                    timelineList.innerHTML = '<div class="loading-message">タイムラインの読み込みに失敗しました</div>';
+                    timelineList.innerHTML = typeof aiduniteListErrorHtml === 'function'
+                        ? aiduniteListErrorHtml('タイムラインの読み込みに失敗しました')
+                        : '<div class="loading-message">タイムラインの読み込みに失敗しました</div>';
                     updateCommunicationSummary({ total_unread: 0, by_type: { board: 0, match: 0, team: 0 } }, []);
                 }
             } finally {
@@ -618,14 +841,30 @@
             const contentEl = card.querySelector('.timeline-item-content');
             if (contentEl) {
                 const rawContent = String(item.content || '').replace(/\\n/g, '\n');
-                const previewLen = 120;
-                const contentPreview = rawContent.length > previewLen ? rawContent.substring(0, previewLen) : rawContent;
+                const contentPreview = rawContent.length > CONTENT_PREVIEW_LEN
+                    ? rawContent.substring(0, CONTENT_PREVIEW_LEN)
+                    : rawContent;
                 contentEl.setAttribute('data-full', escapeHtml(rawContent));
-                const expandedBtn = card.querySelector('.detail-toggle-btn[data-expanded="1"]');
-                if (expandedBtn) {
-                    contentEl.textContent = rawContent;
-                } else if (!contentEl.classList.contains('timeline-item-content--expanded')) {
+                if (!contentEl.classList.contains('timeline-item-content--expanded')) {
                     contentEl.textContent = contentPreview;
+                }
+                const hasMore = isContentPreviewTruncated(rawContent);
+                let toggleBtn = card.querySelector('.detail-toggle-btn');
+                if (hasMore && !toggleBtn) {
+                    const previewEl = card.querySelector('.timeline-card__preview');
+                    if (previewEl) {
+                        previewEl.insertAdjacentHTML('afterend', '<button type="button" class="detail-toggle-btn" data-expanded="0">全文を見る</button>');
+                        toggleBtn = card.querySelector('.detail-toggle-btn');
+                        if (toggleBtn) {
+                            toggleBtn.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                const timelineItem = getTimelineItemFromCard(card);
+                                if (timelineItem) openTimelineDetailModal(timelineItem);
+                            });
+                        }
+                    }
+                } else if (!hasMore && toggleBtn) {
+                    toggleBtn.remove();
                 }
             }
         }
@@ -645,6 +884,13 @@
             });
         }
 
+        function asideEmptyHtml() {
+            if (typeof aiduniteCompactEmptyHtml === 'function') {
+                return aiduniteCompactEmptyHtml('要対応はありません', 'communication-aside-empty');
+            }
+            return '<p class="communication-aside-empty" role="status">要対応はありません</p>';
+        }
+
         function getActionRequiredAsideItems() {
             return timelineItems.filter(function(item) {
                 return isActionRequired(item) && (item.item_type === 'board' || isTimelineChatActive(item));
@@ -662,8 +908,8 @@
             if (!asideList) return;
             const required = getActionRequiredAsideItems();
             if (required.length === 0) {
-                if (!asideList.querySelector('.communication-aside-empty')) {
-                    asideList.innerHTML = '<p class="communication-aside-empty">要対応はありません</p>';
+                if (!asideList.querySelector('.communication-aside-empty, .aidunite-compact-empty')) {
+                    asideList.innerHTML = asideEmptyHtml();
                 }
                 return;
             }
@@ -742,7 +988,7 @@
             if (!asideList) return;
             const required = getActionRequiredAsideItems();
             if (required.length === 0) {
-                asideList.innerHTML = '<p class="communication-aside-empty">要対応はありません</p>';
+                asideList.innerHTML = asideEmptyHtml();
                 lastAsideStateSignature = '';
                 return;
             }
@@ -810,11 +1056,13 @@
         function renderTimeline() {
             if (!timelineList) return;
             if (filteredItems.length === 0) {
-                timelineList.replaceChildren();
-                const empty = document.createElement('div');
-                empty.className = 'no-messages';
-                empty.textContent = 'アイテムがありません';
-                timelineList.appendChild(empty);
+                timelineList.innerHTML = typeof aiduniteEmptyStateHtml === 'function'
+                    ? aiduniteEmptyStateHtml({
+                        title: 'アイテムがありません',
+                        message: 'フィルターを変更するか、新しいお知らせ・チャットが届くのをお待ちください。',
+                        type: 'default'
+                    })
+                    : '<div class="no-messages">アイテムがありません</div>';
                 return;
             }
             const groups = groupItemsByDate(filteredItems);
@@ -864,25 +1112,8 @@
                 btn.addEventListener('click', function(e) {
                     e.stopPropagation();
                     const card = this.closest('.timeline-item');
-                    const content = card && card.querySelector('.timeline-item-content');
-                    if (!content) return;
-                    const expanded = this.getAttribute('data-expanded') === '1';
-                    if (expanded) {
-                        const full = content.getAttribute('data-full') || '';
-                        const preview = full.length > 50 ? full.substring(0, 50) + '...' : full;
-                        content.textContent = preview;
-                        content.classList.add('timeline-item-content--collapsed');
-                        content.classList.remove('timeline-item-content--expanded');
-                        this.textContent = '続きを読む';
-                        this.setAttribute('data-expanded', '0');
-                    } else {
-                        const full = content.getAttribute('data-full') || '';
-                        content.textContent = full;
-                        content.classList.remove('timeline-item-content--collapsed');
-                        content.classList.add('timeline-item-content--expanded');
-                        this.textContent = '閉じる';
-                        this.setAttribute('data-expanded', '1');
-                    }
+                    const item = getTimelineItemFromCard(card);
+                    if (item) openTimelineDetailModal(item);
                 });
             });
         }
@@ -890,6 +1121,24 @@
         function getPriorityLabel(priority) {
             const labels = { 'urgent': '緊急', 'important': '重要' };
             return labels[priority] || '';
+        }
+
+        function timelineTypeClass(item) {
+            if (item.item_type === 'board') {
+                return 'board';
+            }
+            const roomStatus = item.room_status || 'active';
+            if (isTimelineChatHidden(item)) {
+                return 'deleted';
+            }
+            if (roomStatus === 'completed') {
+                return 'completed';
+            }
+            return 'chat';
+        }
+
+        function timelinePriorityClass(priority) {
+            return priority === 'urgent' || priority === 'important' ? priority : '';
         }
 
         function createTimelineItem(item, index) {
@@ -905,12 +1154,11 @@
             } else if (!isBoard && roomStatus === 'completed') {
                 typeLabel = '完了済み';
             }
-            let typeClass = item.item_type;
-            if (!isBoard && isHidden) typeClass = 'deleted';
-            else if (!isBoard && roomStatus === 'completed') typeClass = 'completed';
-            let badges = '<span class="timeline-card-type-label timeline-card-type-label--' + typeClass + '">' + typeLabel + '</span>';
-            if (item.priority && item.priority !== 'normal') {
-                badges += '<span class="priority-badge ' + item.priority + '">' + getPriorityLabel(item.priority) + '</span>';
+            let typeClass = timelineTypeClass(item);
+            let badges = '<span class="timeline-card-type-label timeline-card-type-label--' + typeClass + '">' + escapeHtml(typeLabel) + '</span>';
+            const priClass = timelinePriorityClass(item.priority);
+            if (priClass) {
+                badges += '<span class="priority-badge ' + priClass + '">' + escapeHtml(getPriorityLabel(item.priority)) + '</span>';
             }
 
             const time = new Date(item.created_at).toLocaleString('ja-JP', {
@@ -920,8 +1168,8 @@
             const rawContent = (item.content || '').replace(/\\n/g, '\n');
             const isUrgent = item.priority === 'urgent';
             /* 2行表示に収まるようプレビュー長を抑え、途中切れを防ぐ */
-            const previewLen = 120;
-            const hasMore = false;
+            const previewLen = CONTENT_PREVIEW_LEN;
+            const hasMore = isContentPreviewTruncated(rawContent);
             const contentPreview = rawContent.length > previewLen ? rawContent.substring(0, previewLen) : rawContent;
             const fullContentEscaped = rawContent.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
             const previewEscaped = contentPreview.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -940,14 +1188,18 @@
             if (isHidden) cardClasses.push('timeline-item--deleted');
             if (!isBoard && roomStatus === 'completed') cardClasses.push('timeline-item--completed');
 
+            const safeMessageId = escapeHtml(String(messageId || ''));
+            const safeRoomId = escapeHtml(String(roomId || ''));
+            const safeItemRoomId = escapeHtml(String(item.room_id || ''));
+
             let actionsHtml = '';
             if (isBoard) {
-                if (roomId) actionsHtml += '<button class="action-btn chat-btn open-board-chat-btn" data-room-id="' + roomId + '" title="チャット" type="button">チャット</button>';
-                if (canDeleteBoard) actionsHtml += '<button class="action-btn delete-btn delete-message-btn" data-message-id="' + messageId + '" title="削除" type="button">削除</button>';
+                if (roomId) actionsHtml += '<button class="action-btn chat-btn open-board-chat-btn" data-room-id="' + safeRoomId + '" title="チャット" type="button">チャット</button>';
+                if (canDeleteBoard) actionsHtml += '<button class="action-btn delete-btn delete-message-btn" data-message-id="' + safeMessageId + '" title="削除" type="button">削除</button>';
             } else {
-                actionsHtml += '<button class="action-btn chat-btn" data-room-id="' + item.room_id + '" title="チャット">チャット</button>';
+                actionsHtml += '<button class="action-btn chat-btn" data-room-id="' + safeItemRoomId + '" title="チャット">チャット</button>';
                 if (!isHidden) {
-                    actionsHtml += '<button class="action-btn delete-btn delete-chat-btn" data-room-id="' + item.room_id + '" title="削除">削除</button>';
+                    actionsHtml += '<button class="action-btn delete-btn delete-chat-btn" data-room-id="' + safeItemRoomId + '" title="削除">削除</button>';
                 }
             }
 
@@ -956,7 +1208,7 @@
             const shortTime = new Date(item.created_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
             const displayUnread = getTimelineDisplayUnread(item);
 
-            return '<article class="' + cardClasses.join(' ') + ' timeline-card" data-timeline-key="' + escapeHtml(getTimelineItemKey(item)) + '" data-item-type="' + item.item_type + '" data-item-index="' + index + '" data-message-id="' + (messageId || '') + '" data-room-id="' + (roomId || '') + '" data-unread-count="' + displayUnread + '" data-action-required="' + (actionRequired ? '1' : '0') + '">' +
+            return '<article class="' + cardClasses.join(' ') + ' timeline-card" data-timeline-key="' + escapeHtml(getTimelineItemKey(item)) + '" data-item-type="' + (item.item_type === 'board' ? 'board' : 'chat') + '" data-item-index="' + index + '" data-message-id="' + safeMessageId + '" data-room-id="' + safeRoomId + '" data-unread-count="' + displayUnread + '" data-action-required="' + (actionRequired ? '1' : '0') + '">' +
                 '<div class="timeline-card__rail" aria-hidden="true"><span class="timeline-card__dot"></span></div>' +
                 '<div class="timeline-card__body">' +
                 '<div class="timeline-item-header"><div class="timeline-badges">' + badges +
@@ -967,7 +1219,7 @@
                 '<h3 class="timeline-item-title timeline-card__game-title">' + gameTitle + '</h3>' +
                 (opponentLabel && opponentLabel !== '—' ? '<p class="timeline-card__opponent">相手: ' + opponentLabel + '</p>' : '') +
                 '<p class="timeline-item-content timeline-item-content--collapsed timeline-card__preview" data-full="' + fullContentEscaped + '">' + previewEscaped + '</p>' +
-                (hasMore ? '<button type="button" class="detail-toggle-btn" data-expanded="0">続きを読む</button>' : '') +
+                (hasMore ? '<button type="button" class="detail-toggle-btn" data-expanded="0">全文を見る</button>' : '') +
                 '<div class="timeline-item-footer timeline-card__footer"><span class="timeline-author">' + escapeHtml(item.author_name || 'システム') + '</span><div class="timeline-item-actions">' + actionsHtml + '</div></div>' +
                 '</div></article>';
         }
@@ -1026,10 +1278,15 @@
             if (!timelineItem) return;
             if (e.target.closest('.timeline-item-actions')) return;
             if (e.target.closest('.detail-toggle-btn')) return;
+            const item = getTimelineItemFromCard(timelineItem);
+            if (!item) return;
             const itemType = timelineItem.dataset.itemType;
             const roomId = timelineItem.dataset.roomId;
-            if (itemType === 'board' && roomId) openChatRoom(roomId);
-            else if (itemType === 'chat' && roomId) openChatRoom(roomId);
+            if (itemType === 'board') {
+                openTimelineDetailModal(item);
+            } else if (itemType === 'chat' && roomId) {
+                openChatRoom(roomId);
+            }
         });
 
         document.addEventListener('visibilitychange', function() {
@@ -1055,7 +1312,9 @@
                 sessionStorage.removeItem('aidunite_timeline_force_refresh');
                 scheduleTimelinePolling(0);
             }
-        } catch (e) { /* ignore */ }
+        } catch (e) {
+            console.debug('sessionStorage timeline refresh skipped:', e);
+        }
 
         window.addEventListener('beforeunload', function() {
             if (timelinePollTimer) {

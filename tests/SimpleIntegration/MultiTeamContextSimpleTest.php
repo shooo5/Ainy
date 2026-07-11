@@ -60,6 +60,18 @@ class MultiTeamContextSimpleTest extends TestCase
         $this->assertSame($seed['team_a'], (int) get_user_meta($seed['leader_id'], 'current_operating_team_id', true));
     }
 
+    public function testManagedTeamIdsIncludeBothSeededTeams(): void
+    {
+        $seed = MultiTeamTestFixture::seed_dual_team_leader();
+        $managed = function_exists('aidunite_get_managed_team_ids')
+            ? aidunite_get_managed_team_ids($seed['leader_id'])
+            : json_decode((string) get_user_meta($seed['leader_id'], 'managed_team_ids', true), true);
+
+        $this->assertIsArray($managed);
+        $this->assertContains($seed['team_a'], $managed);
+        $this->assertContains($seed['team_b'], $managed);
+    }
+
     public function testManualChecklistIsDocumented(): void
     {
         $this->assertNotEmpty(MultiTeamTestFixture::manual_checklist());

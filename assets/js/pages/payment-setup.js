@@ -21,6 +21,15 @@
     return '';
   }
 
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function showCenterToast(message, type) {
     type = type || 'success';
     var existingToast = document.querySelector('.payment-setup-toast');
@@ -33,7 +42,7 @@
     toast.innerHTML =
       '<div class="payment-setup-toast-card">' +
       '<div class="payment-setup-toast-icon">' + getToastIconHtml(type) + '</div>' +
-      '<div class="payment-setup-toast-message">' + message + '</div>' +
+      '<div class="payment-setup-toast-message">' + escapeHtml(message) + '</div>' +
       '</div>';
 
     document.body.appendChild(toast);
@@ -52,7 +61,58 @@
 
   function startStripeCheckout(button) {
     var checkoutUrl = cfg.checkoutPageUrl || '/payment-checkout/';
-    window.location.href = checkoutUrl;
+    var useSavedCard = !!cfg.canStartSubscriptionWithSavedCard;
+
+    if (!useSavedCard) {
+      window.location.href = checkoutUrl;
+      return;
+    }
+
+    var $button = button && button.jquery ? button : $(button);
+    var originalHtml = $button.length ? $button.html() : '';
+    if ($button.length) {
+      $button.prop('disabled', true).html(getBtnIconHtml('hourglass_empty') + ' 処理中...');
+    }
+
+    $.ajax({
+      url: cfg.ajaxUrl || '',
+      type: 'POST',
+      data: {
+        action: 'aidunite_start_platform_team_subscription',
+        nonce: cfg.paymentNonce || '',
+        team_id: cfg.teamId || 0
+      },
+      success: function (response) {
+        if (response.success && response.data && response.data.mode === 'instant') {
+          showCenterToast('このチームの契約を開始しました', 'success');
+          window.setTimeout(function () {
+            window.location.href = (cfg.paymentSetupUrl || window.location.pathname) + '?payment=success';
+          }, 800);
+          return;
+        }
+        var errorMessage = response.data && response.data.message
+          ? response.data.message
+          : '契約の開始に失敗しました';
+        if (response.data && response.data.error_code === 'no_saved_card') {
+          window.location.href = checkoutUrl;
+          return;
+        }
+        showCenterToast(errorMessage, 'error');
+        if ($button.length) {
+          $button.prop('disabled', false).html(originalHtml);
+        }
+      },
+      error: function (xhr) {
+        var errorMessage = '通信エラーが発生しました';
+        if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
+          errorMessage = xhr.responseJSON.data.message;
+        }
+        showCenterToast(errorMessage, 'error');
+        if ($button.length) {
+          $button.prop('disabled', false).html(originalHtml);
+        }
+      }
+    });
   }
 
   function savePlanSelection(button, planId) {
@@ -135,6 +195,12 @@
     startStripeCheckout($(this));
   });
 
+  $(document).on('click', '.js-start-stripe-checkout-new-card', function () {
+    var url = cfg.checkoutNewCardUrl
+      || ((cfg.checkoutPageUrl || '/payment-checkout/').replace(/\/?$/, '/') + '?new_card=1');
+    window.location.href = url;
+  });
+
   function startBillingPortal(button) {
     var originalText = button.html();
     button.prop('disabled', true).html(getBtnIconHtml('hourglass_empty') + ' 処理中...');
@@ -170,5 +236,104 @@
 
   $(document).on('click', '.js-stripe-billing-portal', function () {
     startBillingPortal($(this));
+  });
+
+  function startPaymentExitCancel(button) {
+    var completeLabel = cfg.cancelCompleteAtLabel || '';
+    var message = 'このチームの契約を解約しますか？';
+    if (completeLabel !== '') {
+      message += '\n' + completeLabel + 'までご利用いただけます。';
+    }
+
+    var runCancel = function () {
+      var $button = button && button.jquery ? button : $(button);
+      var originalHtml = $button.length ? $button.html() : '';
+      if ($button.length) {
+        $button.prop('disabled', true).html(getBtnIconHtml('hourglass_empty') + ' 処理中...');
+      }
+
+      $.ajax({
+        url: (cfg.restBase || '/wp-json/aidunite/v1/') + 'payment-exit/cancel',
+        type: 'POST',
+        contentType: 'application/json',
+        beforeSend: function (xhr) {
+          if (cfg.restNonce) {
+            xhr.setRequestHeader('X-WP-Nonce', cfg.restNonce);
+          }
+        },
+        data: JSON.stringify({
+          team_id: cfg.teamId || 0
+        }),
+        success: function (response) {
+          var msg = response.message || (response.data && response.data.message) || '解約手続きを受け付けました';
+          showCenterToast(msg, 'success');
+          window.setTimeout(function () {
+            window.location.reload();
+          }, 900);
+        },
+        error: function (xhr) {
+          var errorMessage = '解約手続きに失敗しました';
+          if (xhr.responseJSON && xhr.responseJSON.message) {
+            errorMessage = xhr.responseJSON.message;
+          } else if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
+            errorMessage = xhr.responseJSON.data.message;
+          }
+          showCenterToast(errorMessage, 'error');
+          if ($button.length) {
+            $button.prop('disabled', false).html(originalHtml);
+          }
+        }
+      });
+    };
+
+    var openConfirm = function () {
+      if (typeof showConfirmModal === 'function') {
+        showConfirmModal({
+          title: '契約解約の確認',
+          message: message,
+          confirmLabel: '解約する',
+          cancelLabel: 'キャンセル',
+          confirmVariant: 'danger',
+          onConfirm: runCancel
+        });
+        return;
+      }
+
+      if (window.confirm(message)) {
+        runCancel();
+      }
+    };
+
+    var teamId = cfg.teamId || 0;
+    if (!teamId) {
+      openConfirm();
+      return;
+    }
+
+    $.ajax({
+      url: (cfg.restBase || '/wp-json/aidunite/v1/') + 'payment-exit/evaluate?team_id=' + encodeURIComponent(teamId),
+      type: 'GET',
+      beforeSend: function (xhr) {
+        if (cfg.restNonce) {
+          xhr.setRequestHeader('X-WP-Nonce', cfg.restNonce);
+        }
+      },
+      success: function (response) {
+        if (response && response.gates && response.gates.can_start === false) {
+          var gateMessage = (response.gates.messages && response.gates.messages[0])
+            || '翌月以降の試合を先にキャンセルしてください。';
+          showCenterToast(gateMessage, 'error');
+          return;
+        }
+        openConfirm();
+      },
+      error: function () {
+        showCenterToast('解約可否の確認に失敗しました。ページを再読み込みしてお試しください。', 'error');
+      }
+    });
+  }
+
+  $(document).on('click', '.js-payment-exit-cancel', function () {
+    startPaymentExitCancel($(this));
   });
 })(jQuery);
