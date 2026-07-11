@@ -37,6 +37,9 @@ final class PermissionMatrixEvaluator
           $role === 'team_leader' ? 'team_leader' : 'member'
         );
       }
+      if ($role === 'guardian') {
+        permission_matrix_attach_team($acting_user_id, self::TEAM_ID, 'member');
+      }
       if ($role === 'administrator') {
         $GLOBALS['test_users'][$acting_user_id]->roles = ['administrator'];
       }
@@ -56,9 +59,8 @@ final class PermissionMatrixEvaluator
 
       case 'leader_team_settings':
       case 'leader_team_payment_mgmt':
-        return self::fromTeamLeader(AidUniteAuthMiddleware::require_team_leader(self::TEAM_ID, false));
-
-      case 'member_team_settings':
+      case 'member_payment_setup':
+      case 'guardian_team_settings':
         return self::fromTeamLeader(AidUniteAuthMiddleware::require_team_leader(self::TEAM_ID, false));
 
       case 'leader_admin_user_list':

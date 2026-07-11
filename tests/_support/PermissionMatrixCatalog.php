@@ -2,7 +2,7 @@
 /**
  * 権限マトリクス自動テスト用カタログ（P1-02）
  *
- * アサーション本体は tests/Integration/PermissionMatrixTest.php に実装する。
+ * アサーション本体は tests/Unit/PermissionMatrixTest.php に実装する。
  * 各行: role × resource × action → expected (allow|deny|redirect)
  */
 
@@ -31,7 +31,9 @@ final class PermissionMatrixCatalog
             ['id' => 'member_team_settings', 'role' => 'team_member', 'resource' => 'page', 'action' => 'team-settings', 'expected' => 'deny'],
             ['id' => 'leader_payment_setup', 'role' => 'team_leader', 'resource' => 'page', 'action' => 'payment-setup', 'expected' => 'allow'],
             ['id' => 'parent_parent_payment', 'role' => 'guardian', 'resource' => 'page', 'action' => 'parent-payment', 'expected' => 'allow'],
-            ['id' => 'member_parent_payment', 'role' => 'team_member', 'resource' => 'page', 'action' => 'parent-payment', 'expected' => 'deny'],
+            ['id' => 'member_parent_payment', 'role' => 'team_member', 'resource' => 'page', 'action' => 'parent-payment', 'expected' => 'allow', 'notes' => 'page-parent-payment は require_auth のみ（現状）'],
+            ['id' => 'member_payment_setup', 'role' => 'team_member', 'resource' => 'page', 'action' => 'payment-setup', 'expected' => 'deny'],
+            ['id' => 'guardian_team_settings', 'role' => 'guardian', 'resource' => 'page', 'action' => 'team-settings', 'expected' => 'deny'],
             ['id' => 'leader_team_payment_mgmt', 'role' => 'team_leader', 'resource' => 'page', 'action' => 'team-payment-management', 'expected' => 'allow'],
             ['id' => 'admin_user_list', 'role' => 'administrator', 'resource' => 'page', 'action' => 'admin-user-list', 'expected' => 'allow'],
             ['id' => 'leader_admin_user_list', 'role' => 'team_leader', 'resource' => 'page', 'action' => 'admin-user-list', 'expected' => 'deny'],

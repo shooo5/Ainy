@@ -36,20 +36,11 @@ class PermissionMatrixTest extends TestCase
     $expected = (string) ($row['expected'] ?? '');
     $actual = PermissionMatrixEvaluator::evaluate($row);
 
-    if ($row['id'] === 'member_team_settings') {
-      $this->assertSame('deny', $actual, '一般メンバーは require_team_leader で拒否されること');
-      return;
-    }
-
-    if ($row['id'] === 'leader_admin_user_list') {
-      $this->assertSame('deny', $actual, '代表者は require_admin で拒否されること');
-      return;
-    }
-
     $this->assertSame(
       $expected,
       $actual,
       ($row['id'] ?? '') . ': expected ' . $expected . ', got ' . $actual
+        . (isset($row['notes']) ? ' — ' . $row['notes'] : '')
     );
   }
 
@@ -60,10 +51,6 @@ class PermissionMatrixTest extends TestCase
   {
     $cases = [];
     foreach (PermissionMatrixCatalog::rows() as $row) {
-      if ($row['id'] === 'member_parent_payment') {
-        $row['expected'] = 'allow';
-        $row['notes'] = 'page-parent-payment は require_auth のみ（現状）';
-      }
       $cases[$row['id']] = [$row];
     }
     return $cases;

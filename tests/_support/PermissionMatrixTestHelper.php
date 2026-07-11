@@ -1,7 +1,7 @@
 <?php
 /**
  * 権限マトリクス用テストヘルパー（P1-02）
- * フィクスチャ生成のみ。アサーションは PermissionMatrixTest に実装する。
+ * フィクスチャ生成のみ。アサーションは tests/Unit/PermissionMatrixTest.php に実装する。
  */
 
 if (!function_exists('permission_matrix_reset_globals')) {
