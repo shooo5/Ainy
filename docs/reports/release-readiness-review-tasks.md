@@ -128,9 +128,9 @@
 |----|--------|------------|--------------|----------|
 | P1-01 | PHPUnit 統合テストの CI 復帰 | **完了** | テスト | GitHub Actions Tests #2 緑。unit 148 + simple-integration 7。[`github-ci-setup.md`](../operations/github-ci-setup.md) |
 | P1-02 | 権限マトリクス自動テスト | **完了** | セキュリティ / テスト | `PermissionMatrixCatalog` 17行 + `PermissionMatrixEvaluator` + `PermissionMatrixTest`。CI unit スイートに含まれる |
-| P1-03 | XSS 監査（JS innerHTML 箇所） | **完了（match-detail）** | セキュリティ | ボタン loading / 復旧を `setButtonLoadingState`・`restoreButtonHtml`・`textContent` 化。時間 select は DOM API |
-| P1-04 | マルチチーム操作の結合テスト | **要修正（fixture 完了）** | チーム / マッチ / 決済 | `MultiTeamTestFixture` + SimpleIntegration + `scripts/run-multi-team-scenario.php`。**残:** WP 実 DB / E2E でチェックリスト実行 |
-| P1-05 | Connect オンボーディング未完時の UX | **要修正（UX 改善済）** | 月謝 / Stripe | `connect_block_reason` 別メッセージ・警告バナー・CTA。**残:** parent-payment 側のブロック文言統一 |
+| P1-03 | XSS 監査（JS innerHTML 箇所） | **要修正（match-detail・parent-payment）** | セキュリティ | match-detail ボタン安全化済。`parent-payment.js` 履歴テーブルを DOM API 化。**残:** communication / admin-competition 等 |
+| P1-04 | マルチチーム操作の結合テスト | **要修正（SimpleIntegration 拡張）** | チーム / マッチ / 決済 | チーム切替・未知 team 拒否の自動テスト追加。**残:** WP 実 DB / E2E でチェックリスト実行 |
+| P1-05 | Connect オンボーディング未完時の UX | **完了** | 月謝 / Stripe | `aidunite_payment_read_tuition_block_message()` で代表者/保護者文言を統一 |
 | P1-06 | Webhook 失敗時のリカバリ手順 | **要修正（文書完了）** | Stripe | [`stripe-webhook-recovery.md`](../operations/stripe-webhook-recovery.md)。**残:** 本番で再送ドリル1回 |
 | P1-07 | 本番監視の最低限セットアップ | **要修正（文書完了）** | 運用 | [`production-monitoring.md`](../operations/production-monitoring.md)。**残:** 外形監視ツール設定 |
 
@@ -336,6 +336,7 @@ P2 品質タスク + 実地運用 2〜4週
 
 | 日付 | 内容 | 更新者 |
 |------|------|--------|
+| 2026-07-11 | P1-03 parent-payment XSS・P1-04 マルチチーム切替テスト・P1-05 Connect 文言統一 | Cursor |
 | 2026-07-11 | P1-01 CI 緑化完了・P1-02 権限マトリクス17行（member payment-setup / guardian team-settings 追加） | Cursor |
 | 2026-07-11 | P1-01 ローカル全 PASS・github-ci-setup.md / P1-02 PermissionMatrix 実装 / P1-03 match-detail ボタン安全化 | Cursor |
 | 2026-07-10 | P1-01〜07 / P2-01/04/06/07 / PAY-01 / LEGAL / SEC / UX-04 一括（CI・fixture・Connect UX・運用文書） | Cursor |

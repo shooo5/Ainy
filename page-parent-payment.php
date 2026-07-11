@@ -98,6 +98,9 @@ $tuition_display = function_exists('aidunite_payment_read_tuition_display')
 $tuition_open = function_exists('aidunite_payment_team_tuition_open_for_parents')
     ? aidunite_payment_team_tuition_open_for_parents($team_id)
     : !empty($tuition_display['team_tuition_enabled']);
+$connect_block_reason = function_exists('aidunite_payment_read_team_tuition_connect_block_reason')
+    ? aidunite_payment_read_team_tuition_connect_block_reason($team_id)
+    : '';
 
 if (isset($_GET['payment']) && sanitize_key((string) wp_unslash($_GET['payment'])) === 'success') {
     $session_id = isset($_GET['session_id'])
@@ -125,6 +128,7 @@ $vm = [
     'team_name' => $team_name,
     'monthly_fee' => (int) ($tuition_display['team_monthly_fee'] ?? 0),
     'tuition_open' => $tuition_open,
+    'connect_block_reason' => $connect_block_reason,
     'has_subscription' => $has_subscription,
     'tuition_registration_pending' => $tuition_registration_pending,
     'checkout_button_label' => $tuition_registration_pending

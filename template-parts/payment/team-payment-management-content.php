@@ -10,6 +10,7 @@
  * @var int    $monthly_fee
  * @var string $connect_acct
  * @var string $team_fee_note
+ * @var string $connect_block_reason
  */
 
 if (!defined('ABSPATH')) {
@@ -25,12 +26,27 @@ $tuition_enabled = !empty($args['tuition_enabled']);
 $monthly_fee = (int) ($args['monthly_fee'] ?? 0);
 $connect_acct = (string) ($args['connect_acct'] ?? '');
 $team_fee_note = (string) ($args['team_fee_note'] ?? '');
+$connect_block_reason = (string) ($args['connect_block_reason'] ?? '');
 $team_title = ($team instanceof WP_Post) ? (string) $team->post_title : '';
+$connect_ready = $connect_acct !== '' && strpos($connect_acct, 'acct_') === 0;
 ?>
 
 <?php if ($message !== '') : ?>
 <div class="payment-setup-section payment-setup-flash payment-setup-flash--<?php echo $message_type === 'error' ? 'error' : 'success'; ?>" role="status">
     <p><?php echo esc_html($message); ?></p>
+</div>
+<?php endif; ?>
+
+<?php if ($tuition_enabled && !$connect_ready) : ?>
+<div class="payment-setup-section payment-setup-flash payment-setup-flash--error" role="alert">
+    <p>
+        <strong>月謝はまだ保護者に公開されていません。</strong>
+        <?php echo esc_html(
+            function_exists('aidunite_payment_read_tuition_block_message')
+                ? aidunite_payment_read_tuition_block_message($connect_block_reason, 'leader')
+                : 'Stripe Connect の連携を完了してください。連携が完了するまで、保護者の /parent-payment は利用できません。'
+        ); ?>
+    </p>
 </div>
 <?php endif; ?>
 
@@ -64,7 +80,7 @@ $team_title = ($team instanceof WP_Post) ? (string) $team->post_title : '';
                     <span class="toggle-slider"></span>
                 </label>
             </div>
-            <p class="help-text">有効にすると、保護者マイページから月謝支払いページ（/parent-payment）へ誘導されます。</p>
+            <p class="help-text">有効にすると、保護者マイページから月謝支払いページ（/parent-payment）へ誘導されます。Connect 連携と金額設定が完了するまで、保護者側は利用できません。</p>
 
             <div class="form-group" id="tuition-amount-section">
                 <div class="current-setting-display">
@@ -117,6 +133,9 @@ $team_title = ($team instanceof WP_Post) ? (string) $team->post_title : '';
             <?php else : ?>
                 <p class="status-badge status-not-connected">
                     未連携（Stripe連携を開始してください）
+                </p>
+                <p class="help-text help-text--emphasis">
+                    月謝を有効にしても、Connect 連携が完了するまで保護者は支払いできません。
                 </p>
             <?php endif; ?>
         </div>

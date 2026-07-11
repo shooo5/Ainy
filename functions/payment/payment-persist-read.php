@@ -820,6 +820,22 @@ function aidunite_payment_read_month_window($ym) {
 }
 
 /**
+ * 月謝支払い履歴テーブルが利用可能か
+ *
+ * @return bool
+ */
+function aidunite_payment_read_tuition_payments_table_ready() {
+    if (function_exists('aidunite_tuition_payments_table_exists')) {
+        return aidunite_tuition_payments_table_exists();
+    }
+
+    global $wpdb;
+    $table = $wpdb->prefix . 'aidunite_tuition_payments';
+
+    return $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table;
+}
+
+/**
  * 月謝実績（WP テーブル）を月別集計
  *
  * @param array<int, string> $month_keys
@@ -837,8 +853,7 @@ function aidunite_payment_read_tuition_actuals_by_month(array $month_keys) {
     }
 
     $table = $wpdb->prefix . 'aidunite_tuition_payments';
-    $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
-    if ($exists !== $table) {
+    if (!aidunite_payment_read_tuition_payments_table_ready()) {
         return $result;
     }
 
@@ -904,6 +919,10 @@ function aidunite_payment_read_parent_latest_tuition_payment($parent_user_id, $t
         return null;
     }
 
+    if (!aidunite_payment_read_tuition_payments_table_ready()) {
+        return null;
+    }
+
     $table = $wpdb->prefix . 'aidunite_tuition_payments';
     $row = $wpdb->get_row(
         $wpdb->prepare(
@@ -929,6 +948,74 @@ function aidunite_payment_read_stripe_connect_account_id($team_id) {
     $tuition = aidunite_payment_read_tuition_display($team_id);
 
     return (string) ($tuition['stripe_connect_account_id'] ?? '');
+}
+
+/**
+ * 月謝徴収がブロックされている理由（代表者向け UX）
+ *
+ * @param int $team_id
+ * @return string club_plan_required|tuition_disabled|monthly_fee_unset|connect_incomplete|''
+ */
+function aidunite_payment_read_team_tuition_connect_block_reason($team_id) {
+    $team_id = (int) $team_id;
+    if ($team_id <= 0) {
+        return 'tuition_disabled';
+    }
+
+    $display = aidunite_payment_read_tuition_display($team_id);
+    if (empty($display['has_club_plan'])) {
+        return 'club_plan_required';
+    }
+    if (empty($display['team_tuition_enabled'])) {
+        return 'tuition_disabled';
+    }
+    $monthly_fee = (int) ($display['team_monthly_fee'] ?? 0);
+    if ($monthly_fee <= 0) {
+        return 'monthly_fee_unset';
+    }
+    $connect_acct = trim((string) ($display['stripe_connect_account_id'] ?? ''));
+    if ($connect_acct === '' || strpos($connect_acct, 'acct_') !== 0) {
+        return 'connect_incomplete';
+    }
+
+    return '';
+}
+
+/**
+ * 月謝 Connect ブロック理由に応じた表示文言（代表者 / 保護者でトーンを分ける）
+ *
+ * @param string $reason club_plan_required|tuition_disabled|monthly_fee_unset|connect_incomplete|''
+ * @param string $audience leader|parent
+ * @return string
+ */
+function aidunite_payment_read_tuition_block_message($reason, $audience = 'leader') {
+    $reason = (string) $reason;
+    $audience = $audience === 'parent' ? 'parent' : 'leader';
+
+    $leader_messages = [
+        'club_plan_required' => '月謝機能は Club プランのチームのみ利用できます。プラン変更はサポートまでお問い合わせください。',
+        'tuition_disabled' => '月謝機能が無効です。有効にすると保護者がカード登録できるようになります。',
+        'monthly_fee_unset' => '月謝金額が未設定です。金額を設定してから保護者への案内を開始してください。',
+        'connect_incomplete' => 'Stripe Connect の連携が未完了です。口座・本人確認を完了するまで、保護者は月謝を支払えません。',
+    ];
+
+    $parent_messages = [
+        'club_plan_required' => 'このチームでは月謝のお支払い機能はまだ利用できません。チーム代表者にお問い合わせください。',
+        'tuition_disabled' => 'このチームでは月謝のお支払いがまだ有効になっていません。チーム代表者にお問い合わせください。',
+        'monthly_fee_unset' => '月謝の金額設定が完了していません。チーム代表者に設定完了をお問い合わせください。',
+        'connect_incomplete' => 'チームの決済連携が完了していません。設定が完了するまでお支払いはできません。チーム代表者にお問い合わせください。',
+    ];
+
+    $messages = $audience === 'parent' ? $parent_messages : $leader_messages;
+    $fallback = $audience === 'parent'
+        ? 'このチームでは月謝のお支払い設定はまだ利用できません。チーム代表者にお問い合わせください。'
+        : '月謝機能が有効になっていないか、Stripe Connect の連携が未完了です。';
+
+    if ($reason === '') {
+        return $fallback;
+    }
+
+    return $messages[$reason] ?? $fallback;
 }
 
 /**
@@ -990,6 +1077,39 @@ function aidunite_user_read_tuition_subscription_id($parent_user_id, $team_id) {
     }
 
     return trim((string) get_user_meta($parent_user_id, 'stripe_tuition_subscription_' . $team_id, true));
+}
+
+/**
+ * 保護者が契約している月謝サブスクリプションの team_id 一覧
+ *
+ * @param int $parent_user_id
+ * @return int[]
+ */
+function aidunite_user_read_tuition_subscription_team_ids($parent_user_id) {
+    global $wpdb;
+    $parent_user_id = (int) $parent_user_id;
+    if ($parent_user_id <= 0) {
+        return [];
+    }
+    $like = $wpdb->esc_like('stripe_tuition_subscription_') . '%';
+    $rows = $wpdb->get_col($wpdb->prepare(
+        "SELECT meta_key FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key LIKE %s",
+        $parent_user_id,
+        $like
+    ));
+    $prefix = 'stripe_tuition_subscription_';
+    $team_ids = [];
+    foreach ((array) $rows as $meta_key) {
+        if (strpos((string) $meta_key, $prefix) !== 0) {
+            continue;
+        }
+        $team_id = (int) substr((string) $meta_key, strlen($prefix));
+        if ($team_id > 0) {
+            $team_ids[] = $team_id;
+        }
+    }
+
+    return array_values(array_unique($team_ids));
 }
 
 /**
@@ -1224,6 +1344,66 @@ function aidunite_payment_read_current_month_window() {
 }
 
 /**
+ * 保護者向け月謝ステータスラベル
+ *
+ * @param string $status_raw
+ * @return string
+ */
+function aidunite_payment_format_tuition_status_label_for_parent($status_raw) {
+    $status = sanitize_key((string) $status_raw);
+    $labels = [
+        'paid' => '支払い済み',
+        'failed' => '支払い失敗',
+        'unpaid' => '未払い',
+        'cancelled' => '解約',
+    ];
+
+    return $labels[$status] ?? $status;
+}
+
+/**
+ * stripe_invoice_id で月謝履歴1件を取得
+ *
+ * @param string $stripe_invoice_id
+ * @param int    $parent_user_id
+ * @param int    $team_id
+ * @return array<string, mixed>|null
+ */
+function aidunite_payment_read_tuition_payment_row_by_invoice_id($stripe_invoice_id, $parent_user_id, $team_id) {
+    global $wpdb;
+
+    $stripe_invoice_id = trim((string) $stripe_invoice_id);
+    $parent_user_id = (int) $parent_user_id;
+    $team_id = (int) $team_id;
+    if ($stripe_invoice_id === '' || $parent_user_id <= 0 || $team_id <= 0) {
+        return null;
+    }
+
+    if (!aidunite_payment_read_tuition_payments_table_ready()) {
+        return null;
+    }
+
+    $table = $wpdb->prefix . 'aidunite_tuition_payments';
+    $row = $wpdb->get_row(
+        $wpdb->prepare(
+            "SELECT id, payment_date, amount, status, stripe_invoice_id
+             FROM {$table}
+             WHERE stripe_invoice_id = %s
+             AND parent_user_id = %d
+             AND team_id = %d
+             ORDER BY id DESC
+             LIMIT 1",
+            $stripe_invoice_id,
+            $parent_user_id,
+            $team_id
+        ),
+        ARRAY_A
+    );
+
+    return is_array($row) ? $row : null;
+}
+
+/**
  * 保護者の月謝支払い履歴（DB）
  *
  * @param int $parent_user_id
@@ -1241,14 +1421,24 @@ function aidunite_payment_read_parent_tuition_history($parent_user_id, $team_id,
         return [];
     }
 
+    if (!aidunite_payment_read_tuition_payments_table_ready()) {
+        return [];
+    }
+
     $table = $wpdb->prefix . 'aidunite_tuition_payments';
+    // 同一 stripe_invoice_id の重複行（Webhook 再送等）は最新1件のみ表示
     $rows = $wpdb->get_results(
         $wpdb->prepare(
-            "SELECT payment_date, amount, status
-             FROM {$table}
-             WHERE parent_user_id = %d
-             AND team_id = %d
-             ORDER BY payment_date DESC
+            "SELECT t.payment_date, t.amount, t.status
+             FROM {$table} t
+             INNER JOIN (
+                 SELECT MAX(id) AS keep_id
+                 FROM {$table}
+                 WHERE parent_user_id = %d
+                 AND team_id = %d
+                 GROUP BY IF(stripe_invoice_id <> '', stripe_invoice_id, CONCAT('row-', id))
+             ) dedup ON t.id = dedup.keep_id
+             ORDER BY t.payment_date DESC
              LIMIT %d",
             $parent_user_id,
             $team_id,
@@ -1273,6 +1463,10 @@ function aidunite_payment_read_team_tuition_payment_rows($team_id, $start, $end)
 
     $team_id = (int) $team_id;
     if ($team_id <= 0) {
+        return [];
+    }
+
+    if (!aidunite_payment_read_tuition_payments_table_ready()) {
         return [];
     }
 
@@ -1308,6 +1502,10 @@ function aidunite_payment_read_team_tuition_recent_events($team_id, $limit = 30)
     $team_id = (int) $team_id;
     $limit = max(1, min(100, (int) $limit));
     if ($team_id <= 0) {
+        return [];
+    }
+
+    if (!aidunite_payment_read_tuition_payments_table_ready()) {
         return [];
     }
 
@@ -1444,6 +1642,10 @@ function aidunite_payment_read_team_tuition_collections_page_model($team_id) {
     $tuition_open = function_exists('aidunite_payment_team_tuition_open_for_parents')
         ? aidunite_payment_team_tuition_open_for_parents($team_id)
         : false;
+    $connect_block_reason = function_exists('aidunite_payment_read_team_tuition_connect_block_reason')
+        ? aidunite_payment_read_team_tuition_connect_block_reason($team_id)
+        : '';
+    $connect_ready = $connect_block_reason === '' && $tuition_enabled;
 
     $team_bundle = function_exists('aidunite_team_get_display_bundle')
         ? aidunite_team_get_display_bundle($team_id)
@@ -1611,6 +1813,8 @@ function aidunite_payment_read_team_tuition_collections_page_model($team_id) {
         'month_label' => (string) $month_window['label'],
         'tuition_enabled' => $tuition_enabled,
         'tuition_open' => $tuition_open,
+        'connect_ready' => $connect_ready,
+        'connect_block_reason' => $connect_block_reason,
         'monthly_fee' => $monthly_fee,
         'billing_note' => '月謝は毎月末に自動決済されます。請求前の状態は未払いではありません。',
         'default_filter' => 'action_needed',

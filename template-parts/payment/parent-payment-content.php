@@ -18,6 +18,7 @@ $team_logo = (string) ($vm['team_logo'] ?? '');
 $team_name = (string) ($vm['team_name'] ?? '');
 $monthly_fee = (int) ($vm['monthly_fee'] ?? 0);
 $tuition_open = !empty($vm['tuition_open']);
+$connect_block_reason = (string) ($vm['connect_block_reason'] ?? '');
 $has_subscription = !empty($vm['has_subscription']);
 $tuition_registration_pending = !empty($vm['tuition_registration_pending']);
 $checkout_button_label = (string) ($vm['checkout_button_label'] ?? '支払い方法を登録する');
@@ -30,8 +31,12 @@ $checkout_button_label = (string) ($vm['checkout_button_label'] ?? '支払い方
 <?php endif; ?>
 
 <?php if (!$tuition_open) : ?>
-<div class="payment-setup-section payment-setup-alert" role="status">
-    <p>このチームでは月謝のお支払い設定はまだ利用できません。チーム代表者にお問い合わせください。</p>
+<div class="payment-setup-section payment-setup-alert parent-payment-connect-block" role="status">
+    <p><?php echo esc_html(
+        function_exists('aidunite_payment_read_tuition_block_message')
+            ? aidunite_payment_read_tuition_block_message($connect_block_reason, 'parent')
+            : 'このチームでは月謝のお支払い設定はまだ利用できません。チーム代表者にお問い合わせください。'
+    ); ?></p>
 </div>
 <?php else : ?>
 
@@ -110,6 +115,7 @@ $checkout_button_label = (string) ($vm['checkout_button_label'] ?? '支払い方
             </span>
             カード情報は Stripe により安全に処理されます
         </p>
+        <?php aidunite_render_legal_inline_links(); ?>
     </div>
 </section>
 

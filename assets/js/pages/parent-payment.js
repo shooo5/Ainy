@@ -5,6 +5,23 @@
   'use strict';
   var cfg = typeof aidunitePage_parent_payment !== 'undefined' ? aidunitePage_parent_payment : {};
 
+  function setHistoryEmptyMessage(message) {
+    var container = document.getElementById('payment-history-list');
+    if (!container) {
+      return;
+    }
+    container.textContent = '';
+    var paragraph = document.createElement('p');
+    paragraph.className = 'parent-payment-history__empty';
+    paragraph.textContent = message;
+    container.appendChild(paragraph);
+  }
+
+  function sanitizeStatusClass(status) {
+    var normalized = String(status || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+    return normalized ? ' parent-payment-history__status--' + normalized : '';
+  }
+
 $(function () {
     // 支払い履歴を読み込む
     function loadPaymentHistory() {
@@ -18,37 +35,78 @@ $(function () {
             },
             success: function(response) {
                 if (response.success && response.data.history) {
-                    displayPaymentHistory(response.data.history);
+                    displayPaymentHistory(response.data.history, response.data.show_status);
                 } else {
-                    $('#payment-history-list').html('<p class="parent-payment-history__empty">お支払い履歴がありません</p>');
+                    setHistoryEmptyMessage('お支払い履歴がありません');
                 }
             },
             error: function() {
-                $('#payment-history-list').html('<p class="parent-payment-history__empty">履歴の読み込みに失敗しました</p>');
+                setHistoryEmptyMessage('履歴の読み込みに失敗しました');
             }
         });
     }
 
-    function displayPaymentHistory(history) {
-        if (history.length === 0) {
-            $('#payment-history-list').html('<p class="parent-payment-history__empty">お支払い履歴がありません</p>');
+    function displayPaymentHistory(history, showStatus) {
+        var container = document.getElementById('payment-history-list');
+        if (!container) {
             return;
         }
 
-        let html = '<table class="payment-history-table">';
-        html += '<thead><tr><th>支払い日</th><th>金額</th><th>ステータス</th></tr></thead>';
-        html += '<tbody>';
+        if (!history.length) {
+            setHistoryEmptyMessage('お支払い履歴がありません');
+            return;
+        }
 
-        history.forEach(function(item) {
-            html += '<tr>';
-            html += '<td>' + item.payment_date + '</td>';
-            html += '<td>¥' + item.amount.toLocaleString() + '</td>';
-            html += '<td>' + item.status + '</td>';
-            html += '</tr>';
+        var shouldShowStatus = !!showStatus || history.some(function (item) {
+            return item.status && item.status !== 'paid';
         });
 
-        html += '</tbody></table>';
-        $('#payment-history-list').html(html);
+        var table = document.createElement('table');
+        table.className = 'payment-history-table';
+
+        var thead = document.createElement('thead');
+        var headerRow = document.createElement('tr');
+        ['支払い日', '金額'].forEach(function (label) {
+            var th = document.createElement('th');
+            th.textContent = label;
+            headerRow.appendChild(th);
+        });
+        if (shouldShowStatus) {
+            var statusHeader = document.createElement('th');
+            statusHeader.textContent = 'ステータス';
+            headerRow.appendChild(statusHeader);
+        }
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        var tbody = document.createElement('tbody');
+        history.forEach(function(item) {
+            var row = document.createElement('tr');
+
+            var dateCell = document.createElement('td');
+            dateCell.textContent = String(item.payment_date || '');
+            row.appendChild(dateCell);
+
+            var amountCell = document.createElement('td');
+            var amount = Number(item.amount || 0);
+            amountCell.textContent = '¥' + amount.toLocaleString();
+            row.appendChild(amountCell);
+
+            if (shouldShowStatus) {
+                var statusCell = document.createElement('td');
+                var statusSpan = document.createElement('span');
+                statusSpan.className = 'parent-payment-history__status' + sanitizeStatusClass(item.status);
+                statusSpan.textContent = String(item.status_label || item.status || '');
+                statusCell.appendChild(statusSpan);
+                row.appendChild(statusCell);
+            }
+
+            tbody.appendChild(row);
+        });
+
+        table.appendChild(tbody);
+        container.textContent = '';
+        container.appendChild(table);
     }
 
     // Stripe Connect Checkout開始

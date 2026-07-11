@@ -14,6 +14,7 @@ $vm = is_array($args['vm'] ?? null) ? $args['vm'] : [];
 
 $month_label = (string) ($vm['month_label'] ?? '');
 $tuition_open = !empty($vm['tuition_open']);
+$connect_block_reason = (string) ($vm['connect_block_reason'] ?? '');
 $monthly_fee = (int) ($vm['monthly_fee'] ?? 0);
 $summary = is_array($vm['summary'] ?? null) ? $vm['summary'] : [];
 $parents = is_array($vm['parents'] ?? null) ? $vm['parents'] : [];
@@ -27,11 +28,21 @@ $expected_total = (int) ($summary['expected_total_yen'] ?? 0);
 ?>
 
 <?php if (!$tuition_open) : ?>
-<section class="payment-setup-section" role="status">
-    <p class="team-tuition-collections-empty">
-        月謝機能が有効になっていないか、Stripe Connect の連携が未完了です。
+<section class="payment-setup-section team-tuition-connect-block" role="status">
+    <?php
+    $block_message = function_exists('aidunite_payment_read_tuition_block_message')
+        ? aidunite_payment_read_tuition_block_message($connect_block_reason, 'leader')
+        : '月謝機能が有効になっていないか、Stripe Connect の連携が未完了です。';
+    ?>
+    <p class="team-tuition-collections-empty team-tuition-collections-empty--blocked">
+        <?php echo esc_html($block_message); ?>
         <a href="<?php echo esc_url($settings_url); ?>">チーム月謝管理</a>で設定してください。
     </p>
+    <?php if ($connect_block_reason === 'connect_incomplete') : ?>
+    <div class="form-actions">
+        <a class="btn btn-primary" href="<?php echo esc_url($settings_url); ?>#team-connect-heading">Stripe Connect 連携を完了する</a>
+    </div>
+    <?php endif; ?>
 </section>
 <?php else : ?>
 

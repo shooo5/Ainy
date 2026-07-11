@@ -38,6 +38,28 @@ class MultiTeamContextSimpleTest extends TestCase
         $this->assertCount(2, $managed);
     }
 
+    public function testOperatingTeamSwitchUpdatesCurrentTeam(): void
+    {
+        $seed = MultiTeamTestFixture::seed_dual_team_leader();
+        wp_set_current_user($seed['leader_id']);
+
+        $this->assertSame($seed['team_a'], (int) aidunite_get_current_team_id($seed['leader_id']));
+
+        $switched = aidunite_set_current_operating_team_id($seed['leader_id'], $seed['team_b']);
+        $this->assertTrue($switched);
+        $this->assertSame($seed['team_b'], (int) aidunite_get_current_team_id($seed['leader_id']));
+    }
+
+    public function testManagedTeamIdsRejectUnknownTeamSwitch(): void
+    {
+        $seed = MultiTeamTestFixture::seed_dual_team_leader();
+        $unknown_team_id = max($seed['team_a'], $seed['team_b']) + 1000;
+
+        $switched = aidunite_set_current_operating_team_id($seed['leader_id'], $unknown_team_id);
+        $this->assertFalse($switched);
+        $this->assertSame($seed['team_a'], (int) get_user_meta($seed['leader_id'], 'current_operating_team_id', true));
+    }
+
     public function testManualChecklistIsDocumented(): void
     {
         $this->assertNotEmpty(MultiTeamTestFixture::manual_checklist());
