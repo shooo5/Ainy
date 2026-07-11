@@ -1,6 +1,6 @@
 # Ainy 正式リリース準備 — タスク一覧
 
-最終更新: 2026-07-10  
+最終更新: 2026-07-11  
 評価基準: **正式リリース**（「動くか」ではなく本番運用・法務・決済・セキュリティ・テストを前提）  
 評価者: Cursor（コードベース横断レビュー）
 
@@ -66,7 +66,7 @@
 | REST API | 要修正 |
 | Nonce | 要修正 |
 | サニタイズ | 要修正 |
-| XSS | 要修正 |
+| XSS | **要修正（主要 JS 対応済）** |
 | CSRF | 要修正 |
 
 ### データ設計
@@ -128,7 +128,7 @@
 |----|--------|------------|--------------|----------|
 | P1-01 | PHPUnit 統合テストの CI 復帰 | **完了** | テスト | GitHub Actions Tests #2 緑。unit 148 + simple-integration 7。[`github-ci-setup.md`](../operations/github-ci-setup.md) |
 | P1-02 | 権限マトリクス自動テスト | **完了** | セキュリティ / テスト | `PermissionMatrixCatalog` 17行 + `PermissionMatrixEvaluator` + `PermissionMatrixTest`。CI unit スイートに含まれる |
-| P1-03 | XSS 監査（JS innerHTML 箇所） | **要修正（スケジュール系対応済）** | セキュリティ | schedule-edit / schedule-management / parent-payment / communication 等。**残:** schedule-modal 大型テンプレ・mypage-dashboard-joy |
+| P1-03 | XSS 監査（JS innerHTML 箇所） | **完了** | セキュリティ | schedule-edit / schedule-management / parent-payment / communication / notification-settings / payment-setup / match-detail / **schedule-modal** / **mypage-dashboard-joy** / **admin-competition-event**。template 挿入・DOM API・escapeHtml 統一 |
 | P1-04 | マルチチーム操作の結合テスト | **要修正（SimpleIntegration 5件）** | チーム / マッチ / 決済 | チーム切替・未知 team 拒否・managed 検証。**残:** WP 実 DB / E2E でチェックリスト実行 |
 | P1-05 | Connect オンボーディング未完時の UX | **完了** | 月謝 / Stripe | `aidunite_payment_read_tuition_block_message()` で代表者/保護者文言を統一 |
 | P1-06 | Webhook 失敗時のリカバリ手順 | **要修正（文書完了）** | Stripe | [`stripe-webhook-recovery.md`](../operations/stripe-webhook-recovery.md)。**残:** 本番で再送ドリル1回 |

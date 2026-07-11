@@ -115,6 +115,24 @@ class AidUniteScheduleModal {
     }
 
     /**
+     * エスケープ済み HTML フラグメントを要素へ安全に挿入
+     * @param {HTMLElement} element
+     * @param {string} html
+     */
+    static setHtmlFromTemplate(element, html) {
+        if (!element) {
+            return;
+        }
+        element.replaceChildren();
+        if (!html) {
+            return;
+        }
+        const template = document.createElement('template');
+        template.innerHTML = html;
+        element.appendChild(template.content);
+    }
+
+    /**
      * スケジュールIDを統一（id / post_id / schedule_id）
      * @param {Object} schedule
      * @returns {string}
@@ -267,7 +285,7 @@ class AidUniteScheduleModal {
         if (scheduleId) {
             modal.setAttribute('data-schedule-id', scheduleId);
         }
-        modal.innerHTML = this.getModalHTML(schedule, options);
+        AidUniteScheduleModal.setHtmlFromTemplate(modal, this.getModalHTML(schedule, options));
 
         this.attachModalEvents(modal, options);
 
@@ -293,7 +311,7 @@ class AidUniteScheduleModal {
         if (scheduleId) {
             popup.setAttribute('data-schedule-id', scheduleId);
         }
-        popup.innerHTML = this.getPopupHTML(schedule, options);
+        AidUniteScheduleModal.setHtmlFromTemplate(popup, this.getPopupHTML(schedule, options));
 
         this.attachPopupEvents(popup, options);
 
@@ -362,6 +380,13 @@ class AidUniteScheduleModal {
         const memoDisplay = schedule.memo || schedule.quick_memo || schedule.schedule_quick_memo || schedule.schedule_memo || '';
         const matchRestricted = options.matchRestricted === true;
         const memoEscaped = AidUniteScheduleModal.escapeHtmlText(memoDisplay);
+        const esc = (v) => AidUniteScheduleModal.escapeHtmlText(v);
+        const dateEsc = esc(dateDisplay);
+        const timeEsc = esc(timeRange);
+        const venueEsc = esc(venueDisplay);
+        const venueMemoEsc = esc(venueMemo);
+        const genderEsc = esc(genderDisplay);
+        const typeEsc = esc(displayType);
 
         const memoBlock = matchRestricted ? `
                     <div class="detail-item detail-item-full">
@@ -374,67 +399,67 @@ class AidUniteScheduleModal {
                     </div>` : `
                     <div class="detail-item detail-item-full">
                         <label>メモ：</label>
-                        <span>${memoDisplay || '-'}</span>
+                        <span>${memoEscaped || '-'}</span>
                     </div>`;
 
         const footerInner = matchRestricted ? `
                     ${(schedule.matching === '1' || schedule.matching === 1 || schedule.matching === true) ? `
-                        <button type="button" class="btn btn-invite" onclick="event.stopPropagation(); AidUniteScheduleModal.generateInviteUrl(${sidJs})">
+                        <button type="button" class="btn btn-invite" data-aidunite-action="generate-invite">
                             ${AidUniteScheduleModal.iconHtml('send', 18)} 招待
                         </button>
                     ` : ''}
-                    <button type="button" class="btn btn-danger" data-aidunite-action="delete-schedule" onclick="event.stopPropagation(); AidUniteScheduleModal.deleteSchedule(${sidJs})">
+                    <button type="button" class="btn btn-danger" data-aidunite-action="delete-schedule">
                         削除
                     </button>
-                    <button type="button" class="btn btn-secondary" onclick="AidUniteScheduleModal.closeModal(this)">
+                    <button type="button" class="btn btn-secondary" data-aidunite-action="close-modal">
                         閉じる
                     </button>` : `
                     ${(schedule.matching === '1' || schedule.matching === 1 || schedule.matching === true) ? `
-                        <button type="button" class="btn btn-invite" onclick="event.stopPropagation(); AidUniteScheduleModal.generateInviteUrl(${sidJs})">
+                        <button type="button" class="btn btn-invite" data-aidunite-action="generate-invite">
                             ${AidUniteScheduleModal.iconHtml('send', 18)} 招待
                         </button>
                     ` : ''}
-                    <button type="button" class="btn btn-primary" data-aidunite-action="edit-schedule" onclick="event.stopPropagation(); AidUniteScheduleModal.editSchedule(${sidJs})">
+                    <button type="button" class="btn btn-primary" data-aidunite-action="edit-schedule">
                         編集
                     </button>
-                    <button type="button" class="btn btn-danger" data-aidunite-action="delete-schedule" onclick="event.stopPropagation(); AidUniteScheduleModal.deleteSchedule(${sidJs})">
+                    <button type="button" class="btn btn-danger" data-aidunite-action="delete-schedule">
                         削除
                     </button>
                     ${AidUniteScheduleModal.isScheduleTentative(schedule) ? `
-                        <button type="button" class="btn btn-success" data-aidunite-action="confirm-tentative" onclick="event.stopPropagation(); AidUniteScheduleModal.confirmSchedule(${sidJs})">
+                        <button type="button" class="btn btn-success" data-aidunite-action="confirm-tentative">
                             確定
                         </button>
                     ` : ''}
-                    <button type="button" class="btn btn-secondary" onclick="AidUniteScheduleModal.closeModal(this)">
+                    <button type="button" class="btn btn-secondary" data-aidunite-action="close-modal">
                         閉じる
                     </button>`;
 
         return `
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>${iconHtml} ${displayType}</h3>
-                    <button class="modal-close" onclick="AidUniteScheduleModal.closeModal(this)">&times;</button>
+                    <h3>${iconHtml} ${typeEsc}</h3>
+                    <button type="button" class="modal-close" data-aidunite-action="close-modal" aria-label="閉じる">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="detail-grid">
                         <div class="detail-item">
                             <label>日程：</label>
-                            <span>${dateDisplay || '-'}</span>
+                            <span>${dateEsc || '-'}</span>
                         </div>
                         <div class="detail-item">
                             <label>時間：</label>
-                            <span>${timeRange}</span>
+                            <span>${timeEsc}</span>
                         </div>
                         <div class="detail-item detail-item-venue">
                             <label>会場：</label>
                             <div class="venue-content">
-                                <div class="venue-name">${venueDisplay}</div>
-                                ${venueMemo ? `<div class="venue-memo">${venueMemo}</div>` : ''}
+                                <div class="venue-name">${venueEsc}</div>
+                                ${venueMemo ? `<div class="venue-memo">${venueMemoEsc}</div>` : ''}
                             </div>
                         </div>
                         <div class="detail-item">
                             <label>性別：</label>
-                            <span>${genderDisplay}</span>
+                            <span>${genderEsc}</span>
                         </div>
                     </div>${memoBlock}
                 </div>
@@ -501,6 +526,13 @@ class AidUniteScheduleModal {
         const memoDisplay = schedule.memo || schedule.quick_memo || schedule.schedule_quick_memo || schedule.schedule_memo || '';
         const matchRestricted = options.matchRestricted === true;
         const memoEscaped = AidUniteScheduleModal.escapeHtmlText(memoDisplay);
+        const esc = (v) => AidUniteScheduleModal.escapeHtmlText(v);
+        const dateEsc = esc(dateDisplay);
+        const timeEsc = esc(timeRange);
+        const venueEsc = esc(venueDisplay);
+        const venueMemoEsc = esc(venueMemo);
+        const genderEsc = esc(genderDisplay);
+        const typeEsc = esc(displayType);
 
         const memoBlock = matchRestricted ? `
                     <div class="detail-item detail-item-full">
@@ -513,67 +545,67 @@ class AidUniteScheduleModal {
                     </div>` : `
                     <div class="detail-item detail-item-full">
                         <label>メモ：</label>
-                        <span>${memoDisplay || '-'}</span>
+                        <span>${memoEscaped || '-'}</span>
                     </div>`;
 
         const footerInner = matchRestricted ? `
                     ${(schedule.matching === '1' || schedule.matching === 1 || schedule.matching === true) ? `
-                        <button type="button" class="btn btn-invite" onclick="event.stopPropagation(); AidUniteScheduleModal.generateInviteUrl(${sidJs})">
+                        <button type="button" class="btn btn-invite" data-aidunite-action="generate-invite">
                             ${AidUniteScheduleModal.iconHtml('send', 18)} 招待
                         </button>
                     ` : ''}
-                    <button type="button" class="btn btn-danger" data-aidunite-action="delete-schedule" onclick="event.stopPropagation(); AidUniteScheduleModal.deleteSchedule(${sidJs})">
+                    <button type="button" class="btn btn-danger" data-aidunite-action="delete-schedule">
                         削除
                     </button>
-                    <button type="button" class="btn btn-secondary" onclick="AidUniteScheduleModal.closePopup()">
+                    <button type="button" class="btn btn-secondary" data-aidunite-action="close-popup">
                         閉じる
                     </button>` : `
                     ${(schedule.matching === '1' || schedule.matching === 1 || schedule.matching === true) ? `
-                        <button type="button" class="btn btn-invite" onclick="event.stopPropagation(); AidUniteScheduleModal.generateInviteUrl(${sidJs})">
+                        <button type="button" class="btn btn-invite" data-aidunite-action="generate-invite">
                             ${AidUniteScheduleModal.iconHtml('send', 18)} 招待
                         </button>
                     ` : ''}
-                    <button type="button" class="btn btn-primary" data-aidunite-action="edit-schedule" onclick="event.stopPropagation(); AidUniteScheduleModal.editSchedule(${sidJs})">
+                    <button type="button" class="btn btn-primary" data-aidunite-action="edit-schedule">
                         編集
                     </button>
-                    <button type="button" class="btn btn-danger" data-aidunite-action="delete-schedule" onclick="event.stopPropagation(); AidUniteScheduleModal.deleteSchedule(${sidJs})">
+                    <button type="button" class="btn btn-danger" data-aidunite-action="delete-schedule">
                         削除
                     </button>
                     ${AidUniteScheduleModal.isScheduleTentative(schedule) ? `
-                        <button type="button" class="btn btn-success" data-aidunite-action="confirm-tentative" onclick="event.stopPropagation(); AidUniteScheduleModal.confirmSchedule(${sidJs})">
+                        <button type="button" class="btn btn-success" data-aidunite-action="confirm-tentative">
                             確定
                         </button>
                     ` : ''}
-                    <button type="button" class="btn btn-secondary" onclick="AidUniteScheduleModal.closePopup()">
+                    <button type="button" class="btn btn-secondary" data-aidunite-action="close-popup">
                         閉じる
                     </button>`;
 
         return `
             <div class="popup-content">
                 <div class="popup-header">
-                    <h3>${iconHtml} ${displayType}</h3>
-                    <button class="popup-close" onclick="AidUniteScheduleModal.closePopup()">&times;</button>
+                    <h3>${iconHtml} ${typeEsc}</h3>
+                    <button type="button" class="popup-close" data-aidunite-action="close-popup" aria-label="閉じる">&times;</button>
                 </div>
                 <div class="popup-body">
                     <div class="detail-grid">
                         <div class="detail-item">
                             <label>日程：</label>
-                            <span>${dateDisplay || '-'}</span>
+                            <span>${dateEsc || '-'}</span>
                         </div>
                         <div class="detail-item">
                             <label>時間：</label>
-                            <span>${timeRange}</span>
+                            <span>${timeEsc}</span>
                         </div>
                         <div class="detail-item detail-item-venue">
                             <label>会場：</label>
                             <div class="venue-content">
-                                <div class="venue-name">${venueDisplay}</div>
-                                ${venueMemo ? `<div class="venue-memo">${venueMemo}</div>` : ''}
+                                <div class="venue-name">${venueEsc}</div>
+                                ${venueMemo ? `<div class="venue-memo">${venueMemoEsc}</div>` : ''}
                             </div>
                         </div>
                         <div class="detail-item">
                             <label>性別：</label>
-                            <span>${genderDisplay}</span>
+                            <span>${genderEsc}</span>
                         </div>
                     </div>${memoBlock}
                 </div>
@@ -791,10 +823,10 @@ class AidUniteScheduleModal {
                     });
                     if (found) {
                         if (!found.id && (found.post_id || found.schedule_id)) {
-                            try { found.id = found.post_id || found.schedule_id; } catch (_) {}
+                            try { found.id = found.post_id || found.schedule_id; } catch (err) { console.debug('schedule-modal: normalize id failed', err); }
                         }
                         if (!found.date) {
-                            try { found.date = dateKey; } catch(_) {}
+                            try { found.date = dateKey; } catch (err) { console.debug('schedule-modal: normalize date failed', err); }
                         }
                         return found;
                     }
@@ -1092,48 +1124,93 @@ class AidUniteScheduleModal {
         modal.className = 'invite-url-modal';
         modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;';
 
-        modal.innerHTML = `
-            <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
-                <h3 style="margin-top: 0;">招待のみを発行しました</h3>
-                <p style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">LINEで送る場合は「LINE用メッセージをコピー」すると、文脈付きで送れます</p>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: bold;">LINE用メッセージ（文脈付き）</label>
-                    <textarea id="invite-line-message" readonly rows="5" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; resize: vertical;"></textarea>
-                    <button type="button" id="copy-line-message-btn" class="btn btn-primary" style="margin-top: 0.5rem; width: 100%;">LINE用メッセージをコピー</button>
-                </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: bold;">招待のみ</label>
-                    <input type="text" id="invite-url-input" value="${String(inviteUrl).replace(/&/g, '&amp;').replace(/"/g, '&quot;')}" readonly style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
-                    <button type="button" id="copy-invite-url-btn" class="btn btn-secondary" style="margin-top: 0.5rem; width: 100%;">URLのみコピー</button>
-                </div>
-                <p style="color: #666; font-size: 0.85rem; margin-bottom: 1rem;">有効期限: ${expiresAt}</p>
-                <button type="button" class="btn btn-secondary" onclick="AidUniteScheduleModal.closeInviteUrlModal()" style="width: 100%;">閉じる</button>
-            </div>
-        `;
+        const panel = document.createElement('div');
+        panel.style.cssText = 'background: white; padding: 2rem; border-radius: 8px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;';
+
+        const title = document.createElement('h3');
+        title.style.marginTop = '0';
+        title.textContent = '招待のみを発行しました';
+
+        const lead = document.createElement('p');
+        lead.style.cssText = 'color: #666; font-size: 0.9rem; margin-bottom: 1rem;';
+        lead.textContent = 'LINEで送る場合は「LINE用メッセージをコピー」すると、文脈付きで送れます';
+
+        const lineBlock = document.createElement('div');
+        lineBlock.style.marginBottom = '1rem';
+        const lineLabel = document.createElement('label');
+        lineLabel.style.cssText = 'display: block; margin-bottom: 0.5rem; font-weight: bold;';
+        lineLabel.textContent = 'LINE用メッセージ（文脈付き）';
+        const lineTextarea = document.createElement('textarea');
+        lineTextarea.id = 'invite-line-message';
+        lineTextarea.readOnly = true;
+        lineTextarea.rows = 5;
+        lineTextarea.style.cssText = 'width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; resize: vertical;';
+        lineTextarea.value = lineMessage;
+        const copyLineBtn = document.createElement('button');
+        copyLineBtn.type = 'button';
+        copyLineBtn.id = 'copy-line-message-btn';
+        copyLineBtn.className = 'btn btn-primary';
+        copyLineBtn.style.cssText = 'margin-top: 0.5rem; width: 100%;';
+        copyLineBtn.textContent = 'LINE用メッセージをコピー';
+        lineBlock.appendChild(lineLabel);
+        lineBlock.appendChild(lineTextarea);
+        lineBlock.appendChild(copyLineBtn);
+
+        const urlBlock = document.createElement('div');
+        urlBlock.style.marginBottom = '1rem';
+        const urlLabel = document.createElement('label');
+        urlLabel.style.cssText = 'display: block; margin-bottom: 0.5rem; font-weight: bold;';
+        urlLabel.textContent = '招待のみ';
+        const urlInput = document.createElement('input');
+        urlInput.type = 'text';
+        urlInput.id = 'invite-url-input';
+        urlInput.readOnly = true;
+        urlInput.value = String(inviteUrl || '');
+        urlInput.style.cssText = 'width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;';
+        const copyUrlBtn = document.createElement('button');
+        copyUrlBtn.type = 'button';
+        copyUrlBtn.id = 'copy-invite-url-btn';
+        copyUrlBtn.className = 'btn btn-secondary';
+        copyUrlBtn.style.cssText = 'margin-top: 0.5rem; width: 100%;';
+        copyUrlBtn.textContent = 'URLのみコピー';
+        urlBlock.appendChild(urlLabel);
+        urlBlock.appendChild(urlInput);
+        urlBlock.appendChild(copyUrlBtn);
+
+        const expires = document.createElement('p');
+        expires.style.cssText = 'color: #666; font-size: 0.85rem; margin-bottom: 1rem;';
+        expires.textContent = '有効期限: ' + (expiresAt || '');
+
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'btn btn-secondary';
+        closeBtn.style.width = '100%';
+        closeBtn.textContent = '閉じる';
+        closeBtn.addEventListener('click', () => AidUniteScheduleModal.closeInviteUrlModal());
+
+        panel.appendChild(title);
+        panel.appendChild(lead);
+        panel.appendChild(lineBlock);
+        panel.appendChild(urlBlock);
+        panel.appendChild(expires);
+        panel.appendChild(closeBtn);
+        modal.appendChild(panel);
 
         document.body.appendChild(modal);
 
-        const urlInput = modal.querySelector('#invite-url-input');
-        const lineTextarea = modal.querySelector('#invite-line-message');
-        if (lineTextarea) lineTextarea.value = lineMessage;
-
-        modal.querySelector('#copy-invite-url-btn').addEventListener('click', () => {
+        copyUrlBtn.addEventListener('click', () => {
             urlInput.select();
             document.execCommand('copy');
-            const btn = modal.querySelector('#copy-invite-url-btn');
-            btn.textContent = 'コピーしました！';
-            setTimeout(() => { btn.textContent = 'URLのみコピー'; }, 2000);
+            copyUrlBtn.textContent = 'コピーしました！';
+            setTimeout(() => { copyUrlBtn.textContent = 'URLのみコピー'; }, 2000);
         });
 
-        const copyLineBtn = modal.querySelector('#copy-line-message-btn');
-        if (copyLineBtn && lineTextarea) {
-            copyLineBtn.addEventListener('click', () => {
-                lineTextarea.select();
-                document.execCommand('copy');
-                copyLineBtn.textContent = 'コピーしました！';
-                setTimeout(() => { copyLineBtn.textContent = 'LINE用メッセージをコピー'; }, 2000);
-            });
-        }
+        copyLineBtn.addEventListener('click', () => {
+            lineTextarea.select();
+            document.execCommand('copy');
+            copyLineBtn.textContent = 'コピーしました！';
+            setTimeout(() => { copyLineBtn.textContent = 'LINE用メッセージをコピー'; }, 2000);
+        });
     }
 
     /**
@@ -1256,7 +1333,7 @@ class AidUniteScheduleModal {
         const scheduleId = btn.getAttribute('data-schedule-id')
             || root.getAttribute('data-schedule-id')
             || '';
-        if (!scheduleId && action !== 'save-schedule-memo') {
+        if (!scheduleId && action !== 'save-schedule-memo' && action !== 'close-modal' && action !== 'close-popup') {
             return;
         }
         e.preventDefault();
@@ -1272,6 +1349,12 @@ class AidUniteScheduleModal {
             const ta = scope ? scope.querySelector('.aidunite-modal-memo-textarea') : null;
             const schedule = scheduleId ? AidUniteScheduleModal.findScheduleById(scheduleId) : null;
             AidUniteScheduleModal.saveScheduleMemoOnly(scheduleId, ta ? ta.value : '', schedule);
+        } else if (action === 'generate-invite') {
+            AidUniteScheduleModal.generateInviteUrl(scheduleId);
+        } else if (action === 'close-modal') {
+            AidUniteScheduleModal.closeModal(root);
+        } else if (action === 'close-popup') {
+            AidUniteScheduleModal.closePopup();
         }
     }
 }

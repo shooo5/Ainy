@@ -32,6 +32,26 @@
         return div.innerHTML;
     }
 
+    function setJoyHtml(el, html) {
+        if (!el) {
+            return;
+        }
+        el.replaceChildren();
+        if (!html) {
+            return;
+        }
+        var template = document.createElement('template');
+        template.innerHTML = html;
+        el.appendChild(template.content);
+    }
+
+    function joyEmptyCalmHtml(message) {
+        if (typeof aiduniteCompactEmptyHtml === 'function') {
+            return aiduniteCompactEmptyHtml(message, 'mypage-joy-empty-calm');
+        }
+        return '<p class="mypage-joy-empty-calm">' + escapeHtml(message) + '</p>';
+    }
+
     function getCopy(payload, key, fallback) {
         if (payload && payload.copy && payload.copy[key]) {
             return payload.copy[key];
@@ -212,14 +232,20 @@
         return html;
     }
 
-    function buildHeroCompactHtml(stateKey, title, metaLine, extraLines, buttons) {
+    function buildHeroCompactHtml(stateKey, title, metaLine, extraLines, buttons, options) {
+        options = options || {};
         var extras = Array.isArray(extraLines) ? extraLines : (extraLines ? [extraLines] : []);
         var extraHtml = extras.filter(Boolean).map(function (line) {
-            return '<p class="mypage-joy-hero-card__extra">' + line + '</p>';
+            var content = options.allowHtmlInExtras ? line : escapeHtml(line);
+            return '<p class="mypage-joy-hero-card__extra">' + content + '</p>';
         }).join('');
-        var metaHtml = metaLine
-            ? '<p class="mypage-joy-hero-card__meta">' + metaLine + '</p>'
+        var metaContent = metaLine
+            ? (options.metaHtml ? metaLine : escapeHtml(metaLine))
             : '';
+        var metaHtml = metaContent
+            ? '<p class="mypage-joy-hero-card__meta">' + metaContent + '</p>'
+            : '';
+        var titleHtml = escapeHtml(title || '');
 
         return ''
             + '<div class="mypage-joy-hero-card__inner">'
@@ -227,7 +253,7 @@
             + '<div class="mypage-joy-hero-card__head-cluster">'
             + '<div class="mypage-joy-hero-card__head-main">'
             + heroIconCompactHtml(stateKey)
-            + '<h2 class="mypage-joy-hero-card__title">' + title + '</h2>'
+            + '<h2 class="mypage-joy-hero-card__title">' + titleHtml + '</h2>'
             + '</div>'
             + '<span class="mypage-joy-hero-card__head-accent" aria-hidden="true"></span>'
             + '</div>'
@@ -240,7 +266,7 @@
 
     function applyHeroCard(el, modifierClasses, html) {
         el.className = 'mypage-joy-hero-card mypage-joy-hero-card--compact ' + modifierClasses;
-        el.innerHTML = html;
+        setJoyHtml(el, html);
     }
 
     function openRecruitQuickModal() {
@@ -367,7 +393,7 @@
         nav.className = built.className;
         nav.setAttribute('role', 'navigation');
         nav.setAttribute('aria-label', 'クイックアクション');
-        nav.innerHTML = built.html;
+        setJoyHtml(nav, built.html);
         bindRecruitModalTriggers(nav);
     }
 
@@ -458,7 +484,8 @@
                 '最初の試合募集を出しましょう！',
                 '難しい設定は必要ありません。<br>まずは日時を決めるところから始めましょう。',
                 '',
-                [{ tag: 'button', label: '＋ 試合の募集を出す', className: 'mypage-joy-btn--primary', modal: true }]
+                [{ tag: 'button', label: '＋ 試合の募集を出す', className: 'mypage-joy-btn--primary', modal: true }],
+                { metaHtml: true }
             ));
             return true;
         }
@@ -516,8 +543,8 @@
             if (memberPriority) {
                 applyHeroCard(el, 'mypage-joy-hero-card--action', buildHeroCompactHtml(
                     'action',
-                    escapeHtml(memberPriority.title || 'やることがあります'),
-                    memberPriority.description ? escapeHtml(memberPriority.description) : '',
+                    memberPriority.title || 'やることがあります',
+                    memberPriority.description || '',
                     '',
                     [{
                         tag: 'a',
@@ -534,7 +561,7 @@
                 applyHeroCard(el, 'mypage-joy-hero-card--match-day', buildHeroCompactHtml(
                     'match_day',
                     '次の予定があります',
-                    escapeHtml(buildMatchMetaLine(memberNext)),
+                    buildMatchMetaLine(memberNext),
                     '',
                     [{ tag: 'a', href: scheduleUrl, label: 'スケジュールを見る', className: 'mypage-joy-btn--primary' }]
                 ));
@@ -570,7 +597,7 @@
             applyHeroCard(el, 'mypage-joy-hero-card--celebration', buildHeroCompactHtml(
                 'celebration',
                 '試合が決まりました',
-                escapeHtml(buildMatchMetaLine(celebration)),
+                buildMatchMetaLine(celebration),
                 '',
                 [{
                     tag: 'a',
@@ -588,7 +615,7 @@
             applyHeroCard(el, 'mypage-joy-hero-card--match-day', buildHeroCompactHtml(
                 'match_day',
                 '今日は試合があります',
-                escapeHtml(buildMatchMetaLine(nextMatch)),
+                buildMatchMetaLine(nextMatch),
                 '',
                 [{ tag: 'a', href: scheduleUrl, label: '今日の予定を見る', className: 'mypage-joy-btn--primary' }]
             ));
@@ -602,7 +629,7 @@
                 || '相手チーム';
             var extras = [];
             if (isUrgent) {
-                extras.push(escapeHtml(opponent) + 'が日程を確認してくれました。');
+                extras.push(opponent + 'が日程を確認してくれました。');
                 extras.push('このまま進めると、試合が決まりそうです。');
             } else if (priority.deadline) {
                 extras.push('<strong>' + escapeHtml(formatDeadline(priority.deadline)) + 'にご返答ください</strong>');
@@ -610,12 +637,13 @@
             applyHeroCard(el, isUrgent ? 'mypage-joy-hero-card--urgent' : 'mypage-joy-hero-card--reply', buildHeroCompactHtml(
                 isUrgent ? 'urgent' : 'reply',
                 isUrgent ? '試合のお返事が届いています' : '返信が届きました',
-                escapeHtml(buildReplyMetaLine(priority)),
+                buildReplyMetaLine(priority),
                 extras,
                 [
                     { tag: 'button', label: '確認して承認', className: 'mypage-joy-btn--primary', action: 'approve', itemId: priority.id },
                     { tag: 'a', href: priority.link_url || urls.match_my || '#', label: '詳細で確認', className: 'mypage-joy-btn--outline' },
-                ]
+                ],
+                { allowHtmlInExtras: !isUrgent && !!priority.deadline }
             ));
             bindHeroActions(el);
             return;
@@ -625,7 +653,7 @@
             applyHeroCard(el, 'mypage-joy-hero-card--waiting', buildHeroCompactHtml(
                 'waiting',
                 '相手の返答をお待ちしています',
-                escapeHtml(String(summary.pending_sent)) + '件の申請が進行中です。通常1〜3日以内に返答があります。',
+                String(summary.pending_sent) + '件の申請が進行中です。通常1〜3日以内に返答があります。',
                 '',
                 [{ tag: 'a', href: urls.match_my || '#', label: '申請状況を確認', className: 'mypage-joy-btn--primary' }]
             ));
@@ -635,8 +663,8 @@
         if (displayState === 'discover' && discover) {
             applyHeroCard(el, 'mypage-joy-hero-card--discover', buildHeroCompactHtml(
                 'discover',
-                escapeHtml(getCopy(payload, 'discover_title', '試合できそうなチームがあります')),
-                escapeHtml((discover.team_name || '相手チーム') + ' · ' + buildMatchMetaLine(discover)),
+                getCopy(payload, 'discover_title', '試合できそうなチームがあります'),
+                (discover.team_name || '相手チーム') + ' · ' + buildMatchMetaLine(discover),
                 '',
                 [{ tag: 'a', href: discover.apply_url || urls.match_recruit || '#', label: '見てみる', className: 'mypage-joy-btn--primary' }]
             ));
@@ -646,8 +674,8 @@
         if (displayState === 'praise') {
             applyHeroCard(el, 'mypage-joy-hero-card--praise', buildHeroCompactHtml(
                 'praise',
-                escapeHtml(getCopy(payload, 'praise_title', '今月も子どもたちの試合機会が増えています。')),
-                escapeHtml(getCopy(payload, 'praise_sub', 'うちのチーム、順調に試合機会を作れています。この調子でいきましょう。')),
+                getCopy(payload, 'praise_title', '今月も子どもたちの試合機会が増えています。'),
+                getCopy(payload, 'praise_sub', 'うちのチーム、順調に試合機会を作れています。この調子でいきましょう。'),
                 '',
                 [{ tag: 'a', href: urls.match_my || '#', label: '詳細を見る', className: 'mypage-joy-btn--primary' }]
             ));
@@ -658,8 +686,8 @@
             var other = (payload.secondary_actions || [])[0];
             applyHeroCard(el, 'mypage-joy-hero-card--action', buildHeroCompactHtml(
                 'action',
-                escapeHtml(other ? (other.title || 'やることがあります') : 'やることがあります'),
-                other && other.description ? escapeHtml(other.description) : '',
+                other ? (other.title || 'やることがあります') : 'やることがあります',
+                other && other.description ? other.description : '',
                 '',
                 [{ tag: 'a', href: other && other.link_url ? other.link_url : scheduleUrl, label: '確認する', className: 'mypage-joy-btn--primary' }]
             ));
@@ -669,7 +697,7 @@
         applyHeroCard(el, 'mypage-joy-hero-card--calm', buildHeroCompactHtml(
             'calm',
             '今日は対応不要です',
-            escapeHtml(getCopy(payload, 'calm_sub', '試合調整は順調です。このまま練習に集中できます。')),
+            getCopy(payload, 'calm_sub', '試合調整は順調です。このまま練習に集中できます。'),
             '',
             [{ tag: 'a', href: urls.match_recruit || '#', label: '相手を探す', className: 'mypage-joy-btn--outline' }]
         ));
@@ -746,7 +774,17 @@
 
         if (!items.length) {
             var emptyCopy = getCopy(payload, 'happy_feed_empty', 'まだお知らせはありません。\n試合が決まるとここに表示されます。');
-            el.innerHTML = '<p class="mypage-joy-empty-calm">' + escapeHtml(emptyCopy).replace(/\n/g, '<br>') + '</p>';
+            var emptyParts = emptyCopy.split('\n');
+            if (typeof aiduniteEmptyStateHtml === 'function') {
+                setJoyHtml(el, aiduniteEmptyStateHtml({
+                    title: emptyParts[0] || 'まだお知らせはありません',
+                    message: emptyParts.slice(1).join(' ') || '',
+                    type: 'default',
+                    custom_class: 'mypage-joy-feed-empty',
+                }));
+            } else {
+                setJoyHtml(el, joyEmptyCalmHtml(emptyCopy.replace(/\n/g, ' ')));
+            }
             return;
         }
 
@@ -762,7 +800,7 @@
                 + '</a>';
         });
         html += '</div>';
-        el.innerHTML = html;
+        setJoyHtml(el, html);
     }
 
     function renderSecondary(payload) {
@@ -784,7 +822,7 @@
 
         if (!visible.length) {
             section.hidden = true;
-            list.innerHTML = '';
+            list.replaceChildren();
             return;
         }
 
@@ -797,7 +835,7 @@
                 + '</a>';
         });
         html += '</div>';
-        list.innerHTML = html;
+        setJoyHtml(list, html);
     }
 
     function updateQuickBadges(payload) {
@@ -861,11 +899,11 @@
         if (!el) return;
 
         if (!weekDays || !weekDays.length) {
-            el.innerHTML = '<p class="mypage-joy-empty-calm">今週の予定はありません。</p>';
+            setJoyHtml(el, joyEmptyCalmHtml('今週の予定はありません。'));
             return;
         }
 
-        el.innerHTML = buildJoyWeekScheduleHtml(weekDays);
+        setJoyHtml(el, buildJoyWeekScheduleHtml(weekDays));
     }
 
     function handleMatchAction(action, itemId, buttonEl) {
@@ -908,12 +946,13 @@
                 state.payload = (res && res.data) ? res.data : null;
                 renderAll();
             })
-            .catch(function () {
+            .catch(function (err) {
+                console.debug('mypage-joy: context load failed', err);
                 state.payload = null;
                 var hero = document.getElementById('mypage-joy-hero');
                 if (hero) {
                     hero.className = 'mypage-joy-hero-card mypage-joy-hero-card--calm';
-                    hero.innerHTML = '<p class="mypage-joy-empty-calm">読み込みに失敗しました。ページを再読み込みしてください。</p>';
+                    setJoyHtml(hero, joyEmptyCalmHtml('読み込みに失敗しました。ページを再読み込みしてください。'));
                 }
             });
     }
@@ -930,7 +969,8 @@
                     updateQuickBadges(state.payload);
                 }
             })
-            .catch(function () {
+            .catch(function (err) {
+                console.debug('mypage-joy: chat unread fetch failed', err);
                 state.chatUnread = 0;
             });
     }
@@ -978,7 +1018,8 @@
                 state.weekSchedules = weekDays;
                 renderWeekList(weekDays);
             })
-            .catch(function () {
+            .catch(function (err) {
+                console.debug('mypage-joy: week schedules fetch failed', err);
                 renderWeekList([]);
             });
     }
