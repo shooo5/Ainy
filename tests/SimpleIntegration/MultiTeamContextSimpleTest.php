@@ -1,0 +1,45 @@
+<?php
+/**
+ * マルチチーム文脈の SimpleIntegration スタブ（P1-04）
+ * 本番 team-context.php を読み込み、フィクスチャ生成のみ検証。
+ */
+
+use PHPUnit\Framework\TestCase;
+
+require_once dirname(__DIR__) . '/_support/MultiTeamTestFixture.php';
+
+class MultiTeamContextSimpleTest extends TestCase
+{
+    protected function setUp(): void
+    {
+        parent::setUp();
+        if (!function_exists('get_current_user_id')) {
+            require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
+            require_once dirname(__DIR__, 2) . '/tests/bootstrap-simple.php';
+        }
+        $GLOBALS['test_users'] = [];
+        $GLOBALS['test_user_id'] = 1;
+        $GLOBALS['test_meta_data'] = [];
+        $GLOBALS['test_posts'] = [];
+        $GLOBALS['test_post_meta'] = [];
+    }
+
+    public function testDualTeamFixtureProducesTwoTeams(): void
+    {
+        $seed = MultiTeamTestFixture::seed_dual_team_leader();
+        $this->assertGreaterThan(0, $seed['leader_id']);
+        $this->assertGreaterThan(0, $seed['team_a']);
+        $this->assertGreaterThan(0, $seed['team_b']);
+        $this->assertNotSame($seed['team_a'], $seed['team_b']);
+
+        $managed_raw = get_user_meta($seed['leader_id'], 'managed_team_ids', true);
+        $managed = json_decode((string) $managed_raw, true);
+        $this->assertIsArray($managed);
+        $this->assertCount(2, $managed);
+    }
+
+    public function testManualChecklistIsDocumented(): void
+    {
+        $this->assertNotEmpty(MultiTeamTestFixture::manual_checklist());
+    }
+}
