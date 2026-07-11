@@ -49,14 +49,14 @@ if ($updated == '1') {
     $message_type = 'error';
 }
 
-// 現在のユーザー情報を取得
-$user_phone = get_user_meta($current_user->ID, 'user_phone', true);
-$user_birth_date = get_user_meta($current_user->ID, 'user_birth_date', true);
-$user_gender = get_user_meta($current_user->ID, 'user_gender', true);
-$user_address = get_user_meta($current_user->ID, 'user_address', true);
-$user_bio = get_user_meta($current_user->ID, 'user_bio', true);
-$user_avatar_type = get_user_meta($current_user->ID, 'user_avatar_type', true) ?: 'emoji';
-$user_avatar_emoji = get_user_meta($current_user->ID, 'user_avatar_emoji', true) ?: '👤';
+$profile_display = aidunite_user_get_profile_display((int) $current_user->ID);
+$user_phone = (string) ($profile_display['user_phone'] ?? '');
+$user_birth_date = (string) ($profile_display['user_birth_date'] ?? '');
+$user_gender = (string) ($profile_display['user_gender'] ?? '');
+$user_address = (string) ($profile_display['user_address'] ?? '');
+$user_bio = (string) ($profile_display['user_bio'] ?? '');
+$user_avatar_type = (string) ($profile_display['user_avatar_type'] ?? 'emoji');
+$user_avatar_emoji = (string) ($profile_display['user_avatar_emoji'] ?? '👤');
 
 // アバター用の絵文字オプション
 $avatar_emojis = ['👤', '😊', '😎', '🤖', '🐱', '🐶', '🦁', '🐯', '🐸', '🐙', '🌟', '💎', '🎮', '⚽', '🏀', '🎾', '🎯', '🎨', '🎭', '🎪'];
@@ -235,133 +235,6 @@ if (function_exists('aidunite_web_app_page_shell_close')) {
     echo '</div>';
 }
 ?>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // アバター絵文字選択
-    const avatarOptions = document.querySelectorAll('.profile-avatar-option');
-    const avatarPreview = document.getElementById('avatarPreview');
-    const avatarEmoji = document.getElementById('avatarEmoji');
-    const selectedEmojiInput = document.getElementById('selectedEmoji');
-
-    avatarOptions.forEach(option => {
-        option.addEventListener('click', function() {
-            // 選択状態を更新
-            avatarOptions.forEach(opt => opt.classList.remove('selected'));
-            this.classList.add('selected');
-
-            // プレビューを更新
-            const emoji = this.dataset.emoji;
-            avatarEmoji.textContent = emoji;
-            selectedEmojiInput.value = emoji;
-        });
-    });
-
-    // 画像アップロード処理
-    const avatarUpload = document.getElementById('avatarUpload');
-    avatarUpload.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            // ファイルサイズチェック（5MB以下）
-            if (file.size > 5 * 1024 * 1024) {
-                if (typeof showToastNotification !== 'undefined') {
-                    showToastNotification('ファイルサイズは5MB以下にしてください。', 'warning');
-                } else {
-                    alert('ファイルサイズは5MB以下にしてください。');
-                }
-                this.value = '';
-                return;
-            }
-
-            // 画像ファイルかチェック
-            if (!file.type.startsWith('image/')) {
-                if (typeof showToastNotification !== 'undefined') {
-                    showToastNotification('画像ファイルを選択してください。', 'warning');
-                } else {
-                    alert('画像ファイルを選択してください。');
-                }
-                this.value = '';
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                // プレビューを画像に変更
-                avatarPreview.innerHTML = `<img src="${e.target.result}" alt="アバター">`;
-
-                // 絵文字選択をリセット
-                avatarOptions.forEach(opt => opt.classList.remove('selected'));
-                selectedEmojiInput.value = '';
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-
-    // 統一されたフォーム処理を使用
-    const profileForm = document.getElementById('profileEditForm');
-    if (profileForm) {
-        AidUniteFormUtils.handleFormSubmit(profileForm, {
-            validationRules: {
-                email: ['user_email'],
-                minLength: { new_password: 8 },
-                custom: [
-                    {
-                        field: 'confirm_password',
-                        validator: (value, formData) => {
-                            const newPassword = formData.get('new_password');
-                            return !newPassword || value === newPassword;
-                        },
-                        message: 'パスワードが一致しません'
-                    }
-                ]
-            },
-            onSubmit: (formData) => {
-                console.log('プロフィール更新送信:', formData);
-                // 実際にフォームを送信する（formData は getFormData の戻り値＝プレーンオブジェクト）
-                const form = document.getElementById('profileEditForm');
-                if (form) {
-                    const params = new URLSearchParams();
-                    for (const [key, value] of Object.entries(formData)) {
-                        params.append(key, value);
-                    }
-
-                    // update_profileボタンの値を追加
-                    params.append('update_profile', '1');
-
-                    // POST送信
-                    fetch(form.action || window.location.href, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: params.toString()
-                    }).then(response => {
-                        // リダイレクトを処理
-                        if (response.redirected) {
-                            window.location.href = response.url;
-                        } else {
-                            // リダイレクトされない場合はページをリロード
-                            window.location.reload();
-                        }
-                    }).catch(error => {
-                        console.error('送信エラー:', error);
-                        // エラー時はデフォルト送信にフォールバック
-                        form.submit();
-                    });
-                }
-            }
-        });
-    }
-
-    // 文字数制限
-    const userBio = document.getElementById('user_bio');
-    userBio.addEventListener('input', function() {
-        if (this.value.length > 500) {
-            this.value = this.value.substring(0, 500);
-        }
-    });
-});
-</script>
 
 <?php
 get_footer();

@@ -145,27 +145,21 @@
 }
 
 .registration-complete-title {
-  margin: 0 0 var(--spacing-sm);
+  margin: 0 0 var(--spacing-md);
   font-size: clamp(1.5rem, 4vw, 2rem);
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.35;
   letter-spacing: -0.02em;
-}
-
-.registration-complete-subtitle {
-  margin: 0 0 var(--spacing-md);
-  font-size: var(--font-size-lg);
-  font-weight: 600;
-  color: var(--primary-color);
-  line-height: 1.5;
+  text-align: center;
 }
 
 .registration-complete-description {
-  margin: 0 0 var(--spacing-lg);
+  margin: 0 0 var(--spacing-xl);
   font-size: var(--font-size-base);
   color: var(--text-secondary);
   line-height: 1.75;
+  text-align: center;
 }
 
 .registration-complete-description p {
@@ -176,40 +170,21 @@
   margin-bottom: 0;
 }
 
-.registration-complete-next-step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-xs);
-  margin: 0 0 var(--spacing-lg);
-  padding: var(--spacing-base);
-  text-align: center;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-medium);
-}
-
-.registration-complete-next-step .registration-complete-sparkle {
-  position: static;
-  flex-shrink: 0;
-  margin: 0;
-  color: rgba(106, 90, 249, 0.5);
-}
-
-.registration-complete-next-step-text {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  line-height: 1.65;
-  text-align: center;
-}
-
 .registration-complete-actions {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: var(--spacing-sm);
-  margin-top: var(--spacing-md);
+  margin-top: 0;
+}
+
+.registration-complete-actions--single {
+  align-items: center;
+}
+
+.registration-complete-actions--single .registration-complete-btn {
+  width: 100%;
+  max-width: 280px;
 }
 
 .registration-complete-btn {

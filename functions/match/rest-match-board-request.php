@@ -45,89 +45,39 @@ add_action('init', function () {
       return;
     }
 
-    // 時間設定の有無チェック
-    $target_start = get_post_meta($target_schedule_id, 'schedule_start_time', true);
-    $target_end = get_post_meta($target_schedule_id, 'schedule_end_time', true);
-    $my_start = get_post_meta($my_schedule_id, 'schedule_start_time', true);
-    $my_end = get_post_meta($my_schedule_id, 'schedule_end_time', true);
-
-    if (empty($target_start) || empty($target_end) || empty($my_start) || empty($my_end)) {
-      wp_die('❌ スケジュールの時間設定が不完全です。開始時間と終了時間を設定してください。');
+    if (!function_exists('aidunite_match_request_create_from_board_form_post')) {
+      wp_die('❌ 申請処理が利用できません。');
     }
 
-    // 申請先スケジュールのチームIDを取得
-    $target_schedule_team_id = get_post_meta($target_schedule_id, 'team_id', true);
+    $result = aidunite_match_request_create_from_board_form_post(
+      (int) $current_user_id,
+      (int) $my_team_id,
+      (int) $target_schedule_id,
+      (int) $my_schedule_id
+    );
 
-    // 自分自身への申請を防ぐ
-    if ($my_team_id == $target_schedule_team_id) {
-      wp_die('❌ 自分自身のスケジュールには申請できません。');
-    }
-
-    $target_tid = (int) $target_schedule_team_id;
-
-    $meta_input = [
-      'from_team_id'       => $my_team_id,
-      'request_team_id'    => $my_team_id, // 後方互換性のため残す
-      'to_schedule_id'     => $target_schedule_id,
-      'my_schedule_id'     => $my_schedule_id,
-      'other_team_id'      => $target_tid,
-      'to_team_id'         => $target_tid,
-      'status'             => 'pending',
-      'request_status'     => 'pending',
-    ];
-
-    // 投稿
-    $new_request_id = wp_insert_post([
-      'post_type'    => 'match_request',
-      'post_status'  => 'publish',
-      'post_author'  => $current_user_id,
-      'post_title'   => '【マッチ申請】' . date('Y-m-d H:i:s'),
-      'meta_input'   => $meta_input  // meta_inputも追加
-    ]);
-
-    if ($new_request_id) {
-      // メタデータを明示的に保存
-      foreach ($meta_input as $key => $value) {
-        update_post_meta($new_request_id, $key, $value);
-      }
-
+    if (!empty($result['success']) && !empty($result['request_id'])) {
       if (function_exists('aidunite_match_flow_debug_log')) {
-        $saved_from_team_id = get_post_meta($new_request_id, 'from_team_id', true);
-        $saved_to_schedule_id = get_post_meta($new_request_id, 'to_schedule_id', true);
         aidunite_match_flow_debug_log('board_post_match_apply', [
-          'request_id'       => (int) $new_request_id,
+          'request_id' => (int) $result['request_id'],
           'target_schedule_id' => (int) $target_schedule_id,
-          'my_schedule_id'     => (int) $my_schedule_id,
-          'from_team_id'       => $saved_from_team_id,
-          'to_schedule_id'     => $saved_to_schedule_id,
+          'my_schedule_id' => (int) $my_schedule_id,
+          'via' => 'persist',
         ]);
       }
-
-      if (function_exists('aidunite_match_request_ensure_link_team_meta')) {
-        aidunite_match_request_ensure_link_team_meta((int) $new_request_id);
-      }
-
-      // 🟢 ステータス更新処理（掲示板を "pending" に）
-      update_board_status_on_apply($target_schedule_id);
-
-      // ✅ ステータス同期処理を追加
-      sync_board_status_with_request($new_request_id);
-
-      // ✅ 申請受けたチームに通知を送信
-      send_match_request_notification($new_request_id, $target_schedule_id, $my_team_id);
-
-      // ✅ 申請受信チームへの通知送信
-      if ($target_schedule_team_id) {
-        send_match_request_received_notification($new_request_id, $target_schedule_team_id, $my_team_id);
-      }
-
-      // 成功リダイレクト
       $redirect_url = add_query_arg('match_applied', '1', wp_get_referer());
       wp_redirect($redirect_url);
       exit;
-    } else {
-      wp_die('❌ 申請の送信に失敗しました。');
     }
+
+    $code = (string) ($result['code'] ?? '');
+    $msg_map = [
+      'cannot_apply_to_own_team' => '❌ 自分自身のスケジュールには申請できません。',
+      'application_already_exists' => '❌ このマッチはすでに申請済みです。',
+      'time_data_required' => '❌ スケジュールの時間設定が不完全です。',
+      'schedule_not_found' => '❌ スケジュールが見つかりません。',
+    ];
+    wp_die($msg_map[$code] ?? ('❌ 申請の送信に失敗しました。' . (!empty($result['message']) ? ' ' . esc_html((string) $result['message']) : '')));
   }
 });
 
@@ -187,22 +137,14 @@ function get_match_requests_list($request) {
   $formatted_requests = [];
 
   foreach ($match_requests as $request) {
-    $from_team_id = get_post_meta($request->ID, 'from_team_id', true);
-    $from_team_name = $from_team_id ? get_the_title($from_team_id) : '不明';
-
-    $formatted_requests[] = [
-      'ID' => $request->ID,
-      'from_team_id' => $from_team_id,
-      'from_team_name' => $from_team_name,
-      'to_schedule_id' => get_post_meta($request->ID, 'to_schedule_id', true),
-      'my_schedule_id' => get_post_meta($request->ID, 'my_schedule_id', true),
-      'status' => get_post_meta($request->ID, 'status', true),
-      'selected_start_time' => get_post_meta($request->ID, 'selected_start_time', true),
-      'selected_end_time' => get_post_meta($request->ID, 'selected_end_time', true),
-      'selected_place' => get_post_meta($request->ID, 'selected_place', true),
-      'selected_gender' => get_post_meta($request->ID, 'selected_gender', true),
-      'post_date' => $request->post_date
-    ];
+    $row = function_exists('aidunite_match_request_format_rest_row')
+      ? aidunite_match_request_format_rest_row((int) $request->ID)
+      : [];
+    if ($row === []) {
+      continue;
+    }
+    $row['post_date'] = $request->post_date;
+    $formatted_requests[] = $row;
   }
 
   return new WP_REST_Response([
@@ -222,20 +164,9 @@ function delete_single_match_request($request) {
     ], 400);
   }
 
-  // メタデータを削除
-  delete_post_meta($request_id, 'from_team_id');
-  delete_post_meta($request_id, 'request_team_id');
-  delete_post_meta($request_id, 'to_schedule_id');
-  delete_post_meta($request_id, 'my_schedule_id');
-  delete_post_meta($request_id, 'status');
-  delete_post_meta($request_id, 'request_status');
-  delete_post_meta($request_id, 'selected_start_time');
-  delete_post_meta($request_id, 'selected_end_time');
-  delete_post_meta($request_id, 'selected_place');
-  delete_post_meta($request_id, 'selected_gender');
-
-  // 投稿を削除
-  $result = wp_delete_post($request_id, true);
+  $result = function_exists('aidunite_match_request_persist_admin_delete')
+    ? aidunite_match_request_persist_admin_delete($request_id)
+    : (bool) wp_delete_post($request_id, true);
 
   if ($result) {
     error_log("✅ 申請ID {$request_id}を削除しました");
@@ -253,32 +184,9 @@ function delete_single_match_request($request) {
 }
 
 function delete_all_match_requests($request) {
-  $match_requests = get_posts([
-    'post_type' => 'match_request',
-    'post_status' => 'any',
-    'posts_per_page' => -1
-  ]);
-
-  $deleted_count = 0;
-
-  foreach ($match_requests as $request) {
-    // メタデータを削除
-    delete_post_meta($request->ID, 'from_team_id');
-    delete_post_meta($request->ID, 'request_team_id');
-    delete_post_meta($request->ID, 'to_schedule_id');
-    delete_post_meta($request->ID, 'my_schedule_id');
-    delete_post_meta($request->ID, 'status');
-    delete_post_meta($request->ID, 'request_status');
-    delete_post_meta($request->ID, 'selected_start_time');
-    delete_post_meta($request->ID, 'selected_end_time');
-    delete_post_meta($request->ID, 'selected_place');
-    delete_post_meta($request->ID, 'selected_gender');
-
-    // 投稿を削除
-    if (wp_delete_post($request->ID, true)) {
-      $deleted_count++;
-    }
-  }
+  $deleted_count = function_exists('aidunite_match_request_persist_admin_delete_all')
+    ? aidunite_match_request_persist_admin_delete_all()
+    : 0;
 
   error_log("✅ 全マッチリクエスト {$deleted_count}件を削除しました");
 

@@ -148,14 +148,14 @@
   margin-top: 0;
 }
 
-.page-schedule-edit--renewal .dashboard-section.tab-content {
+.page-schedule-edit--renewal .tab-content {
   padding: var(--spacing-lg, 1.5rem);
   border: none;
   box-shadow: none;
   background: transparent;
 }
 
-.page-schedule-edit--renewal .dashboard-section.tab-content > h2 {
+.page-schedule-edit--renewal .tab-content > h2 {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -167,7 +167,8 @@
   border: 0;
 }
 
-.page-schedule-edit--renewal .dashboard-section.tab-content .main-content-area {
+.page-schedule-edit--renewal .tab-content .form-section,
+.page-schedule-edit--renewal .tab-content .step-content {
   padding: 0;
   border: none;
   background: transparent;
@@ -862,18 +863,15 @@
   margin-left: auto;
 }
 
+.page-schedule-edit--renewal {
+  --btn-primary-min-height: 48px;
+  --btn-primary-padding: 0 var(--spacing-lg);
+}
+
 .page-schedule-edit--renewal .unified-navigation .btn-ghost,
 .page-schedule-edit--renewal .unified-navigation .btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm, 0.5rem);
-  min-height: 48px;
-  height: 48px;
-  padding: 0 var(--spacing-lg, 1.5rem);
-  line-height: 1;
-  box-sizing: border-box;
   align-self: center;
+  line-height: 1;
 }
 
 .page-schedule-edit--renewal .unified-navigation .btn .btn-nav-chevron {
@@ -957,7 +955,7 @@
 }
 
 @media (max-width: 480px) {
-  .page-schedule-edit--renewal .dashboard-section.tab-content {
+  .page-schedule-edit--renewal .tab-content {
     padding: var(--spacing-base, 1rem);
   }
 

@@ -1,0 +1,665 @@
+/* ==================================================
+   Ainy Guardian Parent UI
+   共通CSS: guardian-parent-ui.css
+   ================================================== */
+
+/* =========================
+   1. Page Theme
+========================= */
+
+.guardian-flow-page {
+  --guardian-bg: var(--color-bg, #f6f8fc);
+  --guardian-card-bg: #ffffff;
+  --guardian-text: var(--text-main, #1f2937);
+  --guardian-muted: var(--text-muted, #6b7280);
+  --guardian-border: var(--border-soft, #e5e7eb);
+
+  --guardian-primary: var(--theme-primary, var(--primary-color));
+  --guardian-secondary: var(--theme-secondary, var(--secondary-color));
+  --guardian-soft: var(--team-reg-accent-soft);
+  --guardian-label-bg: var(--team-reg-accent-soft);
+  --guardian-label-text: var(--theme-accent-dark, var(--primary-dark));
+  --guardian-label-border: var(--team-reg-glass-border);
+  --guardian-label-bg-hover: color-mix(in srgb, var(--team-reg-accent-soft) 70%, var(--primary-color));
+  --guardian-label-bg-active: color-mix(in srgb, var(--team-reg-accent-soft) 45%, var(--primary-color));
+
+  --guardian-radius-lg: 24px;
+  --guardian-radius-md: 18px;
+  --guardian-shadow: 0 14px 36px rgba(15, 23, 42, 0.08);
+
+  background: var(--guardian-bg);
+  color: var(--guardian-text);
+  min-height: 100vh;
+}
+
+/* =========================
+   2. Layout
+========================= */
+
+.guardian-flow-inner {
+  width: min(100%, 1080px);
+  margin: 0 auto;
+  padding: var(--spacing-xl, 2rem) var(--spacing-md, 1rem) var(--spacing-2xl, 3rem);
+}
+
+.guardian-flow-inner--signup {
+  max-width: 1160px;
+}
+
+.guardian-flow-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) 340px;
+  gap: var(--spacing-lg, 1.5rem);
+  align-items: start;
+}
+
+.guardian-flow-main,
+.guardian-flow-sidebar {
+  min-width: 0;
+}
+
+/* =========================
+   3. Hero
+========================= */
+
+.guardian-flow-hero {
+  margin-bottom: var(--spacing-lg, 1.5rem);
+  padding: 32px;
+  border-radius: var(--guardian-radius-lg);
+  background: linear-gradient(
+    135deg,
+    var(--guardian-primary),
+    var(--guardian-secondary)
+  );
+  color: #fff;
+  box-shadow: var(--guardian-shadow);
+}
+
+.guardian-flow-hero__icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--spacing-md, 1rem);
+  display: grid;
+  place-items: center;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.guardian-flow-hero h1 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.6rem, 4vw, 2.3rem);
+  line-height: 1.25;
+}
+
+.guardian-flow-hero p {
+  margin: 0;
+  max-width: 720px;
+  line-height: 1.8;
+  opacity: 0.92;
+}
+
+/* =========================
+   4. Card
+========================= */
+
+.guardian-flow-card {
+  background: var(--guardian-card-bg);
+  border: 1px solid var(--guardian-border);
+  border-radius: var(--guardian-radius-lg);
+  padding: var(--spacing-lg, 1.5rem);
+  box-shadow: var(--guardian-shadow);
+}
+
+.guardian-flow-card + .guardian-flow-card {
+  margin-top: var(--spacing-md, 1rem);
+}
+
+.guardian-flow-card--notice,
+.guardian-flow-card--support {
+  border-left: 4px solid var(--guardian-primary);
+}
+
+.guardian-flow-card--qr {
+  border: 1px dashed color-mix(in srgb, var(--guardian-primary) 35%, white);
+}
+
+.guardian-flow-card--benefits-invite {
+  background: #fffbf0;
+  border-color: #f5e6b8;
+}
+
+.guardian-flow-card--benefits-signup {
+  background: #f3fbf6;
+  border-color: #cfe8d6;
+}
+
+.guardian-flow-card__title,
+.guardian-flow-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 var(--spacing-md, 1rem);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.guardian-flow-card__title--accent::before,
+.guardian-flow-section-title::before {
+  content: "";
+  width: 4px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--guardian-primary);
+}
+
+/* =========================
+   5. Form
+========================= */
+
+.guardian-flow-form {
+  display: grid;
+  gap: var(--spacing-md, 1rem);
+}
+
+.guardian-flow-field {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.guardian-flow-row-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-md, 1rem);
+}
+
+.guardian-flow-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.guardian-flow-input {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 14px;
+  border: 1px solid var(--guardian-border);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--guardian-text);
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.guardian-flow-input:focus {
+  outline: none;
+  border-color: var(--guardian-primary);
+  box-shadow: 0 0 0 4px var(--guardian-soft);
+}
+
+.guardian-flow-input[readonly] {
+  background: #f9fafb;
+  color: var(--guardian-muted);
+}
+
+.guardian-flow-hint {
+  color: var(--guardian-muted);
+  font-size: 0.875rem;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* =========================
+   6. Badge
+========================= */
+
+.guardian-flow-badge-required,
+.guardian-flow-badge-optional {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.guardian-flow-badge-required {
+  background: #fee2e2;
+  color: #c62828;
+}
+
+.guardian-flow-badge-optional {
+  background: var(--guardian-soft);
+  color: var(--guardian-primary);
+}
+
+/* =========================
+   7. CTA
+========================= */
+
+.guardian-flow-cta {
+  width: 100%;
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.2rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(
+    135deg,
+    var(--guardian-primary),
+    var(--guardian-secondary)
+  );
+  color: #fff;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.14);
+}
+
+.guardian-flow-cta--secondary {
+  background: var(--guardian-soft);
+  color: var(--guardian-primary);
+  box-shadow: none;
+}
+
+.guardian-flow-cta:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =========================
+   8. Alert / Guidance
+========================= */
+
+.guardian-flow-alert,
+.guardian-flow-guidance {
+  padding: 1rem 1.1rem;
+  border-radius: 16px;
+  line-height: 1.7;
+  font-size: 0.92rem;
+}
+
+.guardian-flow-alert--success {
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.guardian-flow-alert--error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.guardian-flow-alert--info,
+.guardian-flow-guidance {
+  background: var(--guardian-soft);
+  border: 1px solid color-mix(in srgb, var(--guardian-primary) 18%, white);
+  color: var(--guardian-primary);
+}
+
+.guardian-flow-alert--pending {
+  background: #fff8e8;
+  border: 1px solid #f5c26b;
+  color: #7a5a12;
+}
+
+.guardian-flow-alert ul {
+  margin: 0.5rem 0 0 1.1rem;
+  padding: 0;
+}
+
+/* =========================
+   9. Checkbox
+========================= */
+
+.guardian-flow-check {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  line-height: 1.7;
+  font-weight: 600;
+}
+
+.guardian-flow-check input {
+  margin-top: 0.35rem;
+}
+
+/* =========================
+   10. Stats
+========================= */
+
+.guardian-flow-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: var(--spacing-md, 1rem);
+}
+
+.guardian-flow-stats span {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  background: var(--guardian-soft);
+  color: var(--guardian-primary);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+/* =========================
+   11. Stepper
+========================= */
+
+.guardian-flow-stepper {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: var(--spacing-lg, 1.5rem);
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.guardian-flow-stepper--compact {
+  max-width: 360px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.guardian-flow-step {
+  flex: 1 1 0;
+  min-width: 4.5rem;
+  text-align: center;
+  font-size: 0.6875rem;
+  color: var(--guardian-muted);
+}
+
+.guardian-flow-step__dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: 0 auto 0.35rem;
+  border-radius: 50%;
+  border: 2px solid var(--guardian-border);
+  background: #fff;
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--guardian-muted);
+}
+
+.guardian-flow-step.is-active .guardian-flow-step__dot {
+  border-color: var(--guardian-primary);
+  background: var(--guardian-primary);
+  color: #fff;
+}
+
+.guardian-flow-step.is-active {
+  color: var(--guardian-primary);
+  font-weight: 700;
+}
+
+/* =========================
+   12. Team card / Tags
+========================= */
+
+.guardian-team-card__logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 18px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--guardian-soft);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+.guardian-team-card__logo--placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--guardian-primary);
+}
+
+.guardian-team-card__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.85rem;
+  text-align: left;
+}
+
+.guardian-team-card__hero {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+}
+
+.guardian-team-card__title-block {
+  min-width: 0;
+}
+
+.guardian-team-card__name {
+  margin: 0;
+  font-size: clamp(1.2rem, 3.5vw, 1.45rem);
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--guardian-text);
+}
+
+.guardian-team-card__sport {
+  margin: 0.2rem 0 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--guardian-muted, #64748b);
+}
+
+.guardian-team-card__facts {
+  width: 100%;
+  margin: 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--guardian-border);
+  border-radius: var(--guardian-radius-md);
+  background: color-mix(in srgb, var(--guardian-soft) 35%, white);
+  display: grid;
+  gap: 0.65rem;
+}
+
+.guardian-team-card__fact {
+  display: grid;
+  grid-template-columns: 5em minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0;
+}
+
+.guardian-team-card__facts:not(.guardian-team-card__facts--inline) .guardian-team-card__fact-label {
+  width: 5em;
+  min-width: 5em;
+  max-width: 5em;
+  justify-content: center;
+  padding-left: 0.2rem;
+  padding-right: 0.2rem;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.guardian-team-card__fact-label {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--guardian-label-border);
+  background: var(--guardian-label-bg);
+  color: var(--guardian-label-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+a:hover .guardian-team-card__fact-label,
+button:hover .guardian-team-card__fact-label,
+.guardian-team-card__fact-label:hover {
+  background: var(--guardian-label-bg-hover);
+}
+
+a:active .guardian-team-card__fact-label,
+button:active .guardian-team-card__fact-label,
+.guardian-team-card__fact-label:active {
+  background: var(--guardian-label-bg-active);
+}
+
+.guardian-team-card__fact-value {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--guardian-text);
+}
+
+.guardian-team-card__facts--inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1.35rem;
+}
+
+.guardian-team-card__facts--inline .guardian-team-card__fact {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.35rem;
+  grid-template-columns: unset;
+}
+
+.guardian-team-card__fact-sep {
+  color: var(--guardian-muted, #64748b);
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+}
+
+.guardian-flow-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.guardian-flow-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--guardian-text);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.guardian-flow-tag__label {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--guardian-label-border);
+  background: var(--guardian-label-bg);
+  color: var(--guardian-label-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.3;
+  opacity: 1;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+a:hover .guardian-flow-tag__label,
+button:hover .guardian-flow-tag__label,
+.guardian-flow-tag:hover .guardian-flow-tag__label {
+  background: var(--guardian-label-bg-hover);
+}
+
+a:active .guardian-flow-tag__label,
+button:active .guardian-flow-tag__label,
+.guardian-flow-tag:active .guardian-flow-tag__label {
+  background: var(--guardian-label-bg-active);
+}
+
+.guardian-flow-tag__label::after {
+  content: none;
+}
+
+/* =========================
+   13. Benefits grid
+========================= */
+
+.guardian-benefits-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-md, 1rem);
+}
+
+.guardian-benefits-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.guardian-benefits-item__icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--guardian-soft);
+  color: var(--guardian-primary);
+}
+
+.guardian-benefits-item__title {
+  font-weight: 800;
+  font-size: 0.875rem;
+  color: var(--guardian-text);
+}
+
+.guardian-benefits-item__text {
+  font-size: 0.8125rem;
+  color: var(--guardian-muted);
+  line-height: 1.5;
+}
+
+/* =========================
+   14. Responsive
+========================= */
+
+@media (max-width: 768px) {
+  .guardian-flow-inner {
+    padding: var(--spacing-md, 1rem) var(--spacing-sm, 0.75rem) var(--spacing-xl, 2rem);
+  }
+
+  .guardian-flow-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .guardian-flow-row-2,
+  .guardian-benefits-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .guardian-flow-hero,
+  .guardian-flow-card {
+    border-radius: 20px;
+  }
+
+  .guardian-flow-hero {
+    padding: 24px;
+  }
+}

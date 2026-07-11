@@ -108,6 +108,10 @@
     word-break: break-word;
 }
 
+.aidunite-confirm-dialog__message--center {
+    text-align: center;
+}
+
 .aidunite-confirm-dialog__footer {
     display: flex;
     flex-wrap: wrap;

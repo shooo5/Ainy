@@ -25,8 +25,11 @@ function aidunite_get_match_end_time($match_request_id) {
             return null;
         }
 
-        $schedule_date = get_post_meta($schedule_id, 'schedule_date', true);
-        $schedule_end_time = get_post_meta($schedule_id, 'schedule_end_time', true);
+        $sched_api = function_exists('aidunite_schedule_get_api_display_fields')
+            ? aidunite_schedule_get_api_display_fields((int) $schedule_id)
+            : [];
+        $schedule_date = (string) ($sched_api['date'] ?? '');
+        $schedule_end_time = (string) ($sched_api['end_time'] ?? '');
 
         if (!$schedule_date || !$schedule_end_time) {
             return null;
@@ -301,7 +304,9 @@ function aidunite_send_feedback_request($match_request_id) {
             if (!$schedule_id) {
                 $schedule_id = get_post_meta($match_request_id, 'from_schedule_id', true);
             }
-            $match_date = $schedule_id ? get_post_meta($schedule_id, 'schedule_date', true) : '';
+            $match_date = ($schedule_id && function_exists('aidunite_schedule_read_normalized_date'))
+                ? aidunite_schedule_read_normalized_date((int) $schedule_id)
+                : '';
 
             if (function_exists('aidunite_create_match_chat')) {
                 $created = aidunite_create_match_chat($match_request_id, $from_team_id, $to_team_id, $match_date);

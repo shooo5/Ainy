@@ -99,66 +99,49 @@ get_header();
         </div>
       </div>
 
-      <!-- 料金プラン -->
-      <div class="pricing-section">
+      <!-- 料金プラン（Match / Club — payment-config 正本） -->
+      <?php
+      $payment_config  = function_exists('aidunite_get_payment_config') ? aidunite_get_payment_config() : [];
+      $match_monthly   = (int) ($payment_config['match']['monthly_amount'] ?? 2000);
+      $club_minimum    = (int) ($payment_config['club']['minimum_addon'] ?? 6000);
+      $club_per_player = (int) ($payment_config['club']['per_player_amount'] ?? 500);
+      ?>
+      <div class="pricing-section pricing-section--match-club">
         <h3><?php echo aidunite_render_theme_icon('currency_yen', ['width' => '22', 'height' => '22'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> 料金プラン</h3>
-        <div class="pricing-grid">
+        <p class="pricing-section__intro">
+          <strong>アカウント登録・チーム申請は無料</strong>です。チーム承認後、代表者向け機能の本格利用に Match プラン（2ヶ月無料）をご案内します。クラブ運営向けの機能は Club プランでご利用いただけます。
+        </p>
+        <div class="pricing-grid pricing-grid--match-club">
           <div class="pricing-card">
             <div class="pricing-header">
-              <h4>無料プラン</h4>
-              <div class="price">¥0<span>/月</span></div>
+              <h4>Match プラン</h4>
+              <div class="price">¥<?php echo esc_html(number_format($match_monthly)); ?><span>/月（税込）</span></div>
+              <p class="pricing-card__trial">2ヶ月無料</p>
             </div>
             <ul class="pricing-features">
-              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> 基本スケジュール管理</li>
-              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> チームメンバー管理（最大10名）</li>
-              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> 基本通知機能</li>
-              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> マッチング機能（月5回まで）</li>
-              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> 基本レポート</li>
+              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> 練習試合の募集・マッチボード</li>
+              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> スケジュール管理</li>
+              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> チーム連絡（チャット）</li>
+              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> 代表者向けマイページ</li>
             </ul>
-            <div class="pricing-cta">
-              <a href="<?php echo home_url('/member-register'); ?>" class="btn btn-outline">無料で始める</a>
-            </div>
           </div>
 
           <div class="pricing-card featured">
-            <div class="pricing-badge">人気</div>
+            <div class="pricing-badge">クラブ運営</div>
             <div class="pricing-header">
-              <h4>スタンダード</h4>
-              <div class="price">¥1,000<span>/月</span></div>
+              <h4>Club プラン</h4>
+              <div class="price">¥<?php echo esc_html(number_format($club_minimum)); ?><span>〜/月（税込）</span></div>
+              <p class="pricing-card__trial">Match 機能＋クラブ運営（2ヶ月無料）</p>
             </div>
             <ul class="pricing-features">
-              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> 無料プランの全機能</li>
-              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> チームメンバー管理（最大50名）</li>
-              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> 高度なスケジュール管理</li>
-              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> 無制限マッチング</li>
-              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> 詳細分析レポート</li>
-              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> 優先サポート</li>
-              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> カスタム通知設定</li>
+              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> Match プランの全機能</li>
+              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> メンバー管理・保護者招待</li>
+              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> 出欠管理・出欠連絡</li>
+              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> 人数に応じた料金（<?php echo esc_html(number_format($club_per_player)); ?>円/人 等）</li>
             </ul>
-            <div class="pricing-cta">
-              <a href="<?php echo home_url('/member-register'); ?>" class="btn btn-primary">スタンダードを選択</a>
-            </div>
-          </div>
-
-          <div class="pricing-card">
-            <div class="pricing-header">
-              <h4>プレミアム</h4>
-              <div class="price">¥2,000<span>/月</span></div>
-            </div>
-            <ul class="pricing-features">
-              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> スタンダードの全機能</li>
-              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> チームメンバー管理（無制限）</li>
-              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> 高度な分析ツール</li>
-              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> API連携</li>
-              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> 専任サポート</li>
-              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> カスタム機能開発</li>
-              <li><?php echo aidunite_render_theme_icon('check', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> ホワイトラベル対応</li>
-            </ul>
-            <div class="pricing-cta">
-              <a href="<?php echo home_url('/member-register'); ?>" class="btn btn-outline">プレミアムを選択</a>
-            </div>
           </div>
         </div>
+        <p class="pricing-section__note">料金・機能は変更になる場合があります。最新情報は利用規約およびお支払い設定画面をご確認ください。</p>
       </div>
 
       <!-- 利用シーン -->
@@ -257,344 +240,5 @@ get_header();
     </div>
   </section>
 </div>
-
-<style>
-.service-overview {
-  background: #f8f9fa;
-  padding: 25px;
-  border-radius: 12px;
-  margin-bottom: 30px;
-  border-left: 4px solid var(--primary-color);
-}
-
-.service-overview p {
-  margin: 0;
-  color: #495057;
-  font-size: 1.1rem;
-  line-height: 1.6;
-}
-
-.features-section,
-.pricing-section,
-.use-cases-section,
-.testimonials-section,
-.cta-section {
-  margin-bottom: 40px;
-}
-
-.features-section h3,
-.pricing-section h3,
-.use-cases-section h3,
-.testimonials-section h3,
-.cta-section h3 {
-  color: #495057;
-  font-size: 1.5rem;
-  margin-bottom: 25px;
-  text-align: center;
-}
-
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 25px;
-}
-
-.feature-card {
-  background: white;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-}
-
-.feature-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
-.feature-icon {
-  font-size: 3rem;
-  margin-bottom: 15px;
-  text-align: center;
-}
-
-.feature-card h4 {
-  color: #495057;
-  font-size: 1.2rem;
-  margin-bottom: 15px;
-  text-align: center;
-}
-
-.feature-card p {
-  color: var(--text-muted);
-  margin-bottom: 15px;
-  line-height: 1.6;
-}
-
-.feature-card ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.feature-card li {
-  color: #495057;
-  padding: 5px 0;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.feature-card li:last-child {
-  border-bottom: none;
-}
-
-.pricing-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 25px;
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-.pricing-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 30px;
-  position: relative;
-  transition: all 0.3s ease;
-}
-
-.pricing-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
-.pricing-card.featured {
-  border: 2px solid #667eea;
-  transform: scale(1.05);
-}
-
-.pricing-badge {
-  position: absolute;
-  top: -10px;
-  right: 20px;
-  background: var(--primary-color);
-  color: white;
-  padding: 5px 15px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.pricing-header {
-  text-align: center;
-  margin-bottom: 25px;
-}
-
-.pricing-header h4 {
-  color: #495057;
-  font-size: 1.3rem;
-  margin-bottom: 10px;
-}
-
-.price {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: var(--primary-color);
-}
-
-.price span {
-  font-size: 1rem;
-  color: var(--text-muted);
-}
-
-.pricing-features {
-  list-style: none;
-  padding: 0;
-  margin-bottom: 25px;
-}
-
-.pricing-features li {
-  padding: 8px 0;
-  color: #495057;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.pricing-features li:last-child {
-  border-bottom: none;
-}
-
-.pricing-cta {
-  text-align: center;
-}
-
-.use-cases-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-}
-
-.use-case-card {
-  background: white;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-.use-case-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-}
-
-.use-case-icon {
-  font-size: 3rem;
-  margin-bottom: 15px;
-}
-
-.use-case-card h4 {
-  color: #495057;
-  font-size: 1.2rem;
-  margin-bottom: 10px;
-}
-
-.use-case-card p {
-  color: var(--text-muted);
-  line-height: 1.6;
-  margin: 0;
-}
-
-.testimonials-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 25px;
-}
-
-.testimonial-card {
-  background: white;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.testimonial-content {
-  margin-bottom: 20px;
-}
-
-.testimonial-content p {
-  color: #495057;
-  font-style: italic;
-  line-height: 1.6;
-  margin: 0;
-}
-
-.testimonial-author {
-  border-top: 1px solid var(--border-light);
-  padding-top: 15px;
-}
-
-.author-info strong {
-  color: #495057;
-  display: block;
-  margin-bottom: 5px;
-}
-
-.author-info span {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
-.cta-section {
-  text-align: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 40px;
-  border-radius: 12px;
-  margin-top: 40px;
-}
-
-.cta-section h3 {
-  color: white;
-  margin-bottom: 15px;
-}
-
-.cta-section p {
-  font-size: 1.1rem;
-  margin-bottom: 25px;
-  opacity: 0.9;
-}
-
-.cta-buttons {
-  display: flex;
-  gap: 15px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.btn {
-  padding: 12px 30px;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  display: inline-block;
-  text-align: center;
-}
-
-.btn-primary {
-  background: white;
-  color: #667eea;
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
-}
-
-.btn-outline {
-  background: transparent;
-  color: white;
-  border: 2px solid white;
-}
-
-.btn-outline:hover {
-  background: white;
-  color: #667eea;
-  transform: translateY(-2px);
-}
-
-.btn-lg {
-  padding: 15px 40px;
-  font-size: 1.1rem;
-}
-
-@media (max-width: 768px) {
-  .features-grid,
-  .pricing-grid,
-  .use-cases-grid,
-  .testimonials-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .pricing-card.featured {
-    transform: none;
-  }
-
-  .cta-buttons {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .cta-section {
-    padding: 30px 20px;
-  }
-}
-
-
-</style>
 
 <?php get_footer(); ?>

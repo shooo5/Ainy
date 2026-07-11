@@ -28,9 +28,25 @@ if ($request_id_param > 0) {
         get_footer();
         return;
     }
-    $my_schedule_id = (int) get_post_meta($req_post->ID, 'my_schedule_id', true);
-    $to_schedule_id_meta = (int) get_post_meta($req_post->ID, 'to_schedule_id', true);
-    $approver_type = get_post_meta($req_post->ID, 'approver_type', true);
+    $mr_open = function_exists('aidunite_match_request_get_canonical_meta')
+        ? aidunite_match_request_get_canonical_meta((int) $req_post->ID)
+        : [];
+    $mr_my_schedule_id = (int) ($mr_open['my_schedule_id'] ?? 0);
+    $to_schedule_id_meta = (int) ($mr_open['to_schedule_id'] ?? 0);
+    $from_team_id_url = (int) ($mr_open['from_team_id'] ?? 0);
+    if ($from_team_id_url === $my_team_id) {
+        $my_schedule_id = $mr_my_schedule_id;
+    } elseif (function_exists('aidunite_resolve_my_schedule_id_for_match_application')) {
+        $my_schedule_id = aidunite_resolve_my_schedule_id_for_match_application(
+            $my_team_id,
+            $mr_my_schedule_id,
+            $to_schedule_id_meta,
+            (int) $req_post->ID
+        );
+    } else {
+        $my_schedule_id = $mr_my_schedule_id;
+    }
+    $approver_type = (string) ($mr_open['approver_type'] ?? '');
     $is_guest_invite = ($to_schedule_id_meta === 9999 || $approver_type === 'guest_invite');
 
     if (!$my_team_id) {
@@ -51,39 +67,41 @@ if ($request_id_param > 0) {
         // 招待承認時: 相手スケジュールなし、相手は「招待（ゲスト承認）」＋学校名・氏名
         $other_schedule_id = 0;
         $other_schedule = null;
-        $other_team_id = get_post_meta($req_post->ID, 'to_team_id', true);
-        $my_team_data = [
-            'name' => get_post_meta($my_team_id, 'team_name', true) ?: 'チーム名未設定',
-            'sport' => get_post_meta($my_team_id, 'team_sport', true) ?: 'スポーツ種目未設定',
-            'category' => get_post_meta($my_team_id, 'team_category', true) ?: 'カテゴリ未設定',
-            'region' => function_exists('aidunite_team_activity_display_label') ? aidunite_team_activity_display_label($my_team_id) : (get_post_meta($my_team_id, 'region', true) ?: '地域未設定'),
-            'logo' => get_post_meta($my_team_id, 'team_logo', true) ?: get_template_directory_uri() . '/images/default-team-logo.png'
-        ];
+        $other_team_id = (int) ($mr_open['to_team_id'] ?? 0);
+        if ($other_team_id < 1) {
+            $other_team_id = (int) ($mr_open['other_team_id'] ?? 0);
+        }
+        $my_team_data = function_exists('aidunite_team_get_match_card_profile')
+            ? aidunite_team_get_match_card_profile((int) $my_team_id)
+            : [];
         $other_team_data = [
             'name' => '招待（ゲスト承認）',
-            'approver_school_name' => get_post_meta($req_post->ID, 'approver_school_name', true) ?: '',
-            'approver_name' => get_post_meta($req_post->ID, 'approver_name', true) ?: '',
-            'sport' => '', 'category' => '', 'region' => '', 'logo' => '', 'description' => '', 'achievements' => ''
+            'approver_school_name' => (string) ($mr_open['approver_school_name'] ?? ''),
+            'approver_name' => (string) ($mr_open['approver_name'] ?? ''),
+            'sport' => '', 'category' => '', 'region' => '', 'logo' => '', 'description' => '', 'achievements' => '',
         ];
-        $my_place = get_post_meta($my_schedule_id, 'schedule_place', true) ?: get_post_meta($my_schedule_id, 'schedule_place_option', true);
-        $my_gender = get_post_meta($my_schedule_id, 'schedule_gender', true) ?: get_post_meta($my_schedule_id, 'matching_gender_condition', true);
+        $my_sch_bundle = function_exists('aidunite_schedule_get_display_bundle')
+            ? aidunite_schedule_get_display_bundle((int) $my_schedule_id)
+            : [];
+        $my_place = (string) ($my_sch_bundle['place'] ?? '');
+        $my_gender = (string) ($my_sch_bundle['gender'] ?? '');
         $my_schedule_data = [
-            'date' => get_post_meta($my_schedule_id, 'schedule_date', true) ?: '',
-            'start' => get_post_meta($my_schedule_id, 'schedule_start_time', true) ?: '',
-            'end' => get_post_meta($my_schedule_id, 'schedule_end_time', true) ?: '',
-            'place' => $my_place ?: 'either',
-            'gender' => $my_gender ?: 'both'
+            'date' => (string) ($my_sch_bundle['date'] ?? ''),
+            'start' => (string) ($my_sch_bundle['start_time'] ?? ''),
+            'end' => (string) ($my_sch_bundle['end_time'] ?? ''),
+            'place' => $my_place !== '' ? $my_place : 'either',
+            'gender' => $my_gender !== '' ? $my_gender : 'both',
         ];
         $other_schedule_data = $my_schedule_data;
         $other_place = $my_place;
         $other_gender = $my_gender;
         // 相手側の会場表示：自分がホーム→相手はアウェイ、自分がアウェイ→相手はホーム
-        $venue_name = get_post_meta($my_schedule_id, 'venue_name', true);
+        $venue_name = (string) ($my_sch_bundle['venue_name'] ?? '');
         $other_place_disp_guest = function_exists('aidunite_match_invite_opponent_venue_label')
             ? aidunite_match_invite_opponent_venue_label($my_place, $venue_name)
             : (function_exists('jp_place') ? jp_place($other_place) : '');
-        $request_status = get_post_meta($req_post->ID, 'status', true);
-        $from_team_id_req = get_post_meta($req_post->ID, 'from_team_id', true);
+        $request_status = (string) ($mr_open['status'] ?? '');
+        $from_team_id_req = (int) ($mr_open['from_team_id'] ?? 0);
         $is_applicant = ($from_team_id_req == $my_team_id);
         if ($request_status === 'established' || $request_status === '試合確定') {
             $application_status = 'established';
@@ -101,25 +119,19 @@ if ($request_id_param > 0) {
             get_footer();
             return;
         }
-        $other_team_id = get_post_meta($other_schedule_id, 'team_id', true);
-        $my_team_data = [
-            'name' => get_post_meta($my_team_id, 'team_name', true) ?: 'チーム名未設定',
-            'sport' => get_post_meta($my_team_id, 'team_sport', true) ?: 'スポーツ種目未設定',
-            'category' => get_post_meta($my_team_id, 'team_category', true) ?: 'カテゴリ未設定',
-            'region' => function_exists('aidunite_team_activity_display_label') ? aidunite_team_activity_display_label($my_team_id) : (get_post_meta($my_team_id, 'region', true) ?: '地域未設定'),
-            'logo' => get_post_meta($my_team_id, 'team_logo', true) ?: get_template_directory_uri() . '/images/default-team-logo.png'
-        ];
-        $other_team_data = [
-            'name' => get_post_meta($other_team_id, 'team_name', true) ?: 'チーム名未設定',
-            'sport' => get_post_meta($other_team_id, 'team_sport', true) ?: 'スポーツ種目未設定',
-            'category' => get_post_meta($other_team_id, 'team_category', true) ?: 'カテゴリ未設定',
-            'region' => function_exists('aidunite_team_activity_display_label') ? aidunite_team_activity_display_label($other_team_id) : (get_post_meta($other_team_id, 'region', true) ?: '地域未設定'),
-            'logo' => get_post_meta($other_team_id, 'team_logo', true) ?: get_template_directory_uri() . '/images/default-team-logo.png',
-            'description' => get_post_meta($other_team_id, 'team_description', true) ?: '',
-            'achievements' => get_post_meta($other_team_id, 'team_achievements', true) ?: '',
-            'approver_school_name' => '',
-            'approver_name' => ''
-        ];
+        $other_team_id = function_exists('aidunite_schedule_read_team_id')
+            ? (int) aidunite_schedule_read_team_id((int) $other_schedule_id)
+            : 0;
+        $my_team_data = function_exists('aidunite_team_get_match_card_profile')
+            ? aidunite_team_get_match_card_profile((int) $my_team_id)
+            : [];
+        $other_team_data = function_exists('aidunite_team_get_match_card_profile')
+            ? aidunite_team_get_match_card_profile((int) $other_team_id)
+            : [];
+        if ($other_team_data !== []) {
+            $other_team_data['approver_school_name'] = '';
+            $other_team_data['approver_name'] = '';
+        }
         // 以降の Phase 2 と get_latest_match_request_bidirectional で上書きされるのでここでは不要
     }
 } elseif ($other_schedule_id > 0 && $my_schedule_id == 0) {
@@ -136,38 +148,41 @@ if ($request_id_param > 0) {
         get_footer();
         return;
     }
-    $other_team_id = get_post_meta($other_schedule_id, 'team_id', true);
-    $other_team_data = [
-        'name' => $other_team_id ? (function_exists('aidunite_get_team_name') ? aidunite_get_team_name($other_team_id) : (get_the_title($other_team_id) ?: 'チーム名未設定')) : 'チーム名未設定',
-        'sport' => $other_team_id ? (get_post_meta($other_team_id, 'team_sport', true) ?: '') : '',
-        'category' => $other_team_id ? (get_post_meta($other_team_id, 'team_category', true) ?: '') : '',
-        'region' => $other_team_id && function_exists('aidunite_team_activity_display_label') ? aidunite_team_activity_display_label($other_team_id) : ($other_team_id ? (get_post_meta($other_team_id, 'region', true) ?: '') : ''),
-        'logo' => $other_team_id ? (get_post_meta($other_team_id, 'team_logo', true) ?: get_template_directory_uri() . '/images/default-team-logo.png') : '',
-        'description' => $other_team_id ? (get_post_meta($other_team_id, 'team_description', true) ?: '') : '',
-        'achievements' => $other_team_id ? (get_post_meta($other_team_id, 'team_achievements', true) ?: '') : '',
-        'approver_school_name' => '',
-        'approver_name' => ''
-    ];
-    $other_place = get_post_meta($other_schedule_id, 'schedule_place', true) ?: get_post_meta($other_schedule_id, 'schedule_place_option', true);
-    $other_gender = get_post_meta($other_schedule_id, 'schedule_gender', true) ?: get_post_meta($other_schedule_id, 'matching_gender_condition', true);
+    $other_team_id = function_exists('aidunite_schedule_read_team_id')
+        ? (int) aidunite_schedule_read_team_id((int) $other_schedule_id)
+        : 0;
+    $other_team_data = ($other_team_id > 0 && function_exists('aidunite_team_get_match_card_profile'))
+        ? aidunite_team_get_match_card_profile((int) $other_team_id)
+        : [
+            'name' => $other_team_id ? (function_exists('aidunite_get_team_name') ? aidunite_get_team_name($other_team_id) : (get_the_title($other_team_id) ?: 'チーム名未設定')) : 'チーム名未設定',
+            'sport' => '',
+            'category' => '',
+            'region' => '',
+            'logo' => '',
+            'description' => '',
+            'achievements' => '',
+            'approver_school_name' => '',
+            'approver_name' => '',
+        ];
+    $other_sch_bundle = function_exists('aidunite_schedule_get_display_bundle')
+        ? aidunite_schedule_get_display_bundle((int) $other_schedule_id)
+        : [];
+    $other_place = (string) ($other_sch_bundle['place'] ?? '');
+    $other_gender = (string) ($other_sch_bundle['gender'] ?? '');
     $other_schedule_data = [
-        'date' => get_post_meta($other_schedule_id, 'schedule_date', true) ?: '',
-        'start' => get_post_meta($other_schedule_id, 'schedule_start_time', true) ?: '',
-        'end' => get_post_meta($other_schedule_id, 'schedule_end_time', true) ?: '',
-        'place' => $other_place ?: 'either',
-        'gender' => $other_gender ?: 'both',
-        'venue_name' => get_post_meta($other_schedule_id, 'venue_name', true) ?: ''
+        'date' => (string) ($other_sch_bundle['date'] ?? ''),
+        'start' => (string) ($other_sch_bundle['start_time'] ?? ''),
+        'end' => (string) ($other_sch_bundle['end_time'] ?? ''),
+        'place' => $other_place !== '' ? $other_place : 'either',
+        'gender' => $other_gender !== '' ? $other_gender : 'both',
+        'venue_name' => (string) ($other_sch_bundle['venue_name'] ?? ''),
     ];
     $my_team = get_post($my_team_id);
     $my_schedule = null;
     $my_schedule_data = ['date' => '', 'start' => '', 'end' => '', 'place' => 'either', 'gender' => 'both'];
-    $my_team_data = [
-        'name' => get_post_meta($my_team_id, 'team_name', true) ?: 'チーム名未設定',
-        'sport' => get_post_meta($my_team_id, 'team_sport', true) ?: '',
-        'category' => get_post_meta($my_team_id, 'team_category', true) ?: '',
-        'region' => function_exists('aidunite_team_activity_display_label') ? aidunite_team_activity_display_label($my_team_id) : (get_post_meta($my_team_id, 'region', true) ?: ''),
-        'logo' => get_post_meta($my_team_id, 'team_logo', true) ?: get_template_directory_uri() . '/images/default-team-logo.png',
-    ];
+    $my_team_data = function_exists('aidunite_team_get_match_card_profile')
+        ? aidunite_team_get_match_card_profile((int) $my_team_id)
+        : [];
 } else {
     // 従来: my_schedule_id, schedule_id (other_schedule_id), my_team_id 必須
     $is_other_only_mode = false;
@@ -187,31 +202,45 @@ if ($request_id_param > 0) {
         return;
     }
 
-    $my_team_data = [
-        'name' => get_post_meta($my_team_id, 'team_name', true) ?: 'チーム名未設定',
-        'sport' => get_post_meta($my_team_id, 'team_sport', true) ?: 'スポーツ種目未設定',
-        'category' => get_post_meta($my_team_id, 'team_category', true) ?: 'カテゴリ未設定',
-        'region' => function_exists('aidunite_team_activity_display_label') ? aidunite_team_activity_display_label($my_team_id) : (get_post_meta($my_team_id, 'region', true) ?: '地域未設定'),
-        'logo' => get_post_meta($my_team_id, 'team_logo', true) ?: get_template_directory_uri() . '/images/default-team-logo.png'
-    ];
+    $my_team_data = function_exists('aidunite_team_get_match_card_profile')
+        ? aidunite_team_get_match_card_profile((int) $my_team_id)
+        : [];
 
-    $other_team_id = get_post_meta($other_schedule_id, 'team_id', true);
-    $other_team_data = [
-        'name' => get_post_meta($other_team_id, 'team_name', true) ?: 'チーム名未設定',
-        'sport' => get_post_meta($other_team_id, 'team_sport', true) ?: 'スポーツ種目未設定',
-        'category' => get_post_meta($other_team_id, 'team_category', true) ?: 'カテゴリ未設定',
-        'region' => function_exists('aidunite_team_activity_display_label') ? aidunite_team_activity_display_label($other_team_id) : (get_post_meta($other_team_id, 'region', true) ?: '地域未設定'),
-        'logo' => get_post_meta($other_team_id, 'team_logo', true) ?: get_template_directory_uri() . '/images/default-team-logo.png',
-        'description' => get_post_meta($other_team_id, 'team_description', true) ?: '',
-        'achievements' => get_post_meta($other_team_id, 'team_achievements', true) ?: '',
-        'approver_school_name' => '',
-        'approver_name' => ''
-    ];
+    $other_team_id = function_exists('aidunite_schedule_read_team_id')
+        ? (int) aidunite_schedule_read_team_id((int) $other_schedule_id)
+        : 0;
+    $other_team_data = function_exists('aidunite_team_get_match_card_profile')
+        ? aidunite_team_get_match_card_profile((int) $other_team_id)
+        : [];
+    if ($other_team_data !== []) {
+        $other_team_data['approver_school_name'] = '';
+        $other_team_data['approver_name'] = '';
+    }
 }
 
 $current_user_team_id = function_exists('aidunite_match_board_resolve_viewer_team_id')
     ? aidunite_match_board_resolve_viewer_team_id(get_current_user_id())
     : 0;
+
+// 既に試合確定している相手募集へ my_schedule 付きで開いた場合、MR ID を URL に補完（申請フォームの誤表示防止）
+if ($current_user_team_id > 0 && $other_schedule_id > 0 && empty($_GET['match_request_id'])
+    && function_exists('aidunite_get_established_context_for_recruit_row')) {
+    $est_ctx_redirect = aidunite_get_established_context_for_recruit_row((int) $current_user_team_id, (int) $other_schedule_id);
+    if (is_array($est_ctx_redirect) && !empty($est_ctx_redirect['request_id'])) {
+        $rid_redirect = (int) $est_ctx_redirect['request_id'];
+        $my_redirect = $my_schedule_id > 0 ? (int) $my_schedule_id : (int) ($est_ctx_redirect['my_schedule_id'] ?? 0);
+        $redirect_url = add_query_arg(
+            array_filter([
+                'my_schedule_id'    => $my_redirect > 0 ? $my_redirect : null,
+                'schedule_id'       => (int) $other_schedule_id,
+                'match_request_id'  => $rid_redirect,
+            ]),
+            home_url('/match-detail/')
+        );
+        wp_safe_redirect($redirect_url);
+        exit;
+    }
+}
 
 // 相手のみモード：自チーム→相手スケジュールの申請を1件取得（my_schedule_id は問わない）
 if (!empty($is_other_only_mode)) {
@@ -232,7 +261,10 @@ if (!empty($is_other_only_mode)) {
     ]);
     if (!empty($reqs)) {
         $latest_request = $reqs[0];
-        $request_status = get_post_meta($latest_request->ID, 'status', true);
+        $mr_other_only = function_exists('aidunite_match_request_get_canonical_meta')
+            ? aidunite_match_request_get_canonical_meta((int) $latest_request->ID)
+            : [];
+        $request_status = (string) ($mr_other_only['status'] ?? '');
         if (in_array($request_status, ['established', '試合確定'])) {
             $application_status = 'established';
         } elseif (in_array($request_status, ['accepted', '承認済み'])) {
@@ -253,50 +285,40 @@ if (!empty($is_other_only_mode)) {
 
 // 招待でない場合のみ Phase 2 と双方向取得（招待の場合は上で変数を設定済み）。相手のみモードではスキップ。
 if (!$is_guest_invite && !$is_other_only_mode) {
-// Phase 2: 統一メタキーを優先、後方互換性のために旧キーもフォールバック
-$resolve_registered_snapshot = static function ($sid) {
-    $sid = (int) $sid;
-    $saved = ((string) get_post_meta($sid, 'pre_established_saved', true) === '1');
-    $start = get_post_meta($sid, $saved ? 'pre_established_start_time' : 'schedule_start_time', true);
-    $end = get_post_meta($sid, $saved ? 'pre_established_end_time' : 'schedule_end_time', true);
-    $place = get_post_meta($sid, $saved ? 'pre_established_place' : 'schedule_place', true);
-    if (!$place) {
-        $place = get_post_meta($sid, $saved ? 'pre_established_place_option' : 'schedule_place_option', true);
-    }
-    $gender = get_post_meta($sid, $saved ? 'pre_established_gender' : 'schedule_gender', true);
-    if (!$gender) {
-        $gender = get_post_meta($sid, 'matching_gender_condition', true);
-    }
-    return [
-        'start' => $start ?: '',
-        'end' => $end ?: '',
-        'place' => $place ?: '',
-        'gender' => $gender ?: '',
-    ];
-};
-$my_registered = $resolve_registered_snapshot($my_schedule_id);
-$other_registered = $resolve_registered_snapshot($other_schedule_id);
+$my_registered = function_exists('aidunite_schedule_get_registered_snapshot_fields')
+    ? aidunite_schedule_get_registered_snapshot_fields((int) $my_schedule_id)
+    : ['start' => '', 'end' => '', 'place' => '', 'gender' => ''];
+$other_registered = function_exists('aidunite_schedule_get_registered_snapshot_fields')
+    ? aidunite_schedule_get_registered_snapshot_fields((int) $other_schedule_id)
+    : ['start' => '', 'end' => '', 'place' => '', 'gender' => ''];
 
 $my_gender = $my_registered['gender'];
 $my_place = $my_registered['place'];
 $other_gender = $other_registered['gender'];
 $other_place = $other_registered['place'];
 
+$my_date_bundle = function_exists('aidunite_schedule_get_display_bundle')
+    ? aidunite_schedule_get_display_bundle((int) $my_schedule_id)
+    : [];
+$other_date_bundle = function_exists('aidunite_schedule_get_display_bundle')
+    ? aidunite_schedule_get_display_bundle((int) $other_schedule_id)
+    : [];
+
 $my_schedule_data = [
-    'date' => get_post_meta($my_schedule_id, 'schedule_date', true) ?: '',
+    'date' => (string) ($my_date_bundle['date'] ?? ''),
     'start' => $my_registered['start'],
     'end' => $my_registered['end'],
     'place' => $my_place ?: 'either',
-    'gender' => $my_gender ?: 'both'
+    'gender' => $my_gender ?: 'both',
 ];
 
 $other_schedule_data = [
-    'date' => get_post_meta($other_schedule_id, 'schedule_date', true) ?: '',
+    'date' => (string) ($other_date_bundle['date'] ?? ''),
     'start' => $other_registered['start'],
     'end' => $other_registered['end'],
     'place' => $other_place ?: 'either',
     'gender' => $other_gender ?: 'both',
-    'venue_name' => get_post_meta($other_schedule_id, 'venue_name', true) ?: ''
+    'venue_name' => (string) ($other_date_bundle['venue_name'] ?? ''),
 ];
 
 // 申請状態の確認（match_requestテーブルから最新の状態を確認）
@@ -310,27 +332,47 @@ $reconfirm_reason = '';
 $reconfirm_diff = ['messages' => [], 'rows' => []];
 
 // 双方向で最新の申請を取得（掲示板などから match_request_id 指定時はその MR を優先し、相互申請で逆方向を拾わない）
-$other_team_id = get_post_meta($other_schedule_id, 'team_id', true);
+$other_team_id = function_exists('aidunite_schedule_read_team_id')
+    ? (int) aidunite_schedule_read_team_id((int) $other_schedule_id)
+    : 0;
 $match_request_id_param = isset($_GET['match_request_id']) ? absint($_GET['match_request_id']) : 0;
 if ($match_request_id_param > 0) {
     $mr_pick = get_post($match_request_id_param);
     if ($mr_pick && $mr_pick->post_type === 'match_request') {
-        $mr_my = (int) get_post_meta($mr_pick->ID, 'my_schedule_id', true);
+        $mr_pick_meta = function_exists('aidunite_match_request_get_canonical_meta')
+            ? aidunite_match_request_get_canonical_meta((int) $mr_pick->ID)
+            : [];
+        $mr_my = (int) ($mr_pick_meta['my_schedule_id'] ?? 0);
         if ($mr_my <= 0) {
-            $mr_my = (int) get_post_meta($mr_pick->ID, 'from_schedule_id', true);
+            $mr_my = (int) ($mr_pick_meta['from_schedule_id'] ?? 0);
         }
-        $mr_to = (int) get_post_meta($mr_pick->ID, 'to_schedule_id', true);
+        $mr_to = (int) ($mr_pick_meta['to_schedule_id'] ?? 0);
         $pair_ok = ($mr_my > 0 && $mr_to > 0
             && (
                 ($mr_my === (int) $my_schedule_id && $mr_to === (int) $other_schedule_id)
                 || ($mr_my === (int) $other_schedule_id && $mr_to === (int) $my_schedule_id)
             ));
-        $from_tid = (int) get_post_meta($mr_pick->ID, 'from_team_id', true);
-        $host_team = $mr_to > 0 ? (int) get_post_meta($mr_to, 'team_id', true) : 0;
+        $from_tid = (int) ($mr_pick_meta['from_team_id'] ?? 0);
+        $host_team = $mr_to > 0
+            ? (function_exists('aidunite_schedule_read_team_id')
+                ? aidunite_schedule_read_team_id($mr_to)
+                : 0)
+            : 0;
         $viewer_team = (int) $current_user_team_id;
         $viewer_ok = ($from_tid === $viewer_team) || ($host_team === $viewer_team);
-        if ($pair_ok && $viewer_ok) {
+        if ($viewer_ok && ($pair_ok || $match_request_id_param > 0)) {
             $latest_request = $mr_pick;
+            if (!$pair_ok && $mr_to > 0 && ((function_exists('aidunite_schedule_read_team_id')
+                ? aidunite_schedule_read_team_id($mr_to)
+                : 0) === $viewer_team)) {
+                $my_schedule_id = $mr_to;
+                $other_schedule_id = $mr_my > 0 ? $mr_my : $other_schedule_id;
+            } elseif (!$pair_ok && $mr_my > 0 && ((function_exists('aidunite_schedule_read_team_id')
+                ? aidunite_schedule_read_team_id($mr_my)
+                : 0) === $viewer_team)) {
+                $my_schedule_id = $mr_my;
+                $other_schedule_id = $mr_to > 0 ? $mr_to : $other_schedule_id;
+            }
         }
     }
 }
@@ -339,17 +381,24 @@ if (!$latest_request) {
 }
 
 if ($latest_request) {
-    $request_status = get_post_meta($latest_request->ID, 'status', true);
-    $requires_reconfirm = ((int) get_post_meta($latest_request->ID, 'requires_reconfirm', true) === 1);
-    $proposal_pending_accept = ((int) get_post_meta($latest_request->ID, 'proposal_pending_accept', true) === 1);
-    $reconfirm_reason = (string) get_post_meta($latest_request->ID, 'reconfirm_reason', true);
-    $from_team_id = get_post_meta($latest_request->ID, 'from_team_id', true);
-    $to_team_id = get_post_meta($latest_request->ID, 'to_team_id', true);
-    if ($to_team_id === '' || $to_team_id === null) {
-        $to_team_id = get_post_meta($latest_request->ID, 'other_team_id', true);
+    $mr_latest = function_exists('aidunite_match_request_get_canonical_meta')
+        ? aidunite_match_request_get_canonical_meta((int) $latest_request->ID)
+        : [];
+    $request_status = (string) ($mr_latest['status'] ?? '');
+    $requires_reconfirm = ((int) ($mr_latest['requires_reconfirm'] ?? 0) === 1);
+    $proposal_pending_accept = ((int) ($mr_latest['proposal_pending_accept'] ?? 0) === 1);
+    $reconfirm_reason = (string) ($mr_latest['reconfirm_reason'] ?? '');
+    $from_team_id = (int) ($mr_latest['from_team_id'] ?? 0);
+    $to_team_id = (int) ($mr_latest['to_team_id'] ?? 0);
+    if ($to_team_id < 1) {
+        $to_team_id = (int) ($mr_latest['other_team_id'] ?? 0);
     }
-    $my_schedule_id_meta = get_post_meta($latest_request->ID, 'my_schedule_id', true);
-    $to_schedule_id_meta = get_post_meta($latest_request->ID, 'to_schedule_id', true);
+    $my_schedule_id_meta = (int) ($mr_latest['my_schedule_id'] ?? 0);
+    $to_schedule_id_meta = (int) ($mr_latest['to_schedule_id'] ?? 0);
+    $mr_selected_start = (string) ($mr_latest['selected_start_time'] ?? '');
+    $mr_selected_end = (string) ($mr_latest['selected_end_time'] ?? '');
+    $mr_selected_place = (string) ($mr_latest['selected_place'] ?? '');
+    $mr_selected_gender = (string) ($mr_latest['selected_gender'] ?? '');
 
 
     // 申請者側か受信者側かを判定（より正確な判定）
@@ -377,7 +426,7 @@ if ($latest_request) {
                 // ページのother_schedule_idが一致する場合、このユーザーが受信者
                 $is_applicant = false;
             } else {
-                $is_applicant = true; // デフォルト
+                $is_applicant = false;
             }
         }
     }
@@ -489,38 +538,42 @@ $applied_data = null;
 if (!$is_other_only_mode) {
 if (($application_status === 'accepted' || $application_status === 'established') && $latest_request) {
     $confirmed_data = [
-        'start_time' => get_post_meta($latest_request->ID, 'selected_start_time', true) ?: $my_schedule_data['start'],
-        'end_time' => get_post_meta($latest_request->ID, 'selected_end_time', true) ?: $my_schedule_data['end'],
-        'place' => get_post_meta($latest_request->ID, 'selected_place', true) ?: $my_schedule_data['place'],
-        'gender' => get_post_meta($latest_request->ID, 'selected_gender', true) ?: $my_schedule_data['gender']
+        'start_time' => $mr_selected_start !== '' ? $mr_selected_start : $my_schedule_data['start'],
+        'end_time' => $mr_selected_end !== '' ? $mr_selected_end : $my_schedule_data['end'],
+        'place' => $mr_selected_place !== '' ? $mr_selected_place : $my_schedule_data['place'],
+        'gender' => $mr_selected_gender !== '' ? $mr_selected_gender : $my_schedule_data['gender']
     ];
 }
 
 // 申請中の内容を取得（申請受けた側で表示用）
 if (($application_status === 'received' || $application_status === 'applying') && $latest_request) {
     $applied_data = [
-        'start_time' => get_post_meta($latest_request->ID, 'selected_start_time', true) ?: $my_schedule_data['start'],
-        'end_time' => get_post_meta($latest_request->ID, 'selected_end_time', true) ?: $my_schedule_data['end'],
-        'place' => get_post_meta($latest_request->ID, 'selected_place', true) ?: $my_schedule_data['place'],
-        'gender' => get_post_meta($latest_request->ID, 'selected_gender', true) ?: $my_schedule_data['gender']
+        'start_time' => $mr_selected_start !== '' ? $mr_selected_start : $my_schedule_data['start'],
+        'end_time' => $mr_selected_end !== '' ? $mr_selected_end : $my_schedule_data['end'],
+        'place' => $mr_selected_place !== '' ? $mr_selected_place : $my_schedule_data['place'],
+        'gender' => $mr_selected_gender !== '' ? $mr_selected_gender : $my_schedule_data['gender']
     ];
 }
 if ($application_status === 'reconfirm_required' && $latest_request) {
     $applied_data = [
-        'start_time' => get_post_meta($latest_request->ID, 'selected_start_time', true) ?: $my_schedule_data['start'],
-        'end_time' => get_post_meta($latest_request->ID, 'selected_end_time', true) ?: $my_schedule_data['end'],
-        'place' => get_post_meta($latest_request->ID, 'selected_place', true) ?: $my_schedule_data['place'],
-        'gender' => get_post_meta($latest_request->ID, 'selected_gender', true) ?: $my_schedule_data['gender']
+        'start_time' => $mr_selected_start !== '' ? $mr_selected_start : $my_schedule_data['start'],
+        'end_time' => $mr_selected_end !== '' ? $mr_selected_end : $my_schedule_data['end'],
+        'place' => $mr_selected_place !== '' ? $mr_selected_place : $my_schedule_data['place'],
+        'gender' => $mr_selected_gender !== '' ? $mr_selected_gender : $my_schedule_data['gender']
     ];
 }
 }
 $established_chat_url = '';
 if (in_array((string) $application_status, ['accepted', 'established'], true) && $latest_request) {
-    $established_room_id = (int) get_post_meta((int) $latest_request->ID, 'chat_room_id', true);
-    if ($established_room_id > 0) {
-        $established_chat_url = home_url('/chat?room_id=' . $established_room_id);
-    } else {
-        $established_chat_url = home_url('/chat?match_id=' . (int) $latest_request->ID);
+    $chat_room_obj = function_exists('aidunite_get_game_chat_room_for_match_request')
+        ? aidunite_get_game_chat_room_for_match_request((int) $latest_request->ID)
+        : null;
+    if ($chat_room_obj && !empty($chat_room_obj->id) && (string) ($chat_room_obj->status ?? '') === 'active') {
+        $established_chat_url = home_url('/chat?room_id=' . (int) $chat_room_obj->id);
+    } elseif (function_exists('aidunite_match_request_should_fork_new_chat_room')
+        && aidunite_match_request_should_fork_new_chat_room((int) $latest_request->ID)) {
+        // active が無い再承認サイクルは match_id 経由で新規ルーム作成へ
+        $established_chat_url = home_url('/match-chat/?match_id=' . (int) $latest_request->ID);
     }
 }
 
@@ -535,7 +588,9 @@ if (
 ) {
     $my_sid_for_cta = (int) $my_schedule_id;
     if (!empty($is_other_only_mode) && $my_sid_for_cta <= 0) {
-        $oo_date = get_post_meta($other_schedule_id, 'schedule_date', true);
+        $oo_date = function_exists('aidunite_schedule_read_normalized_date')
+            ? aidunite_schedule_read_normalized_date((int) $other_schedule_id)
+            : '';
         if ($oo_date && $current_user_team_id) {
             $same_day_scheds = get_posts([
                 'post_type' => 'schedule',
@@ -884,7 +939,7 @@ if ($is_other_only_mode) {
 </div>
 
 <?php
-$match_detail_page_title = 'マッチ詳細';
+$match_detail_page_title = '試合の詳細';
 $match_detail_subtitle = '';
 $match_detail_shell_opened = false;
 if (function_exists('aidunite_web_app_page_shell_open')) {
@@ -986,9 +1041,14 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
                                         <?php
                                         $msi = 0;
                                         foreach ($my_schedules_same_day as $ms) {
-                                            $ms_place = get_post_meta($ms->ID, 'schedule_place', true) ?: get_post_meta($ms->ID, 'schedule_place_option', true);
+                                            $ms_api = function_exists('aidunite_schedule_get_api_display_fields')
+                                                ? aidunite_schedule_get_api_display_fields((int) $ms->ID)
+                                                : [];
+                                            $ms_place = (string) ($ms_api['place'] ?? (function_exists('aidunite_schedule_read_place_raw')
+                                                ? aidunite_schedule_read_place_raw((int) $ms->ID)
+                                                : ''));
                                             $ms_place = ($ms_place === 'both') ? 'either' : $ms_place;
-                                            $ms_label = get_post_meta($ms->ID, 'schedule_start_time', true) . '～' . get_post_meta($ms->ID, 'schedule_end_time', true);
+                                            $ms_label = (string) ($ms_api['start_time'] ?? '') . '～' . (string) ($ms_api['end_time'] ?? '');
                                             ?>
                                         <button type="button" class="match-pill match-pill-schedule<?php echo ($msi === 0) ? ' selected' : ''; ?>" data-type="my_schedule" data-value="<?php echo esc_attr($ms->ID); ?>" data-place="<?php echo esc_attr($ms_place ?: 'either'); ?>"><?php echo esc_html($ms_label); ?></button>
                                             <?php
@@ -999,7 +1059,15 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
                                 </div>
                             </div>
                             <?php else: ?>
-                            <?php $single_place = get_post_meta($my_schedules_same_day[0]->ID, 'schedule_place', true) ?: get_post_meta($my_schedules_same_day[0]->ID, 'schedule_place_option', true); $single_place = ($single_place === 'both') ? 'either' : $single_place; ?>
+                            <?php
+                            $single_ms_api = function_exists('aidunite_schedule_get_api_display_fields')
+                                ? aidunite_schedule_get_api_display_fields((int) $my_schedules_same_day[0]->ID)
+                                : [];
+                            $single_place = (string) ($single_ms_api['place'] ?? (function_exists('aidunite_schedule_read_place_raw')
+                                ? aidunite_schedule_read_place_raw((int) $my_schedules_same_day[0]->ID)
+                                : ''));
+                            $single_place = ($single_place === 'both') ? 'either' : $single_place;
+                            ?>
                             <input type="hidden" name="my_schedule_id" value="<?php echo esc_attr($my_schedules_same_day[0]->ID); ?>" data-my-place="<?php echo esc_attr($single_place ?: 'either'); ?>">
                             <?php endif; ?>
                             <?php if ($need_place_choice): ?>
@@ -1053,9 +1121,14 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
                                         <?php
                                         $msi = 0;
                                         foreach ($my_schedules_same_day as $ms) {
-                                            $ms_place = get_post_meta($ms->ID, 'schedule_place', true) ?: get_post_meta($ms->ID, 'schedule_place_option', true);
+                                            $ms_api = function_exists('aidunite_schedule_get_api_display_fields')
+                                                ? aidunite_schedule_get_api_display_fields((int) $ms->ID)
+                                                : [];
+                                            $ms_place = (string) ($ms_api['place'] ?? (function_exists('aidunite_schedule_read_place_raw')
+                                                ? aidunite_schedule_read_place_raw((int) $ms->ID)
+                                                : ''));
                                             $ms_place = ($ms_place === 'both') ? 'either' : $ms_place;
-                                            $ms_label = get_post_meta($ms->ID, 'schedule_start_time', true) . '～' . get_post_meta($ms->ID, 'schedule_end_time', true);
+                                            $ms_label = (string) ($ms_api['start_time'] ?? '') . '～' . (string) ($ms_api['end_time'] ?? '');
                                             ?>
                                         <button type="button" class="match-pill match-pill-schedule<?php echo ($msi === 0) ? ' selected' : ''; ?>" data-type="my_schedule" data-value="<?php echo esc_attr($ms->ID); ?>" data-place="<?php echo esc_attr($ms_place ?: 'either'); ?>"><?php echo esc_html($ms_label); ?></button>
                                             <?php
@@ -1066,7 +1139,15 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
                                 </div>
                             </div>
                             <?php else: ?>
-                            <?php $single_place = get_post_meta($my_schedules_same_day[0]->ID, 'schedule_place', true) ?: get_post_meta($my_schedules_same_day[0]->ID, 'schedule_place_option', true); $single_place = ($single_place === 'both') ? 'either' : $single_place; ?>
+                            <?php
+                            $single_ms_api = function_exists('aidunite_schedule_get_api_display_fields')
+                                ? aidunite_schedule_get_api_display_fields((int) $my_schedules_same_day[0]->ID)
+                                : [];
+                            $single_place = (string) ($single_ms_api['place'] ?? (function_exists('aidunite_schedule_read_place_raw')
+                                ? aidunite_schedule_read_place_raw((int) $my_schedules_same_day[0]->ID)
+                                : ''));
+                            $single_place = ($single_place === 'both') ? 'either' : $single_place;
+                            ?>
                             <input type="hidden" name="my_schedule_id" value="<?php echo esc_attr($my_schedules_same_day[0]->ID); ?>" data-my-place="<?php echo esc_attr($single_place ?: 'either'); ?>">
                             <?php endif; ?>
                             <?php if ($need_place_choice): ?>
@@ -1155,9 +1236,9 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
             'other_schedule_data' => isset($other_schedule_data) && is_array($other_schedule_data) ? $other_schedule_data : [],
         ];
         ?>
-        <aside class="match-detail-sidebar" aria-label="<?php echo esc_attr('相手チーム情報'); ?>">
-            <?php include get_stylesheet_directory() . '/template-parts/match-detail-opponent-sidebar.php'; ?>
-        </aside>
+        <?php
+        $match_detail_flow_mode = 'apply';
+        ?>
         <div class="match-detail-flow-wrap">
             <?php include get_stylesheet_directory() . '/template-parts/match-detail-flow.php'; ?>
         </div>
@@ -1245,11 +1326,8 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
                     $applied_place_for_compare = 'either';
                 }
                 if (in_array($applied_place_for_compare, ['home', 'away', 'either'], true) && function_exists('aidunite_resolve_place_for_viewer')) {
-                    $from_team_req = (int) get_post_meta($latest_request->ID, 'from_team_id', true);
-                    $to_team_req = (int) get_post_meta($latest_request->ID, 'to_team_id', true);
-                    if ($to_team_req <= 0) {
-                        $to_team_req = (int) get_post_meta($latest_request->ID, 'other_team_id', true);
-                    }
+                    $from_team_req = (int) ($from_team_id ?? 0);
+                    $to_team_req = (int) ($to_team_id ?? 0);
                     $my_place_resolved = aidunite_resolve_place_for_viewer($applied_place_for_compare, $from_team_req, $to_team_req, (int) $current_user_team_id);
                     $other_viewer_team_id = ((int) $current_user_team_id === $from_team_req) ? $to_team_req : $from_team_req;
                     $other_place_resolved = aidunite_resolve_place_for_viewer($applied_place_for_compare, $from_team_req, $to_team_req, (int) $other_viewer_team_id);
@@ -1295,7 +1373,7 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
             }
             // 再確認・申請者: 募集変更後の「再申請で送る会場」を申請者視点で募集＋place_lock と整合（MR の古い selected_place に引っ張られない）
             if ($application_status === 'reconfirm_required' && !empty($is_applicant) && !empty($latest_request)) {
-                $to_sid_place = (int) get_post_meta($latest_request->ID, 'to_schedule_id', true);
+                $to_sid_place = (int) ($to_schedule_id_meta ?? 0);
                 $my_sid_place = (int) $my_schedule_id;
                 if ($to_sid_place > 0 && $my_sid_place > 0 && function_exists('_aidunite_resolve_selected_place_for_established')) {
                     $canon_pl = (string) _aidunite_resolve_selected_place_for_established('', $to_sid_place, $my_sid_place);
@@ -1320,11 +1398,8 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
                 if ($confirmed_place === 'both') {
                     $confirmed_place = 'either';
                 }
-                $from_team_req = $latest_request ? (int) get_post_meta($latest_request->ID, 'from_team_id', true) : 0;
-                $to_team_req = $latest_request ? (int) get_post_meta($latest_request->ID, 'to_team_id', true) : 0;
-                if ($to_team_req <= 0 && $latest_request) {
-                    $to_team_req = (int) get_post_meta($latest_request->ID, 'other_team_id', true);
-                }
+                $from_team_req = $latest_request ? (int) ($from_team_id ?? 0) : 0;
+                $to_team_req = $latest_request ? (int) ($to_team_id ?? 0) : 0;
                 if (in_array($confirmed_place, ['home', 'away', 'either'], true) && function_exists('aidunite_resolve_place_for_viewer') && $from_team_req > 0 && $to_team_req > 0) {
                     $confirmed_place_for_me = (string) aidunite_resolve_place_for_viewer($confirmed_place, $from_team_req, $to_team_req, (int) $current_user_team_id);
                     $apply_place_display = jp_place($confirmed_place_for_me);
@@ -1345,11 +1420,8 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
                     $applied_place_for_card = 'either';
                 }
                 if (in_array($applied_place_for_card, ['home', 'away', 'either'], true) && !empty($latest_request) && function_exists('aidunite_resolve_place_for_viewer')) {
-                    $from_team_req = (int) get_post_meta($latest_request->ID, 'from_team_id', true);
-                    $to_team_req = (int) get_post_meta($latest_request->ID, 'to_team_id', true);
-                    if ($to_team_req <= 0) {
-                        $to_team_req = (int) get_post_meta($latest_request->ID, 'other_team_id', true);
-                    }
+                    $from_team_req = (int) ($from_team_id ?? 0);
+                    $to_team_req = (int) ($to_team_id ?? 0);
                     $received_apply_place_resolved = (string) aidunite_resolve_place_for_viewer(
                         $applied_place_for_card,
                         $from_team_req,
@@ -1358,11 +1430,11 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
                     );
                 }
                 if ($received_apply_place_resolved === 'home') {
-                    $received_request_message = '相手チームは、あなたのホームでの試合を希望しています。';
+                    $received_request_message = 'あなたのホームでの試合を希望しています。';
                 } elseif ($received_apply_place_resolved === 'away') {
-                    $received_request_message = '相手チームは、相手のホームでの試合を希望しています。';
+                    $received_request_message = '相手のホームでの試合を希望しています。';
                 } else {
-                    $received_request_message = '相手チームは、会場をどちらでも可としています。';
+                    $received_request_message = '会場をどちらでも可としています。';
                 }
             }
             $match_detail_venue_hint_theme = function_exists('aidunite_get_team_ui_theme_key')
@@ -1372,6 +1444,42 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
             $received_datetime_display = ($compare_date_my !== '—' ? $compare_date_my : '')
                 . str_replace(['：', '～'], [':', '〜'], (string) $apply_time_display);
             $match_detail_icon_base = aidunite_get_theme_icons_uri();
+
+            if ($is_received_highlight && $status !== 'established') {
+                $basic_info_datetime = $received_datetime_display;
+                $basic_info_place = $received_apply_place_display;
+                $basic_info_gender = $apply_gender_display;
+            } elseif ($status === 'established' && !empty($confirmed_data)) {
+                $basic_info_datetime = trim(
+                    ($compare_date_my !== '—' ? $compare_date_my : '')
+                    . ($established_time_display !== '' ? ' ' . $established_time_display : '')
+                );
+                $basic_info_place = $apply_place_display;
+                $basic_info_gender = $apply_gender_display;
+            } else {
+                $basic_info_datetime = trim($compare_date_my . ($apply_time_display !== '' ? ' ' . $apply_time_display : ''));
+                $basic_info_place = $apply_place_display;
+                $basic_info_gender = $apply_gender_display;
+            }
+
+            $condition_status_time_display = ($apply_time_display !== '' && $apply_time_display !== '-')
+                ? str_replace([':', '～'], ['：', '～'], (string) $apply_time_display)
+                : str_replace([':', '～'], ['：', '～'], (string) $table_my_time);
+
+            $condition_status_rows = function_exists('aidunite_match_detail_condition_status_rows')
+                ? aidunite_match_detail_condition_status_rows([
+                    'time_level'          => $time_level,
+                    'place_level'         => $place_level,
+                    'gender_mixed'        => $gender_mixed,
+                    'compare_my_place'    => $compare_my_place,
+                    'compare_other_place' => $compare_other_place,
+                    'compare_my_gender'   => $compare_my_gender,
+                    'compare_other_gender'=> $compare_other_gender,
+                    'time_display'        => $condition_status_time_display,
+                    'gender_display'      => $basic_info_gender,
+                ])
+                : [];
+            $match_detail_flow_mode = ($is_received_highlight && $status !== 'established') ? 'approval' : 'apply';
             ?>
             <!-- ① 結論バナー（state × role） -->
             <?php
@@ -1385,8 +1493,8 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
                 case 'green':
                     $conclusion_icon_file = 'check_circle.svg';
                     if ($is_conclusion_received_side) {
-                        $conclusion_title = 'この条件で承認できます';
-                        $conclusion_desc = '申請内容に問題がなければ、承認すると試合が成立します。';
+                        $conclusion_title = 'この条件で試合が成立できます';
+                        $conclusion_desc = '申請内容に大きな問題はありません。承認すると試合が成立します。';
                     } else {
                         if ($application_status === 'applying') {
                             $conclusion_title = 'この条件で申請中です。';
@@ -1423,8 +1531,13 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
                     break;
                 default:
                     $conclusion_icon_file = 'check_circle.svg';
-                    $conclusion_title = 'この条件で申請できます';
-                    $conclusion_desc = '条件が一致しているため、この内容で申請できます。';
+                    if ($application_status === 'received' && !empty($is_received_request)) {
+                        $conclusion_title = 'この条件で試合が成立できます';
+                        $conclusion_desc = '申請内容に大きな問題はありません。承認すると試合が成立します。';
+                    } else {
+                        $conclusion_title = 'この条件で申請できます';
+                        $conclusion_desc = '条件が一致しているため、この内容で申請できます。';
+                    }
                     break;
             }
             ?>
@@ -1466,73 +1579,37 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
                 <?php endif; ?>
             </div>
             <?php endif; ?>
-            <?php if ($is_received_highlight && $status !== 'established'): ?>
-            <!-- ② 受信側：相手からの申請内容（比較表の前） -->
-            <section class="match-detail-section match-detail-section--received-apply" aria-labelledby="match-detail-received-apply-title">
-                <header class="match-detail-section__intro">
-                    <div class="match-detail-section-header">
-                        <div class="match-detail-section-header__title-wrap">
-                            <span class="match-detail-section-header__icon" aria-hidden="true">
-                                <img src="<?php echo esc_url($match_detail_icon_base . 'person_check.svg'); ?>" alt="" width="20" height="20" decoding="async">
-                            </span>
-                            <h2 id="match-detail-received-apply-title" class="match-detail-section-header__title">相手からの申請内容</h2>
-                        </div>
-                        <p class="match-detail-section-header__lead">内容を確認し、問題なければ承認してください。</p>
-                    </div>
-                </header>
-                <div class="match-detail-section__boundary" aria-hidden="true"></div>
-                <div class="card match-detail-received-apply-card match-detail-received-apply-card--<?php echo esc_attr($match_detail_venue_hint_theme); ?>">
-                    <div class="card-body">
-                        <ul class="match-detail-received-apply-items">
-                            <li class="match-detail-received-apply-item">
-                                <span class="match-detail-received-apply-item__head">
-                                    <span class="match-detail-received-apply-item__icon" aria-hidden="true">
-                                        <img src="<?php echo esc_url($match_detail_icon_base . 'schedule.svg'); ?>" alt="" width="20" height="20" decoding="async">
-                                    </span>
-                                    <span class="match-detail-received-apply-item__label">日時</span>
-                                </span>
-                                <span class="match-detail-received-apply-item__value"><?php echo esc_html($received_datetime_display); ?></span>
-                            </li>
-                            <li class="match-detail-received-apply-item">
-                                <span class="match-detail-received-apply-item__head">
-                                    <span class="match-detail-received-apply-item__icon" aria-hidden="true">
-                                        <img src="<?php echo esc_url($match_detail_icon_base . 'home.svg'); ?>" alt="" width="20" height="20" decoding="async">
-                                    </span>
-                                    <span class="match-detail-received-apply-item__label">会場</span>
-                                </span>
-                                <span class="match-detail-received-apply-item__value" id="apply-summary-place"><?php echo esc_html($received_apply_place_display); ?></span>
-                            </li>
-                            <li class="match-detail-received-apply-item">
-                                <span class="match-detail-received-apply-item__head">
-                                    <span class="match-detail-received-apply-item__icon" aria-hidden="true">
-                                        <img src="<?php echo esc_url($match_detail_icon_base . 'group.svg'); ?>" alt="" width="20" height="20" decoding="async">
-                                    </span>
-                                    <span class="match-detail-received-apply-item__label">性別</span>
-                                </span>
-                                <span class="match-detail-received-apply-item__value" id="apply-summary-gender"><?php echo esc_html($apply_gender_display); ?></span>
-                            </li>
-                        </ul>
-                    </div>
+            <?php include get_stylesheet_directory() . '/template-parts/match-detail-opponent-card.php'; ?>
+
+            <!-- 基本情報 -->
+            <section class="card match-detail-basic-info" aria-label="<?php echo esc_attr('基本情報'); ?>">
+                <div class="card-body">
+                    <ul class="match-detail-basic-info__list">
+                        <li class="match-detail-basic-info__item">
+                            <span class="match-detail-basic-info__icon" aria-hidden="true"><?php echo aidunite_render_theme_icon('schedule', ['width' => '20', 'height' => '20']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+                            <span class="match-detail-basic-info__value"><?php echo esc_html($basic_info_datetime !== '' ? $basic_info_datetime : '—'); ?></span>
+                        </li>
+                        <li class="match-detail-basic-info__item">
+                            <span class="match-detail-basic-info__icon" aria-hidden="true"><?php echo aidunite_render_theme_icon('home', ['width' => '20', 'height' => '20']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+                            <span class="match-detail-basic-info__value" id="apply-summary-place"><?php echo esc_html($basic_info_place !== '' ? $basic_info_place : '—'); ?></span>
+                        </li>
+                        <li class="match-detail-basic-info__item">
+                            <span class="match-detail-basic-info__icon" aria-hidden="true"><?php echo aidunite_render_theme_icon('group', ['width' => '20', 'height' => '20']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+                            <span class="match-detail-basic-info__value" id="apply-summary-gender"><?php echo esc_html($basic_info_gender !== '' ? $basic_info_gender : '—'); ?></span>
+                        </li>
+                    </ul>
                 </div>
-                <?php if ($received_request_message !== ''): ?>
-                <div class="match-detail-venue-hint match-detail-venue-hint--<?php echo esc_attr($match_detail_venue_hint_theme); ?>">
-                    <span class="match-detail-venue-hint__icon" aria-hidden="true">
-                        <?php echo aidunite_get_theme_icon_svg('info', ['width' => '20', 'height' => '20']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                    </span>
-                    <p class="match-detail-venue-hint__text"><?php echo esc_html($received_request_message); ?></p>
-                </div>
-                <?php endif; ?>
-                <?php if ($application_status === 'proposal_pending_accept'): ?>
-                <p class="match-detail-status-note" role="status">
-                    相手チームの承諾待ちです。承諾完了後に承認操作が可能になります。
-                </p>
-                <?php endif; ?>
             </section>
+
+            <?php if ($is_received_highlight && $received_request_message !== ''): ?>
+            <div class="match-detail-venue-hint match-detail-venue-hint--<?php echo esc_attr($match_detail_venue_hint_theme); ?>">
+                <span class="match-detail-venue-hint__icon" aria-hidden="true">
+                    <?php echo aidunite_get_theme_icon_svg('info', ['width' => '20', 'height' => '20']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                </span>
+                <p class="match-detail-venue-hint__text"><?php echo esc_html($received_request_message); ?></p>
+            </div>
             <?php endif; ?>
             <?php
-            $apply_heading_text = ($application_status === 'reconfirm_required')
-                ? '申請内容（現在）'
-                : (($status === 'established') ? '確定内容' : '申請内容');
             $applicant_request_message = '';
             if (!$is_received_highlight && $status !== 'established') {
                 if ($resolved_place_value === 'home') {
@@ -1544,145 +1621,120 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
                 }
             }
             ?>
-            <?php if (!$is_received_highlight): ?>
-            <!-- ② 申請側：申請内容（承認側と同じ位置） -->
-            <section class="match-detail-section match-detail-section--apply" aria-labelledby="match-detail-apply-title">
-                <header class="match-detail-section__intro">
-                    <div class="match-detail-section-header">
-                        <div class="match-detail-section-header__title-wrap">
-                            <h2 id="match-detail-apply-title" class="match-detail-section-header__title match-detail-apply-content-heading"><?php echo esc_html($apply_heading_text); ?></h2>
+            <?php if (!$is_received_highlight && $applicant_request_message !== ''): ?>
+            <div class="match-detail-venue-hint match-detail-venue-hint--<?php echo esc_attr($match_detail_venue_hint_theme); ?>">
+                <span class="match-detail-venue-hint__icon" aria-hidden="true">
+                    <?php echo aidunite_get_theme_icon_svg('info', ['width' => '20', 'height' => '20']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                </span>
+                <p class="match-detail-venue-hint__text"><?php echo esc_html($applicant_request_message); ?></p>
+            </div>
+            <?php endif; ?>
+            <?php if ($application_status === 'proposal_pending_accept'): ?>
+            <p class="match-detail-status-note" role="status">
+                相手チームの承諾待ちです。承諾完了後に承認操作が可能になります。
+            </p>
+            <?php endif; ?>
+
+            <!-- 条件の一致状況 -->
+            <?php if (!empty($condition_status_rows)) : ?>
+            <section class="card match-detail-condition-status" aria-labelledby="match-detail-condition-status-title">
+                <div class="card-body">
+                    <header class="match-detail-condition-status__header">
+                        <h2 id="match-detail-condition-status-title" class="match-detail-condition-status__title"><?php echo esc_html('条件の一致状況'); ?></h2>
+                        <span class="match-detail-condition-status__info" aria-hidden="true"><?php echo aidunite_render_theme_icon('info', ['width' => '18', 'height' => '18']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+                    </header>
+                    <ul class="match-detail-condition-status__list">
+                        <?php foreach ($condition_status_rows as $cond_row) : ?>
+                        <li class="match-detail-condition-status__row match-detail-condition-status__row--<?php echo esc_attr($cond_row['status']); ?>">
+                            <div class="match-detail-condition-status__row-head">
+                                <span class="match-detail-condition-status__row-icon" aria-hidden="true"><?php echo aidunite_render_theme_icon($cond_row['icon'], ['width' => '20', 'height' => '20']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+                                <span class="match-detail-condition-status__row-label">
+                                    <?php
+                                    if ($cond_row['key'] === 'time') {
+                                        echo esc_html('時間');
+                                    } elseif ($cond_row['key'] === 'place') {
+                                        echo esc_html('会場');
+                                    } else {
+                                        echo esc_html('性別');
+                                    }
+                                    ?>
+                                </span>
+                                <span class="match-detail-condition-status__badge match-detail-condition-status__badge--<?php echo esc_attr($cond_row['status']); ?>">
+                                    <?php if ($cond_row['status'] === 'match') : ?>
+                                    <?php echo aidunite_render_theme_icon('check_circle', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                                    <?php elseif ($cond_row['status'] === 'partial') : ?>
+                                    <?php echo aidunite_render_theme_icon('brightness_alert', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                                    <?php else : ?>
+                                    <?php echo aidunite_render_theme_icon('close', ['width' => '16', 'height' => '16'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                                    <?php endif; ?>
+                                    <span><?php echo esc_html($cond_row['status_label']); ?></span>
+                                </span>
+                            </div>
+                            <p class="match-detail-condition-status__value"><?php echo esc_html($cond_row['value']); ?></p>
+                            <?php if (!empty($cond_row['subtext'])) : ?>
+                            <p class="match-detail-condition-status__subtext"><?php echo esc_html($cond_row['subtext']); ?></p>
+                            <?php endif; ?>
+                        </li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <button type="button" class="match-detail-condition-status__toggle btn btn-ghost" id="matchDetailCompareToggle" aria-expanded="false" aria-controls="matchDetailComparePanel">
+                        <?php echo esc_html('条件を詳しく比較する'); ?>
+                        <?php echo aidunite_render_theme_icon('arrow_downward', ['width' => '18', 'height' => '18'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    </button>
+                    <div class="match-detail-condition-status__compare" id="matchDetailComparePanel" hidden>
+                        <div class="match-detail-conditions-compare" role="group" aria-label="<?php echo esc_attr('予定の条件の比較'); ?>">
+                            <table class="match-detail-conditions-table" role="table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col" class="match-detail-conditions-table__label-col"><span class="visually-hidden">項目</span></th>
+                                        <th scope="col" class="match-detail-conditions-table__col match-detail-conditions-table__col--other"><?php echo esc_html('相手チームの条件'); ?></th>
+                                        <th scope="col" class="match-detail-conditions-table__col match-detail-conditions-table__col--mine"><?php echo esc_html('自分の試合の条件'); ?></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">
+                                            <span class="match-detail-conditions-table__row-label">
+                                                <span class="match-detail-conditions-table__row-icon" aria-hidden="true">
+                                                    <img src="<?php echo esc_url($match_detail_icon_base . 'schedule.svg'); ?>" alt="" width="18" height="18" decoding="async">
+                                                </span>
+                                                <span class="match-detail-conditions-table__row-text"><?php echo esc_html('時間'); ?></span>
+                                            </span>
+                                        </th>
+                                        <td class="match-detail-conditions-table__col match-detail-conditions-table__col--other"><?php echo esc_html($table_other_time); ?></td>
+                                        <td class="match-detail-conditions-table__col match-detail-conditions-table__col--mine"><?php echo esc_html($table_my_time); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">
+                                            <span class="match-detail-conditions-table__row-label">
+                                                <span class="match-detail-conditions-table__row-icon" aria-hidden="true">
+                                                    <img src="<?php echo esc_url($match_detail_icon_base . 'home.svg'); ?>" alt="" width="18" height="18" decoding="async">
+                                                </span>
+                                                <span class="match-detail-conditions-table__row-text"><?php echo esc_html('会場'); ?></span>
+                                            </span>
+                                        </th>
+                                        <td class="match-detail-conditions-table__col match-detail-conditions-table__col--other"><?php echo esc_html($compare_other_place); ?></td>
+                                        <td class="match-detail-conditions-table__col match-detail-conditions-table__col--mine"><?php echo esc_html($compare_my_place); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">
+                                            <span class="match-detail-conditions-table__row-label">
+                                                <span class="match-detail-conditions-table__row-icon" aria-hidden="true">
+                                                    <img src="<?php echo esc_url($match_detail_icon_base . 'group.svg'); ?>" alt="" width="18" height="18" decoding="async">
+                                                </span>
+                                                <span class="match-detail-conditions-table__row-text"><?php echo esc_html('性別'); ?></span>
+                                            </span>
+                                        </th>
+                                        <td class="match-detail-conditions-table__col match-detail-conditions-table__col--other"><?php echo esc_html($compare_other_gender); ?></td>
+                                        <td class="match-detail-conditions-table__col match-detail-conditions-table__col--mine"><?php echo esc_html($compare_my_gender); ?></td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                </header>
-                <div class="match-detail-section__boundary" aria-hidden="true"></div>
-                <div class="card match-detail-apply-card match-detail-apply-card--<?php echo esc_attr($match_detail_venue_hint_theme); ?>">
-                <div class="card-body">
-                    <div class="match-apply-summary">
-                        <ul class="match-detail-received-apply-items match-detail-apply-items">
-                            <li class="match-detail-received-apply-item">
-                                <span class="match-detail-received-apply-item__head">
-                                    <span class="match-detail-received-apply-item__icon" aria-hidden="true">
-                                        <img src="<?php echo esc_url($match_detail_icon_base . 'schedule.svg'); ?>" alt="" width="20" height="20" decoding="async">
-                                    </span>
-                                    <span class="match-detail-received-apply-item__label">日時</span>
-                                </span>
-                                <span class="match-detail-received-apply-item__value"><?php echo esc_html($compare_date_my . ' ' . $apply_time_display); ?></span>
-                            </li>
-                            <li class="match-detail-received-apply-item">
-                                <span class="match-detail-received-apply-item__head">
-                                    <span class="match-detail-received-apply-item__icon" aria-hidden="true">
-                                        <img src="<?php echo esc_url($match_detail_icon_base . 'home.svg'); ?>" alt="" width="20" height="20" decoding="async">
-                                    </span>
-                                    <span class="match-detail-received-apply-item__label">会場</span>
-                                </span>
-                                <span class="match-detail-received-apply-item__value" id="apply-summary-place"><?php echo esc_html($apply_place_display); ?></span>
-                            </li>
-                            <li class="match-detail-received-apply-item">
-                                <span class="match-detail-received-apply-item__head">
-                                    <span class="match-detail-received-apply-item__icon" aria-hidden="true">
-                                        <img src="<?php echo esc_url($match_detail_icon_base . 'group.svg'); ?>" alt="" width="20" height="20" decoding="async">
-                                    </span>
-                                    <span class="match-detail-received-apply-item__label">性別</span>
-                                </span>
-                                <span class="match-detail-received-apply-item__value">
-                                    <?php if ($show_gender_choice): ?>
-                                    <span id="apply-summary-gender"><?php echo esc_html($apply_gender_display); ?></span>
-                                    <?php else: ?>
-                                    <?php echo esc_html($apply_gender_display); ?>
-                                    <?php endif; ?>
-                                </span>
-                            </li>
-                        </ul>
-                    </div>
-                    <?php if ($application_status === 'proposal_pending_accept'): ?>
-                    <p class="match-detail-status-note">
-                        相手チームの承諾待ちです。承諾完了後に承認操作が可能になります。
-                    </p>
-                    <?php endif; ?>
                 </div>
-                </div>
-                <?php if ($applicant_request_message !== ''): ?>
-                <div class="match-detail-venue-hint match-detail-venue-hint--<?php echo esc_attr($match_detail_venue_hint_theme); ?>">
-                    <span class="match-detail-venue-hint__icon" aria-hidden="true">
-                        <?php echo aidunite_get_theme_icon_svg('info', ['width' => '20', 'height' => '20']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                    </span>
-                    <p class="match-detail-venue-hint__text"><?php echo esc_html($applicant_request_message); ?></p>
-                </div>
-                <?php endif; ?>
             </section>
             <?php endif; ?>
-            <!-- 予定の条件 -->
-            <section class="match-detail-section match-detail-section--conditions" aria-labelledby="match-detail-conditions-title">
-                <header class="match-detail-section__intro">
-                    <div class="match-detail-section-header match-detail-conditions-card__header">
-                        <div class="match-detail-section-header__row">
-                            <div class="match-detail-section-header__title-wrap">
-                                <span class="match-detail-section-header__icon" aria-hidden="true">
-                                    <img src="<?php echo esc_url($match_detail_icon_base . 'schedule.svg'); ?>" alt="" width="20" height="20" decoding="async">
-                                </span>
-                                <h2 id="match-detail-conditions-title" class="match-detail-section-header__title">予定の条件</h2>
-                            </div>
-                            <?php if (!empty($compare_date_my)) : ?>
-                            <span class="match-detail-conditions-card__date"><?php echo esc_html($compare_date_my); ?></span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </header>
-                <div class="match-detail-section__boundary" aria-hidden="true"></div>
-                <div class="card match-detail-conditions-card">
-                <div class="card-body">
-                    <div class="match-detail-conditions-compare" role="group" aria-label="<?php echo esc_attr('予定の条件の比較'); ?>">
-                        <table class="match-detail-conditions-table" role="table">
-                            <thead>
-                                <tr>
-                                    <th scope="col" class="match-detail-conditions-table__label-col"><span class="visually-hidden">項目</span></th>
-                                    <th scope="col" class="match-detail-conditions-table__col match-detail-conditions-table__col--other">相手チームの条件</th>
-                                    <th scope="col" class="match-detail-conditions-table__col match-detail-conditions-table__col--mine">自分の試合の条件</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <th scope="row">
-                                        <span class="match-detail-conditions-table__row-label">
-                                            <span class="match-detail-conditions-table__row-icon" aria-hidden="true">
-                                                <img src="<?php echo esc_url($match_detail_icon_base . 'schedule.svg'); ?>" alt="" width="18" height="18" decoding="async">
-                                            </span>
-                                            <span class="match-detail-conditions-table__row-text">時間</span>
-                                        </span>
-                                    </th>
-                                    <td class="match-detail-conditions-table__col match-detail-conditions-table__col--other"><?php echo esc_html($table_other_time); ?></td>
-                                    <td class="match-detail-conditions-table__col match-detail-conditions-table__col--mine"><?php echo esc_html($table_my_time); ?></td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">
-                                        <span class="match-detail-conditions-table__row-label">
-                                            <span class="match-detail-conditions-table__row-icon" aria-hidden="true">
-                                                <img src="<?php echo esc_url($match_detail_icon_base . 'home.svg'); ?>" alt="" width="18" height="18" decoding="async">
-                                            </span>
-                                            <span class="match-detail-conditions-table__row-text">会場</span>
-                                        </span>
-                                    </th>
-                                    <td class="match-detail-conditions-table__col match-detail-conditions-table__col--other"><?php echo esc_html($compare_other_place); ?></td>
-                                    <td class="match-detail-conditions-table__col match-detail-conditions-table__col--mine"><?php echo esc_html($compare_my_place); ?></td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">
-                                        <span class="match-detail-conditions-table__row-label">
-                                            <span class="match-detail-conditions-table__row-icon" aria-hidden="true">
-                                                <img src="<?php echo esc_url($match_detail_icon_base . 'group.svg'); ?>" alt="" width="18" height="18" decoding="async">
-                                            </span>
-                                            <span class="match-detail-conditions-table__row-text">性別</span>
-                                        </span>
-                                    </th>
-                                    <td class="match-detail-conditions-table__col match-detail-conditions-table__col--other"><?php echo esc_html($compare_other_gender); ?></td>
-                                    <td class="match-detail-conditions-table__col match-detail-conditions-table__col--mine"><?php echo esc_html($compare_my_gender); ?></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                </div>
-            </section>
 
             <?php if ($show_place_choice || $show_gender_choice): ?>
             <!-- ④ 未確定条件のみ選択UI（ピルのみ・CTA上のプルダウンは出さない） -->
@@ -1766,11 +1818,17 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
             <?php endif; ?>
 
             <?php if ($is_received_highlight && $status !== 'established'): ?>
-            <!-- 受信側：承認 / 拒否（カードなし） -->
+            <!-- 受信側：承認 / 拒否 -->
             <section class="match-actions match-detail-received-actions" aria-label="<?php echo esc_attr('申請への操作'); ?>">
                 <?php if ($application_status === 'received' && $is_received_request): ?>
-                <button type="button" class="apply-button approve-button btn btn-primary" id="approveButton" data-testid="match-approve-button" data-request-id="<?php echo $received_request_id; ?>">承認</button>
-                <button type="button" class="apply-button reject-button btn btn-danger" id="rejectButton" data-testid="match-reject-button" data-request-id="<?php echo $received_request_id; ?>">拒否</button>
+                <button type="button" class="apply-button approve-button btn btn-primary match-detail-action-btn match-detail-action-btn--approve" id="approveButton" data-testid="match-approve-button" data-request-id="<?php echo $received_request_id; ?>">
+                    <?php echo aidunite_render_theme_icon('check_circle', ['width' => '20', 'height' => '20'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    <span><?php echo esc_html('この条件で承認する'); ?></span>
+                </button>
+                <button type="button" class="apply-button reject-button btn btn-danger match-detail-action-btn match-detail-action-btn--reject" id="rejectButton" data-testid="match-reject-button" data-request-id="<?php echo $received_request_id; ?>">
+                    <?php echo aidunite_render_theme_icon('close', ['width' => '20', 'height' => '20'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    <span><?php echo esc_html('申請を拒否する'); ?></span>
+                </button>
                 <?php endif; ?>
             </section>
             <?php else: ?>
@@ -1820,17 +1878,16 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
             </section>
             <?php endif; ?>
 
-            </div>
             <?php
             $match_detail_venue_label = isset($compare_other_place) ? (string) $compare_other_place : '';
             $match_detail_common_context = [
                 'my_schedule_data'    => isset($my_schedule_data) && is_array($my_schedule_data) ? $my_schedule_data : [],
                 'other_schedule_data' => isset($other_schedule_data) && is_array($other_schedule_data) ? $other_schedule_data : [],
             ];
+            include get_stylesheet_directory() . '/template-parts/match-detail-accordions.php';
             ?>
-            <aside class="match-detail-sidebar" aria-label="<?php echo esc_attr('相手チーム情報'); ?>">
-                <?php include get_stylesheet_directory() . '/template-parts/match-detail-opponent-sidebar.php'; ?>
-            </aside>
+
+            </div>
             <div class="match-detail-flow-wrap">
                 <?php include get_stylesheet_directory() . '/template-parts/match-detail-flow.php'; ?>
             </div>
@@ -1963,1025 +2020,15 @@ if ($match_detail_shell_opened && function_exists('aidunite_web_app_page_shell_c
 }
 ?>
 
-<script>
-// ※ 旧仕様の折りたたみ（teamInfoContent/teamInfoToggle, adjustmentExplanation 等）はHTMLに存在しないため削除済み。
-
-document.addEventListener('DOMContentLoaded', function() {
-    // 確認: 時間選択UIは start-time-select-detail / end-time-select-detail の1系統のみ（旧IDはHTMLに存在しないため廃止済み）
-    const startTimeSelectDetail = document.getElementById('start-time-select-detail');
-    const endTimeSelectDetail = document.getElementById('end-time-select-detail');
-    const selectedTimeRangeDetail = document.getElementById('selected-time-range-detail');
-
-    // 時間選択UIの処理
-    if (startTimeSelectDetail && endTimeSelectDetail) {
-        const myStart = '<?php echo $my_schedule_data['start']; ?>';
-        const myEnd = '<?php echo $my_schedule_data['end']; ?>';
-        const otherStart = '<?php echo $other_schedule_data['start']; ?>';
-        const otherEnd = '<?php echo $other_schedule_data['end']; ?>';
-
-        // 時間を分に変換
-        function timeToMinutes(timeStr) {
-            if (!timeStr) return NaN;
-            const parts = String(timeStr).split(':').map(Number);
-            const hours = isFinite(parts[0]) ? parts[0] : NaN;
-            const minutes = isFinite(parts[1]) ? parts[1] : 0;
-            return hours * 60 + minutes;
-        }
-
-        function minutesToTime(minutes) {
-            const hours = Math.floor(minutes / 60);
-            const mins = minutes % 60;
-            return String(hours).padStart(2, '0') + ':' + String(mins).padStart(2, '0');
-        }
-
-        const myStartMin = timeToMinutes(myStart);
-        const myEndMin = timeToMinutes(myEnd);
-        const otherStartMin = timeToMinutes(otherStart);
-        const otherEndMin = timeToMinutes(otherEnd);
-
-        // 利用可能な時間範囲を計算（双方の重複範囲：積集合＝最大開始〜最小終了）
-        const overlapStart = Math.max(myStartMin, otherStartMin);
-        const overlapEnd = Math.min(myEndMin, otherEndMin);
-
-        // 30分単位で時間オプションを生成
-        function generateTimeOptions(startMin, endMin) {
-            const options = [];
-            if (isFinite(startMin) && isFinite(endMin) && startMin < endMin) {
-                for (let minutes = startMin; minutes <= endMin; minutes += 30) {
-                    const timeStr = minutesToTime(minutes);
-                    options.push(`<option value="${timeStr}">${timeStr}</option>`);
-                }
-            }
-            return options.join('');
-        }
-
-        // 開始・終了セレクトを生成（重複範囲内のみ選択可能）
-        const startOpts = generateTimeOptions(overlapStart, overlapEnd - 30);
-        const endOpts = generateTimeOptions(overlapStart + 30, overlapEnd);
-        if (startOpts && endOpts) {
-            startTimeSelectDetail.innerHTML = '<option value="">選択してください</option>' + startOpts;
-            endTimeSelectDetail.innerHTML = '<option value="">選択してください</option>' + endOpts;
-            // デフォルトは重複範囲の開始〜終了
-            const defStart = minutesToTime(overlapStart);
-            const defEnd = minutesToTime(overlapEnd);
-            if ([...startTimeSelectDetail.options].some(o => o.value === defStart)) startTimeSelectDetail.value = defStart;
-            if ([...endTimeSelectDetail.options].some(o => o.value === defEnd)) endTimeSelectDetail.value = defEnd;
-            if (selectedTimeRangeDetail) selectedTimeRangeDetail.textContent = `${defStart} ～ ${defEnd}`;
-        } else {
-            if (startTimeSelectDetail) startTimeSelectDetail.closest('div')?.classList.add('hidden');
-            if (endTimeSelectDetail) endTimeSelectDetail.closest('div')?.classList.add('hidden');
-            if (selectedTimeRangeDetail) selectedTimeRangeDetail.textContent = '選択可能時間なし（時間が重なっていません）';
-        }
-
-        // 時間選択の更新処理
-        function updateTimeRangeDetail() {
-            const startTime = startTimeSelectDetail.value;
-            const endTime = endTimeSelectDetail.value;
-
-            if (startTime && endTime) {
-                const startMin = timeToMinutes(startTime);
-                const endMin = timeToMinutes(endTime);
-
-                if (startMin < endMin) {
-                    if (selectedTimeRangeDetail) selectedTimeRangeDetail.textContent = `${startTime} ～ ${endTime}`;
-                } else {
-                    if (selectedTimeRangeDetail) selectedTimeRangeDetail.textContent = '終了時間は開始時間より後にしてください';
-                }
-            } else {
-                if (selectedTimeRangeDetail) selectedTimeRangeDetail.textContent = '時間を選択してください';
-            }
-        }
-
-        // 開始時間変更時の処理（重複範囲内に制限）
-        startTimeSelectDetail.addEventListener('change', function() {
-            const startTime = this.value;
-            const prevEnd = endTimeSelectDetail.value;
-            if (startTime) {
-                const startMin = timeToMinutes(startTime);
-                endTimeSelectDetail.innerHTML = '<option value="">選択してください</option>' +
-                    generateTimeOptions(startMin + 30, overlapEnd);
-                const prevEndMin = timeToMinutes(prevEnd);
-                const minAllowedEnd = startMin + 30;
-                if (isFinite(prevEndMin) && prevEndMin >= minAllowedEnd && prevEndMin <= overlapEnd) {
-                    if ([...endTimeSelectDetail.options].some(o => o.value === prevEnd)) endTimeSelectDetail.value = prevEnd;
-                } else {
-                    const adjustedEnd = minutesToTime(Math.min(Math.max(minAllowedEnd, overlapStart + 30), overlapEnd));
-                    if ([...endTimeSelectDetail.options].some(o => o.value === adjustedEnd)) endTimeSelectDetail.value = adjustedEnd;
-                }
-            }
-            updateTimeRangeDetail();
-        });
-
-        // 終了時間変更時の処理（重複範囲内に制限）
-        endTimeSelectDetail.addEventListener('change', function() {
-            const endTime = this.value;
-            const prevStart = startTimeSelectDetail.value;
-            if (endTime) {
-                const endMin = timeToMinutes(endTime);
-                startTimeSelectDetail.innerHTML = '<option value="">選択してください</option>' +
-                    generateTimeOptions(overlapStart, endMin - 30);
-                const prevStartMin = timeToMinutes(prevStart);
-                const maxAllowedStart = endMin - 30;
-                if (isFinite(prevStartMin) && prevStartMin >= overlapStart && prevStartMin <= maxAllowedStart) {
-                    if ([...startTimeSelectDetail.options].some(o => o.value === prevStart)) startTimeSelectDetail.value = prevStart;
-                } else {
-                    const adjustedStart = minutesToTime(Math.min(Math.max(overlapStart, maxAllowedStart), maxAllowedStart));
-                    if ([...startTimeSelectDetail.options].some(o => o.value === adjustedStart)) startTimeSelectDetail.value = adjustedStart;
-                }
-            }
-            updateTimeRangeDetail();
-        });
-    }
-
-    const applyButton = document.getElementById('applyButton');
-    const cancelButton = document.getElementById('cancelButton');
-    const fullLoader = document.getElementById('fullScreenLoader');
-    const loaderText = document.getElementById('loaderText');
-    const aiduniteWpRestNonce = '<?php echo esc_js(wp_create_nonce('wp_rest')); ?>';
-    const aiduniteMatchRequestUrl = '<?php echo esc_url(rest_url('aidunite/v1/match-request')); ?>';
-
-    // エラー表示関数（アラート廃止）
-    function showErrorAnimation(message) {
-        console.error('Error:', message);
-        const cleanMessage = String(message).replace(/^❌\s*/, '');
-        if (typeof showToastNotification !== 'undefined') {
-            showToastNotification(cleanMessage, 'error');
-        }
-        setTimeout(() => {
-            window.location.reload();
-        }, 1000);
-    }
-
-    function updateApplyButton() {
-        const needsPlaceAdjustment = <?php echo !empty($needs_place_adjustment) ? 'true' : 'false'; ?>;
-        const needsGenderAdjustment = <?php echo (!empty($needs_gender_adjustment) && isset($gender_options) && count($gender_options) > 1) ? 'true' : 'false'; ?>;
-
-        const placeSelected = !needsPlaceAdjustment || document.querySelector('[data-type="place"].selected') !== null;
-        const genderSelect = document.querySelector('[name="gender_choice"]');
-        const genderSelected = !needsGenderAdjustment || document.querySelector('[data-type="gender"].selected') !== null || (genderSelect && genderSelect.value);
-        const canApply = placeSelected && genderSelected;
-
-        if (applyButton) {
-            applyButton.disabled = !canApply;
-            applyButton.style.opacity = canApply ? '1' : '0.6';
-        }
-    }
-
-    const genderLabels = { male: '男子', female: '女子', both: '男子・女子可' };
-    const placeLabels = { home: 'ホーム', away: 'アウェイ', either: 'どちらでも可', both: 'どちらでも可' };
-    document.querySelectorAll('.match-pill').forEach(pill => {
-        pill.addEventListener('click', function() {
-            if (this.disabled) return;
-            const type = this.dataset.type;
-            const value = this.dataset.value;
-            document.querySelectorAll(`.match-pill[data-type="${type}"]`).forEach(p => p.classList.remove('selected'));
-            this.classList.add('selected');
-            if (type === 'gender') {
-                const summaryEl = document.getElementById('apply-summary-gender');
-                if (summaryEl && genderLabels[value]) summaryEl.textContent = genderLabels[value];
-                const summaryElOther = document.getElementById('apply-summary-gender-other');
-                if (summaryElOther && genderLabels[value]) summaryElOther.textContent = genderLabels[value];
-            }
-            if (type === 'place') {
-                const summaryPlace = document.getElementById('apply-summary-place');
-                if (summaryPlace && placeLabels[value]) summaryPlace.textContent = placeLabels[value];
-                const summaryPlaceOther = document.getElementById('apply-summary-place-other');
-                if (summaryPlaceOther && placeLabels[value]) summaryPlaceOther.textContent = placeLabels[value];
-            }
-            if (typeof updateApplyButton === 'function') updateApplyButton();
-        });
-    });
-
-    // 申請ボタンクリック → ローディングスピナー表示 → 申請送信
-    if (applyButton) {
-        applyButton.addEventListener('click', function() {
-            if (this.disabled) return;
-
-            const placeSel = document.querySelector('[data-type="place"].selected');
-            const genderSel = document.querySelector('[data-type="gender"].selected');
-            const genderChoiceSelect = document.querySelector('[name="gender_choice"]');
-            const genderValue = (genderChoiceSelect && genderChoiceSelect.value) ? genderChoiceSelect.value : (genderSel ? genderSel.dataset.value : '<?php echo esc_js($resolved_gender_value ?? 'both'); ?>');
-            let placeValue = placeSel ? placeSel.dataset.value : '';
-            if (!placeValue) {
-                placeValue = '<?php echo esc_js($resolved_place_value ?? "home"); ?>';
-            }
-            if (placeValue === 'both') {
-                placeValue = 'either';
-            }
-            const activeStartSelect = document.getElementById('start-time-select-detail');
-            const activeEndSelect = document.getElementById('end-time-select-detail');
-
-            // 時間選択の検証（時間調整が必要な場合のみ。ワイヤー：🟡では重なり時間使用のためselectなし）
-            if (activeStartSelect && activeEndSelect) {
-                const startTime = activeStartSelect.value;
-                const endTime = activeEndSelect.value;
-
-                if (!startTime || !endTime) {
-                    showErrorAnimation('開始時間と終了時間を選択してください。');
-                    return;
-                }
-
-                if (startTime >= endTime) {
-                    showErrorAnimation('終了時間は開始時間より後にしてください。');
-                    return;
-                }
-            }
-
-            // 時間データの取得（ワイヤー：🟡では重なり時間を表示のみ→ここで重なり時間を使用）
-            let selectedStartTime = '';
-            let selectedEndTime = '';
-
-            const timeDisplayOnly = document.querySelector('.match-detail-time-display-only');
-            if (timeDisplayOnly && timeDisplayOnly.dataset.overlapStart && timeDisplayOnly.dataset.overlapEnd) {
-                selectedStartTime = timeDisplayOnly.dataset.overlapStart;
-                selectedEndTime = timeDisplayOnly.dataset.overlapEnd;
-            } else if (activeStartSelect && activeEndSelect && activeStartSelect.value && activeEndSelect.value) {
-                selectedStartTime = activeStartSelect.value;
-                selectedEndTime = activeEndSelect.value;
-            } else {
-                const myScheduleStart = '<?php echo esc_js($my_schedule_data['start'] ?? ''); ?>';
-                const myScheduleEnd = '<?php echo esc_js($my_schedule_data['end'] ?? ''); ?>';
-                const otherScheduleStart = '<?php echo esc_js($other_schedule_data['start'] ?? ''); ?>';
-                const otherScheduleEnd = '<?php echo esc_js($other_schedule_data['end'] ?? ''); ?>';
-                if (myScheduleStart && myScheduleEnd && otherScheduleStart && otherScheduleEnd) {
-                    const overlapStart = myScheduleStart > otherScheduleStart ? myScheduleStart : otherScheduleStart;
-                    const overlapEnd = myScheduleEnd < otherScheduleEnd ? myScheduleEnd : otherScheduleEnd;
-                    if (overlapStart < overlapEnd) {
-                        selectedStartTime = overlapStart;
-                        selectedEndTime = overlapEnd;
-                    }
-                }
-                if (!selectedStartTime || !selectedEndTime) {
-                    selectedStartTime = myScheduleStart || otherScheduleStart || '';
-                    selectedEndTime = myScheduleEnd || otherScheduleEnd || '';
-                }
-
-            }
-
-            // 時間データの検証
-            if (!selectedStartTime || !selectedEndTime) {
-                showErrorAnimation('時間データが取得できませんでした。ページを再読み込みしてください。');
-                this.disabled = false;
-                this.innerHTML = this.originalHTML || '申請する';
-                if (fullLoader) fullLoader.style.display = 'none';
-                return;
-            }
-
-            const matchRequestBody = {
-                my_schedule_id: parseInt('<?php echo esc_js($my_schedule_id); ?>', 10) || 0,
-                other_schedule_id: parseInt('<?php echo esc_js($other_schedule_id); ?>', 10) || 0,
-                selected_start_time: selectedStartTime,
-                selected_end_time: selectedEndTime,
-                selected_place: placeValue,
-                selected_gender: genderValue
-            };
-
-            // ボタンを無効化してローディングスピナーを表示（統一されたローディングスピナーを使用）
-            this.disabled = true;
-            const originalHTML = this.innerHTML;
-            this.innerHTML = '<span class="button-loading-spinner"></span><span>申請中...</span>';
-            this.originalHTML = originalHTML;
-
-            // フルスクリーンローダーを表示（スケジュール登録と同じ仕様）
-            if (fullLoader && loaderText) {
-                loaderText.textContent = '申請中...';
-                fullLoader.style.display = 'flex';
-            }
-
-            fetch(aiduniteMatchRequestUrl, {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-WP-Nonce': aiduniteWpRestNonce
-                },
-                body: JSON.stringify(matchRequestBody)
-            })
-              .then(async r=>{
-                  let data = null; let text = '';
-                  try { text = await r.text(); data = JSON.parse(text); } catch(e) { /* not json */ }
-
-                  if (r.ok && data && data.success) {
-                      // 下書き削除/自動保存停止は、実装が存在する場合のみ実行
-                      if (typeof deleteDraft === 'function') {
-                          deleteDraft();
-                      }
-                      if (typeof stopAutoSave === 'function') {
-                          stopAutoSave();
-                      }
-
-                      // 1秒後にローディングスピナーを非表示（スケジュール登録と同じ仕様）
-                      setTimeout(() => {
-                          if (fullLoader) {
-                              fullLoader.style.display = 'none';
-                          }
-
-                          // 完了メッセージを表示
-                          const completionMessage = document.getElementById('completion-message');
-                          if (completionMessage) {
-                              completionMessage.style.display = 'flex';
-                          }
-
-                          // 2.5秒後にリダイレクト（データベース反映を待つため1.5秒待機）
-                          setTimeout(() => {
-                              const url = '<?php echo home_url('/match-board-own/'); ?>#progress-view';
-                              const timestamp = Date.now();
-                              window.location.replace(`${url}?refresh=${timestamp}`);
-                          }, 1500);
-                      }, 1000);
-                  } else {
-                      console.error('match-request REST failed:', r.status, text || data);
-                      // エラーメッセージを表示
-                      const errorMessage = (data && data.data && data.data.message) || (data && data.message) || '申請に失敗しました';
-                      showErrorAnimation(errorMessage);
-                      // ローディングスピナーを非表示
-                      if (fullLoader) {
-                          fullLoader.style.display = 'none';
-                      }
-                      // ボタンを再有効化
-                      this.disabled = false;
-                      this.innerHTML = this.originalHTML || '申請する';
-                      this.style.background = '';
-                  }
-              })
-              .catch(()=>{
-                  // ローディングスピナーを非表示
-                  if (fullLoader) {
-                      fullLoader.style.display = 'none';
-                  }
-
-                  if (typeof showToastNotification !== 'undefined') {
-                      showToastNotification('申請に失敗しました。時間をおいてお試しください', 'error');
-                  } else {
-                      alert('申請に失敗しました。時間をおいてお試しください');
-                  }
-                  // ボタンを再有効化
-                  this.disabled = false;
-                  this.innerHTML = this.originalHTML || '申請する';
-                  this.style.background = '';
-              });
-        });
-    }
-
-    // 相手のみモード：申請するボタン
-    const applyButtonOtherOnly = document.getElementById('applyButtonOtherOnly');
-    if (applyButtonOtherOnly) {
-        applyButtonOtherOnly.addEventListener('click', function() {
-            if (this.disabled) return;
-            const form = document.getElementById('applyFormOtherOnly');
-            const schedPill = form ? form.querySelector('.match-pill[data-type="my_schedule"].selected') : null;
-            const scheduleHidden = form ? form.querySelector('input[name="my_schedule_id"]') : null;
-            const myScheduleId = schedPill ? String(schedPill.dataset.value || '') : (scheduleHidden ? scheduleHidden.value : '');
-            const otherScheduleId = this.dataset.otherScheduleId || '';
-            const otherTeamId = this.dataset.otherTeamId || '';
-            if (myScheduleId === '' || !otherScheduleId || !otherTeamId) {
-                if (typeof showToastNotification !== 'undefined') showToastNotification('申請に必要な情報がありません。', 'error');
-                else alert('申請に必要な情報がありません。');
-                return;
-            }
-            this.disabled = true;
-            const originalHTML = this.innerHTML;
-            this.innerHTML = '<span class="button-loading-spinner"></span>申請中...';
-            this.originalHTML = originalHTML;
-            const fullLoader = document.getElementById('fullScreenLoader');
-            const loaderText = document.getElementById('loaderText');
-            if (fullLoader && loaderText) { loaderText.textContent = '申請中...'; fullLoader.style.display = 'flex'; }
-
-            const placePill = form ? form.querySelector('.match-pill[data-type="place"].selected') : null;
-            const placeHidden = form ? form.querySelector('input[name="selected_place"]') : null;
-            var selectedPlace = placePill ? placePill.dataset.value : (placeHidden ? placeHidden.value : '<?php echo esc_js($other_schedule_data["place"] ?? "either"); ?>');
-            var myPlace = 'either';
-            if (schedPill) {
-                myPlace = schedPill.getAttribute('data-place') || schedPill.dataset.place || 'either';
-            } else if (scheduleHidden) {
-                myPlace = scheduleHidden.getAttribute('data-my-place') || 'either';
-            }
-            // both/either を正規化し、会場確定を「自分優先（自分未定なら相手）」で統一
-            selectedPlace = (selectedPlace === 'both') ? 'either' : selectedPlace;
-            myPlace = (myPlace === 'both') ? 'either' : myPlace;
-            if (myPlace === 'home' || myPlace === 'away') {
-                selectedPlace = myPlace;
-            } else if (!selectedPlace || selectedPlace === 'either') {
-                selectedPlace = 'home';
-            }
-            if (!selectedPlace || selectedPlace === 'both') {
-                selectedPlace = 'home';
-            }
-            const genderPill = form ? form.querySelector('.match-pill[data-type="gender"].selected') : null;
-            const genderHidden = form ? form.querySelector('input[name="selected_gender"]') : null;
-            var selectedGender = genderPill ? genderPill.dataset.value : (genderHidden ? genderHidden.value : '<?php echo esc_js($other_schedule_data["gender"] ?? "both"); ?>');
-            const matchRequestBodyOther = {
-                my_schedule_id: parseInt(myScheduleId, 10) || 0,
-                other_schedule_id: parseInt(otherScheduleId, 10) || 0,
-                other_team_id: parseInt(otherTeamId, 10) || 0,
-                selected_start_time: '<?php echo esc_js($other_schedule_data["start"] ?? ""); ?>',
-                selected_end_time: '<?php echo esc_js($other_schedule_data["end"] ?? ""); ?>',
-                selected_place: selectedPlace,
-                selected_gender: selectedGender
-            };
-
-            fetch(aiduniteMatchRequestUrl, {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-WP-Nonce': aiduniteWpRestNonce
-                },
-                body: JSON.stringify(matchRequestBodyOther)
-            })
-                .then(function(r) { return r.text().then(function(t) { try { return { ok: r.ok, data: JSON.parse(t) }; } catch(e) { return { ok: r.ok, data: null, raw: t }; } }); })
-                .then(function(res) {
-                    if (res.ok && res.data && res.data.success) {
-                        // 比較モードと同じ：1秒後にローダー非表示 → 完了メッセージ表示 → 1.5秒後にリダイレクト
-                        setTimeout(function() {
-                            if (fullLoader) fullLoader.style.display = 'none';
-                            var completionMessage = document.getElementById('completion-message');
-                            if (completionMessage) completionMessage.style.display = 'flex';
-                            setTimeout(function() {
-                                var url = '<?php echo esc_url(home_url('/match-board-own/')); ?>#progress-view';
-                                window.location.replace(url + '?refresh=' + Date.now());
-                            }, 1500);
-                        }, 1000);
-                    } else {
-                        if (fullLoader) fullLoader.style.display = 'none';
-                        var msg = (res.data && res.data.data && res.data.data.message) || (res.data && res.data.message) || '申請に失敗しました';
-                        if (typeof showToastNotification !== 'undefined') showToastNotification(msg, 'error');
-                        else alert(msg);
-                        applyButtonOtherOnly.disabled = false;
-                        applyButtonOtherOnly.innerHTML = applyButtonOtherOnly.originalHTML || originalHTML;
-                    }
-                })
-                .catch(function() {
-                    if (fullLoader) fullLoader.style.display = 'none';
-                    if (typeof showToastNotification !== 'undefined') showToastNotification('申請に失敗しました。時間をおいてお試しください', 'error');
-                    else alert('申請に失敗しました。時間をおいてお試しください');
-                    applyButtonOtherOnly.disabled = false;
-                    applyButtonOtherOnly.innerHTML = applyButtonOtherOnly.originalHTML || originalHTML;
-                });
-        });
-    }
-
-    // キャンセルボタンの処理
-    if (cancelButton) {
-        cancelButton.addEventListener('click', function() {
-            if (this.disabled) return;
-
-            // ボタンを無効化してローディング表示
-            this.disabled = true;
-            const originalHTML = this.innerHTML;
-            this.innerHTML = '<span class="button-loading-spinner"></span>キャンセル中...';
-
-            // フルスクリーンローダーを表示
-            if (fullLoader && loaderText) {
-                loaderText.textContent = 'キャンセル中';
-                fullLoader.style.display = 'flex';
-            }
-
-            // わくわく感を演出するテキスト変更
-            const loadingTexts = ['キャンセル中...', '処理中...', '送信中...', '完了間近...'];
-            let textIndex = 0;
-            const textInterval = setInterval(() => {
-                textIndex = (textIndex + 1) % loadingTexts.length;
-                this.innerHTML = '<span class="button-loading-spinner"></span>' + loadingTexts[textIndex];
-                if (loaderText) {
-                    loaderText.textContent = loadingTexts[textIndex];
-                }
-            }, 800);
-
-            // テキスト変更を停止するためのタイマーIDと元のHTMLを保存
-            this.textInterval = textInterval;
-            this.originalHTML = originalHTML;
-
-            // ステータス更新APIに統一（旧キャンセル専用APIは使わない）
-            const requestId = this.getAttribute('data-request-id');
-            if (!requestId) {
-                if (this.textInterval) {
-                    clearInterval(this.textInterval);
-                }
-                if (fullLoader) fullLoader.style.display = 'none';
-                showErrorAnimation('キャンセル対象の申請IDを取得できませんでした。ページを再読み込みしてください。');
-                this.disabled = false;
-                this.innerHTML = this.originalHTML || 'キャンセル';
-                this.style.background = '';
-                return;
-            }
-            const payload = new FormData();
-            payload.append('action','au_update_match_request_status');
-            payload.append('security','<?php echo wp_create_nonce('au_match_nonce'); ?>');
-            payload.append('request_id', String(requestId));
-            payload.append('status', 'canceled');
-
-            fetch('<?php echo esc_url( admin_url('admin-ajax.php') ); ?>', { method:'POST', body: payload })
-              .then(async r=>{
-                  let data = null; let text = '';
-                  try { text = await r.text(); data = JSON.parse(text); } catch(e) { /* not json */ }
-
-                  if (r.ok && data && data.success) {
-                      // テキスト変更を停止
-                      if (this.textInterval) {
-                          clearInterval(this.textInterval);
-                      }
-
-                      // 成功時：わくわく感を演出するため少し待ってから完了メッセージを表示
-                      setTimeout(() => {
-                          this.innerHTML = (typeof AidUniteThemeIcons !== 'undefined' ? AidUniteThemeIcons.html('check_circle', 18) + ' ' : '') + 'キャンセル完了しました！';
-                          this.style.background = 'var(--success-color)'; if (loaderText) loaderText.textContent = '完了！';
-
-                          setTimeout(() => {
-                              if (fullLoader) fullLoader.style.display = 'none'; window.location.reload();
-                          }, 2000);
-                      }, 2000);
-                  } else {
-                      // テキスト変更を停止
-                      if (this.textInterval) {
-                          clearInterval(this.textInterval);
-                      }
-
-                      console.error('Cancel failed:', r.status, text || data);
-                      showErrorAnimation('キャンセルに失敗しました。（' + ((data&&data.data&&data.data.message) || (data&&data.message) || r.status) + '）');
-                      // ボタンを再有効化
-                      this.disabled = false;
-                      this.innerHTML = this.originalHTML || 'キャンセル';
-                      this.style.background = '';
-                  }
-              })
-              .catch(()=>{
-                  // テキスト変更を停止
-                  if (this.textInterval) {
-                      clearInterval(this.textInterval);
-                  }
-
-                  showErrorAnimation('キャンセルに失敗しました。時間をおいてお試しください');
-                  // ボタンを再有効化
-                  this.disabled = false;
-                  this.innerHTML = this.originalHTML || 'キャンセル';
-                  this.style.background = '';
-              });
-        });
-    }
-
-
-
-    // 承認ボタンの処理
-    const approveButton = document.getElementById('approveButton');
-    if (approveButton) {
-        approveButton.addEventListener('click', function() {
-            if (this.disabled) return;
-            const requestId = (this.getAttribute('data-request-id') || '').trim();
-            if (!requestId) {
-                showErrorAnimation('承認対象の申請IDを取得できませんでした。ページを再読み込みしてください。');
-                return;
-            }
-
-            // ボタンを無効化してローディング表示
-            this.disabled = true;
-            this.dataset.originalHtml = this.innerHTML;
-            this.innerHTML = '<span style="display:inline-block; width:18px; height:18px; border:3px solid rgba(255,255,255,0.3); border-top:3px solid #fff; border-radius:50%; animation:spin 0.8s linear infinite; margin-right:10px;"></span>承認中...';
-
-            // フルスクリーンローダーを表示
-            if (fullLoader && loaderText) {
-                loaderText.textContent = '承認中';
-                fullLoader.style.display = 'flex';
-            }
-
-            // テキスト変更
-            const loadingTexts = ['承認中...', '処理中...', '送信中...', '完了間近...'];
-            let textIndex = 0;
-            const textInterval = setInterval(() => {
-                textIndex = (textIndex + 1) % loadingTexts.length;
-                this.innerHTML = '<span style="display:inline-block; width:18px; height:18px; border:3px solid rgba(255,255,255,0.3); border-top:3px solid #fff; border-radius:50%; animation:spin 0.8s linear infinite; margin-right:10px;"></span>' + loadingTexts[textIndex];
-                if (loaderText) {
-                    loaderText.textContent = loadingTexts[textIndex];
-                }
-            }, 800);
-
-            // テキスト変更を停止するためのタイマーIDを保存
-            this.textInterval = textInterval;
-
-                updateMatchRequestStatus(requestId, 'accepted', this);
-        });
-    }
-
-    // 拒否ボタンの処理
-    const rejectButton = document.getElementById('rejectButton');
-    if (rejectButton) {
-        rejectButton.addEventListener('click', function() {
-            if (this.disabled) return;
-            const requestId = (this.getAttribute('data-request-id') || '').trim();
-            if (!requestId) {
-                showErrorAnimation('拒否対象の申請IDを取得できませんでした。ページを再読み込みしてください。');
-                return;
-            }
-
-            // ボタンを無効化してローディング表示
-            this.disabled = true;
-            this.dataset.originalHtml = this.innerHTML;
-            this.innerHTML = '<span style="display:inline-block; width:18px; height:18px; border:3px solid rgba(255,255,255,0.3); border-top:3px solid #fff; border-radius:50%; animation:spin 0.8s linear infinite; margin-right:10px;"></span>拒否中...';
-
-            // フルスクリーンローダーを表示
-            if (fullLoader && loaderText) {
-                loaderText.textContent = '拒否中';
-                fullLoader.style.display = 'flex';
-            }
-
-            // テキスト変更
-            const loadingTexts = ['拒否中...', '処理中...', '送信中...', '完了間近...'];
-            let textIndex = 0;
-            const textInterval = setInterval(() => {
-                textIndex = (textIndex + 1) % loadingTexts.length;
-                this.innerHTML = '<span style="display:inline-block; width:18px; height:18px; border:3px solid rgba(255,255,255,0.3); border-top:3px solid #fff; border-radius:50%; animation:spin 0.8s linear infinite; margin-right:10px;"></span>' + loadingTexts[textIndex];
-                if (loaderText) {
-                    loaderText.textContent = loadingTexts[textIndex];
-                }
-            }, 800);
-
-            // テキスト変更を停止するためのタイマーIDを保存
-            this.textInterval = textInterval;
-
-                updateMatchRequestStatus(requestId, 'rejected', this);
-        });
-    }
-
-    // 再申請ボタンの処理
-    const reapplyButton = document.getElementById('reapplyButton');
-    if (reapplyButton) {
-        reapplyButton.addEventListener('click', function() {
-            if (this.disabled) return;
-
-            // ボタンを無効化してローディング表示（統一されたクラスを使用）
-            this.disabled = true;
-            const originalHTML = this.innerHTML;
-            this.innerHTML = '<span class="button-loading-spinner"></span><span>再申請中...</span>';
-            this.originalHTML = originalHTML;
-
-            // フルスクリーンローダーを表示（スケジュール登録と同じ仕様）
-            if (fullLoader && loaderText) {
-                loaderText.textContent = '再申請中...';
-                fullLoader.style.display = 'flex';
-            }
-
-            // 再申請: 重なり時間・会場・性別をフォーム／既定値から取得
-            const timeDisplayOnly = document.querySelector('.match-detail-time-display-only');
-            const activeStartSelect = document.getElementById('start-time-select-detail');
-            const activeEndSelect = document.getElementById('end-time-select-detail');
-            const placeSel = document.querySelector('[data-type="place"].selected');
-            const genderSel = document.querySelector('[data-type="gender"].selected');
-            const genderChoiceSelect = document.querySelector('[name="gender_choice"]');
-            const reapplyBtnEl = document.getElementById('reapplyButton');
-            const defaultPlaceFromBtn = (reapplyBtnEl && reapplyBtnEl.dataset.defaultPlace) ? reapplyBtnEl.dataset.defaultPlace : '';
-            const defaultGenderFromBtn = (reapplyBtnEl && reapplyBtnEl.dataset.defaultGender) ? reapplyBtnEl.dataset.defaultGender : '';
-            const reapplyGenderValue = (genderChoiceSelect && genderChoiceSelect.value) ? genderChoiceSelect.value : (genderSel ? genderSel.dataset.value : (defaultGenderFromBtn || '<?php echo esc_js($resolved_gender_value ?? 'both'); ?>'));
-
-            let selectedStartTime = '';
-            let selectedEndTime = '';
-            if (timeDisplayOnly && timeDisplayOnly.dataset.overlapStart && timeDisplayOnly.dataset.overlapEnd) {
-                selectedStartTime = timeDisplayOnly.dataset.overlapStart;
-                selectedEndTime = timeDisplayOnly.dataset.overlapEnd;
-            } else if (activeStartSelect && activeEndSelect) {
-                selectedStartTime = activeStartSelect.value;
-                selectedEndTime = activeEndSelect.value;
-            }
-            let placeValue = placeSel ? placeSel.dataset.value : '';
-            if (!placeValue) {
-                placeValue = defaultPlaceFromBtn || '<?php echo esc_js($resolved_place_value ?? 'home'); ?>';
-            }
-
-            if (activeStartSelect && activeEndSelect) {
-                const startTime = activeStartSelect.value;
-                const endTime = activeEndSelect.value;
-                if (startTime && endTime) {
-                    if (startTime >= endTime) {
-                        showErrorAnimation('終了時間は開始時間より後にしてください。');
-                        this.disabled = false;
-                        this.innerHTML = this.originalHTML || '再申請する';
-                        this.style.background = '';
-                        return;
-                    }
-                }
-            }
-            // 申請ボタンと同じフォールバック（再申請でも重なり時間または既存時間を採用）
-            if (!selectedStartTime || !selectedEndTime) {
-                const myScheduleStart = '<?php echo esc_js($my_schedule_data['start'] ?? ''); ?>';
-                const myScheduleEnd = '<?php echo esc_js($my_schedule_data['end'] ?? ''); ?>';
-                const otherScheduleStart = '<?php echo esc_js($other_schedule_data['start'] ?? ''); ?>';
-                const otherScheduleEnd = '<?php echo esc_js($other_schedule_data['end'] ?? ''); ?>';
-                if (myScheduleStart && myScheduleEnd && otherScheduleStart && otherScheduleEnd) {
-                    const overlapStart = myScheduleStart > otherScheduleStart ? myScheduleStart : otherScheduleStart;
-                    const overlapEnd = myScheduleEnd < otherScheduleEnd ? myScheduleEnd : otherScheduleEnd;
-                    if (overlapStart < overlapEnd) {
-                        selectedStartTime = overlapStart;
-                        selectedEndTime = overlapEnd;
-                    }
-                }
-                if (!selectedStartTime || !selectedEndTime) {
-                    selectedStartTime = myScheduleStart || otherScheduleStart || '';
-                    selectedEndTime = myScheduleEnd || otherScheduleEnd || '';
-                }
-            }
-            if (!selectedStartTime || !selectedEndTime) {
-                showErrorAnimation('時間データが取得できませんでした。');
-                this.disabled = false;
-                this.innerHTML = this.originalHTML || '再申請する';
-                this.style.background = '';
-                return;
-            }
-
-            const matchRequestBodyReapply = {
-                my_schedule_id: parseInt('<?php echo esc_js($my_schedule_id); ?>', 10) || 0,
-                other_schedule_id: parseInt('<?php echo esc_js($other_schedule_id); ?>', 10) || 0,
-                selected_start_time: selectedStartTime,
-                selected_end_time: selectedEndTime,
-                selected_place: placeValue,
-                selected_gender: reapplyGenderValue
-            };
-
-            fetch(aiduniteMatchRequestUrl, {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-WP-Nonce': aiduniteWpRestNonce
-                },
-                body: JSON.stringify(matchRequestBodyReapply)
-            })
-            .then(async response => {
-                let data = null;
-                let text = '';
-                try {
-                    text = await response.text();
-                    data = JSON.parse(text);
-                } catch(e) {
-                    console.error('JSON parse error:', e);
-                }
-
-                if (response.ok && data && data.success) {
-                    // 1秒後にローディングスピナーを非表示（スケジュール登録と同じ仕様）
-                    setTimeout(() => {
-                        if (fullLoader) {
-                            fullLoader.style.display = 'none';
-                        }
-
-                        // 完了メッセージを表示
-                        const completionMessage = document.getElementById('completion-message');
-                        if (completionMessage) {
-                            completionMessage.style.display = 'flex';
-                        }
-
-                        // 2.5秒後にリダイレクト（データベース反映を待つため1.5秒待機）
-                        setTimeout(() => {
-                            const url = '<?php echo home_url('/match-board-own/'); ?>#progress-view';
-                            const timestamp = Date.now();
-                            window.location.replace(`${url}?refresh=${timestamp}`);
-                        }, 1500);
-                    }, 1000);
-                } else {
-                    console.error('Reapply failed:', response.status, text || data);
-                    // エラーメッセージを表示
-                    const errorMessage = (data && data.data && data.data.message) || (data && data.message) || '再申請に失敗しました';
-                    showErrorAnimation(errorMessage);
-                    // ローディングスピナーを非表示
-                    if (fullLoader) {
-                        fullLoader.style.display = 'none';
-                    }
-                    // ボタンを再有効化
-                    this.disabled = false;
-                    this.innerHTML = this.originalHTML || '再申請する';
-                    this.style.background = '';
-                }
-            })
-            .catch(error => {
-                console.error('Reapply error:', error);
-                // ローディングスピナーを非表示
-                if (fullLoader) {
-                    fullLoader.style.display = 'none';
-                }
-
-                showErrorAnimation('再申請に失敗しました。時間をおいてお試しください');
-                // ボタンを再有効化
-                this.disabled = false;
-                this.innerHTML = this.originalHTML || '再申請する';
-                this.style.background = '';
-            });
-        });
-    }
-
-    function callMatchAjaxAction(actionName, requestId, actionButton, loadingText) {
-        if (!requestId) {
-            showErrorAnimation('申請IDを取得できませんでした。ページを再読み込みしてください。');
-            return;
-        }
-        actionButton.disabled = true;
-        actionButton.dataset.originalHtml = actionButton.innerHTML;
-        actionButton.innerHTML = '<span class="button-loading-spinner"></span><span>' + loadingText + '</span>';
-        if (fullLoader && loaderText) {
-            loaderText.textContent = loadingText;
-            fullLoader.style.display = 'flex';
-        }
-        const payload = new FormData();
-        payload.append('action', actionName);
-        payload.append('security', '<?php echo wp_create_nonce('au_match_nonce'); ?>');
-        payload.append('request_id', String(requestId));
-        fetch('<?php echo esc_url(admin_url('admin-ajax.php')); ?>', {
-            method: 'POST',
-            body: payload
-        })
-        .then(async (response) => {
-            let json = null;
-            try {
-                json = await response.json();
-            } catch (e) {}
-            if (json && json.success) {
-                setTimeout(function() { location.reload(); }, 500);
-                return;
-            }
-            const err = (json && json.data && (json.data.message || json.data)) || (json && json.message) || '処理に失敗しました';
-            showErrorAnimation(String(err));
-            if (fullLoader) fullLoader.style.display = 'none';
-            actionButton.disabled = false;
-            actionButton.innerHTML = actionButton.dataset.originalHtml || '実行';
-        })
-        .catch(() => {
-            showErrorAnimation('処理に失敗しました');
-            if (fullLoader) fullLoader.style.display = 'none';
-            actionButton.disabled = false;
-            actionButton.innerHTML = actionButton.dataset.originalHtml || '実行';
-        });
-    }
-
-    const proposalButton = document.getElementById('proposalButton');
-    if (proposalButton) {
-        proposalButton.addEventListener('click', function() {
-            const requestId = (this.getAttribute('data-request-id') || '').trim();
-            callMatchAjaxAction('au_propose_reconfirm_conditions', requestId, this, '提案中...');
-        });
-    }
-
-    const acceptProposalButton = document.getElementById('acceptProposalButton');
-    if (acceptProposalButton) {
-        acceptProposalButton.addEventListener('click', function() {
-            const requestId = (this.getAttribute('data-request-id') || '').trim();
-            callMatchAjaxAction('au_accept_reconfirm_proposal', requestId, this, '承諾中...');
-        });
-    }
-
-    function showChatRedirectModal() {
-        return new Promise(function(resolve) {
-            const modal = document.getElementById('chat-redirect-modal');
-            const goBtn = document.getElementById('chat-redirect-go-btn');
-            const stayBtn = document.getElementById('chat-redirect-stay-btn');
-
-            if (!modal || !goBtn || !stayBtn) {
-                resolve(false);
-                return;
-            }
-
-            const close = function(goToChat) {
-                modal.style.display = 'none';
-                modal.setAttribute('aria-hidden', 'true');
-                goBtn.removeEventListener('click', onGo);
-                stayBtn.removeEventListener('click', onStay);
-                modal.removeEventListener('click', onBackdrop);
-                resolve(goToChat);
-            };
-            const onGo = function() { close(true); };
-            const onStay = function() { close(false); };
-            const onBackdrop = function(e) {
-                if (e.target === modal) {
-                    close(false);
-                }
-            };
-
-            goBtn.addEventListener('click', onGo);
-            stayBtn.addEventListener('click', onStay);
-            modal.addEventListener('click', onBackdrop);
-            modal.style.display = 'flex';
-            modal.setAttribute('aria-hidden', 'false');
-        });
-    }
-
-    function updateMatchRequestStatus(requestId, status, actionButton = null) {
-        const requestKey = String(requestId) + ':' + String(status);
-        window.__aiduniteMatchStatusInFlight = window.__aiduniteMatchStatusInFlight || {};
-        if (window.__aiduniteMatchStatusInFlight[requestKey]) {
-            return;
-        }
-        window.__aiduniteMatchStatusInFlight[requestKey] = true;
-
-        const restoreActionButton = () => {
-            if (!actionButton) return;
-            if (actionButton.textInterval) {
-                clearInterval(actionButton.textInterval);
-                actionButton.textInterval = null;
-            }
-            actionButton.disabled = false;
-            if (actionButton.dataset && actionButton.dataset.originalHtml) {
-                actionButton.innerHTML = actionButton.dataset.originalHtml;
-            }
-        };
-
-        // 実際の処理実行
-        const payload = new FormData();
-        payload.append('action', 'au_update_match_request_status');
-        payload.append('security', '<?php echo wp_create_nonce('au_match_nonce'); ?>');
-        payload.append('request_id', requestId);
-        payload.append('status', status);
-
-        fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
-            method: 'POST',
-            body: payload
-        })
-        .then(r => r.json())
-        .then(async json => {
-            if (json && json.success) {
-                const data = json.data || {};
-                const isAccepted = status === 'accepted';
-
-                if (isAccepted && data.show_onboarding_bot_chat_modal) {
-                    if (typeof showToastNotification !== 'undefined') {
-                        showToastNotification('試合が成立しました。', 'success');
-                    }
-                    if (typeof window.aiduniteShowOnboardingBotChatModal === 'function') {
-                        window.aiduniteShowOnboardingBotChatModal(data.chat_url || '');
-                        return;
-                    }
-                }
-
-                const chatRedirectUrl = (typeof data.redirect_url === 'string') ? data.redirect_url : '';
-
-                if (isAccepted && chatRedirectUrl) {
-                    if (typeof showToastNotification !== 'undefined' && !window.__aiduniteApprovalToastShown) {
-                        window.__aiduniteApprovalToastShown = true;
-                        showToastNotification('試合成立おめでとうございます。専用チャットへ移動できます。', 'success');
-                    }
-                    const goToChat = await showChatRedirectModal();
-                    if (goToChat) {
-                        window.location.href = chatRedirectUrl;
-                        return;
-                    }
-                }
-
-                setTimeout(function() { location.reload(); }, 800);
-            } else {
-                window.__aiduniteMatchStatusInFlight[requestKey] = false;
-                if (fullLoader) fullLoader.style.display = 'none';
-                restoreActionButton();
-                const err = (json && json.data && (json.data.message || json.data)) || (json && json.message) || '更新に失敗しました';
-                showErrorAnimation(String(err));
-            }
-        })
-        .catch(() => {
-            window.__aiduniteMatchStatusInFlight[requestKey] = false;
-            if (fullLoader) fullLoader.style.display = 'none';
-            restoreActionButton();
-            showErrorAnimation('更新に失敗しました');
-        });
-    }
-
-    updateApplyButton();
-
-    // チェックリストの保存機能
-    const checklistItems = document.querySelectorAll('.checklist-item');
-    checklistItems.forEach(item => {
-        item.addEventListener('change', function() {
-            const itemId = this.getAttribute('data-item-id');
-            const checklistKey = this.getAttribute('data-checklist-key');
-            const isChecked = this.checked;
-
-            // LocalStorageに保存
-            let checklistData = JSON.parse(localStorage.getItem(checklistKey) || '{}');
-            checklistData[itemId] = isChecked;
-            localStorage.setItem(checklistKey, JSON.stringify(checklistData));
-
-            // サーバーにも保存（オプション）
-            fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    action: 'aidunite_save_checklist',
-                    checklist_key: checklistKey,
-                    item_id: itemId,
-                    checked: isChecked ? '1' : '0',
-                    security: '<?php echo wp_create_nonce('aidunite_checklist_nonce'); ?>'
-                })
-            }).catch(error => {
-                console.error('チェックリストの保存に失敗しました:', error);
-            });
-        });
-    });
-});
-</script>
-
-
 <?php
 if ($my_team_id > 0 && function_exists('aidunite_enqueue_onboarding_bot_chat_modal_assets')) {
     $detail_bot_chat_url = '';
-    if (defined('AIDUNITE_TEAM_META_ONBOARDING_BOT_MR')) {
-        $detail_bot_mr = (int) get_post_meta((int) $my_team_id, AIDUNITE_TEAM_META_ONBOARDING_BOT_MR, true);
-        if ($detail_bot_mr > 0 && function_exists('aidunite_onboarding_bot_get_chat_url_for_request')) {
-            $detail_bot_chat_url = aidunite_onboarding_bot_get_chat_url_for_request($detail_bot_mr);
-        }
+    $detail_team_bundle = function_exists('aidunite_team_get_display_bundle')
+        ? aidunite_team_get_display_bundle((int) $my_team_id)
+        : [];
+    $detail_bot_mr = (int) ($detail_team_bundle['onboarding_bot_mr_id'] ?? 0);
+    if ($detail_bot_mr > 0 && function_exists('aidunite_onboarding_bot_get_chat_url_for_request')) {
+        $detail_bot_chat_url = aidunite_onboarding_bot_get_chat_url_for_request($detail_bot_mr);
     }
     $detail_show_bot_modal = function_exists('aidunite_onboarding_bot_should_show_chat_modal_on_mypage')
         && aidunite_onboarding_bot_should_show_chat_modal_on_mypage((int) $my_team_id);
@@ -2991,5 +2038,34 @@ if ($my_team_id > 0 && function_exists('aidunite_enqueue_onboarding_bot_chat_mod
     ]);
     get_template_part('template-parts/onboarding-bot-chat-modal');
 }
+
+wp_localize_script('aidunite-match-detail-page', 'aiduniteMatchDetailPage', [
+    'mySchedule' => [
+        'start' => (string) ($my_schedule_data['start'] ?? ''),
+        'end' => (string) ($my_schedule_data['end'] ?? ''),
+    ],
+    'otherSchedule' => [
+        'start' => (string) ($other_schedule_data['start'] ?? ''),
+        'end' => (string) ($other_schedule_data['end'] ?? ''),
+        'place' => (string) ($other_schedule_data['place'] ?? 'either'),
+        'gender' => (string) ($other_schedule_data['gender'] ?? 'both'),
+    ],
+    'myScheduleId' => (int) ($my_schedule_id ?? 0),
+    'otherScheduleId' => (int) ($other_schedule_id ?? 0),
+    'matchRequestId' => !empty($latest_request) ? (int) $latest_request->ID : 0,
+    'restNonce' => wp_create_nonce('wp_rest'),
+    'matchRequestUrl' => rest_url('aidunite/v1/match-request'),
+    'matchNonce' => wp_create_nonce('au_match_nonce'),
+    'checklistNonce' => wp_create_nonce('aidunite_checklist_nonce'),
+    'ajaxUrl' => admin_url('admin-ajax.php'),
+    'matchBoardUrl' => home_url('/match-board-own/'),
+    'resolvedGender' => (string) ($resolved_gender_value ?? 'both'),
+    'resolvedPlace' => (string) ($resolved_place_value ?? 'home'),
+    'needsPlaceAdjustment' => !empty($needs_place_adjustment),
+    'needsGenderAdjustment' => !empty($needs_gender_adjustment)
+        && isset($gender_options)
+        && is_array($gender_options)
+        && count($gender_options) > 1,
+]);
 get_footer();
 ?>

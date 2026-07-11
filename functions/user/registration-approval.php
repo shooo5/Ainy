@@ -42,3 +42,38 @@ function aidunite_approve_registration_template_redirect() {
 }
 
 add_action('template_redirect', 'aidunite_approve_registration_template_redirect', 0);
+
+/**
+ * @return bool
+ */
+function aidunite_is_guardian_registration_pending_request() {
+    if (is_admin() || !isset($_SERVER['REQUEST_URI'])) {
+        return false;
+    }
+    $path = wp_parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    $path = rtrim((string) $path, '/');
+
+    return $path === '/guardian-registration-pending';
+}
+
+/**
+ * /guardian-registration-pending を専用テンプレートで表示（固定ページ未作成・テンプレ未割当対策）
+ */
+function aidunite_guardian_registration_pending_template_redirect() {
+    if (!aidunite_is_guardian_registration_pending_request()) {
+        return;
+    }
+
+    status_header(200);
+    nocache_headers();
+
+    $template = get_stylesheet_directory() . '/page-guardian-registration-pending.php';
+    if (!is_readable($template)) {
+        wp_die('保護者仮登録完了ページのテンプレートが見つかりません。', 'Error', ['response' => 500]);
+    }
+
+    require $template;
+    exit;
+}
+
+add_action('template_redirect', 'aidunite_guardian_registration_pending_template_redirect', 0);

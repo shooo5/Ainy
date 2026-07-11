@@ -113,101 +113,14 @@
 </form>
 </div>
 
-<script>
-document.getElementById('matching-request').addEventListener('change', function () {
-  const checked = this.checked;
-  document.getElementById('gender-condition-wrap').style.display = checked ? 'block' : 'none';
-  document.getElementById('place-condition-wrap').style.display = checked ? 'block' : 'none';
-});
-
-document.getElementById('schedule-form').addEventListener('submit', function(e) {
-  e.preventDefault();
-
-  const startDate = new Date(document.getElementById('start-date').value);
-  const endDate = new Date(document.getElementById('end-date').value);
-  const startTime = `${document.getElementById('start-hour').value}:${document.getElementById('start-minute').value}`;
-  const endTime = `${document.getElementById('end-hour').value}:${document.getElementById('end-minute').value}`;
-  const place = document.getElementById('place').value;
-  const note = document.getElementById('note').value;
-  const scheduleType = document.getElementById('schedule-type').value;
-  const matchFlag = document.getElementById('matching-request').checked;
-  const genderCondition = document.getElementById('gender-condition')?.value || '';
-  const placeCondition = document.getElementById('place-condition')?.value || '';
-
-  const selectedWeekdays = Array.from(document.querySelectorAll('input[name="weekdays"]:checked')).map(cb => parseInt(cb.value));
-
-  const datesToRegister = [];
-  let d = new Date(startDate);
-  while (d <= endDate) {
-    if (selectedWeekdays.includes(d.getDay())) {
-      datesToRegister.push(new Date(d));
-    }
-    d.setDate(d.getDate() + 1);
-  }
-
-  if (datesToRegister.length === 0) {
-    document.getElementById('result').textContent = '⚠ 該当する日付がありません。';
-    return;
-  }
-
-  let html = `<p>以下の ${datesToRegister.length} 件を登録予定：</p><ul>`;
-  datesToRegister.forEach(date => {
-    html += `<li>${date.toLocaleDateString()} ${startTime}〜${endTime}（${scheduleType}）`;
-    if (matchFlag) html += `【マッチング希望】`;
-    html += `</li>`;
-  });
-  html += '</ul>';
-  document.getElementById('result').innerHTML = html;
-
-  fetch('/wp-json/aidunite/v1/register-schedules', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-WP-Nonce': wpApiSettings.nonce
-    },
-    body: JSON.stringify(datesToRegister.map(date => ({
-      date: date.toISOString().split('T')[0],
-      start_time: startTime,
-      end_time: endTime,
-      place: place,
-      note: note,
-      // Phase 3: 統一メタキーを使用（schedule_gender, schedule_place）
-      schedule_gender: genderCondition,
-      schedule_place: placeCondition,
-      type: scheduleType,
-      matching: matchFlag, // 統一されたキー名を使用
-      gender_condition: genderCondition,
-      place_condition: placeCondition,
-      // 後方互換性のため、旧キーも設定（Phase 4で削除予定）
-      matching_gender_condition: genderCondition,
-      schedule_place_option: placeCondition
-    })))
-  })
-  .then(response => response.json())
-  .then(data => {
-    const successCount = data.filter(r => r.success).length;
-    document.getElementById('result').innerHTML += `<p>✅ ${successCount}件のスケジュールを登録しました！</p>`;
-
-    // 登録完了後、2秒後にスケジュール一覧ページにリダイレクト
-    let countdown = 2;
-    const countdownElement = document.createElement('p');
-    countdownElement.innerHTML = `<p>⏰ ${countdown}秒後にスケジュール一覧ページに移動します...</p>`;
-    document.getElementById('result').appendChild(countdownElement);
-
-    const timer = setInterval(() => {
-      countdown--;
-      countdownElement.innerHTML = `<p>⏰ ${countdown}秒後にスケジュール一覧ページに移動します...</p>`;
-
-      if (countdown <= 0) {
-        clearInterval(timer);
-        // 確実にリダイレクトするために、window.location.replaceを使用
-        window.location.replace('/my-schedule');
-      }
-    }, 1000);
-  })
-  .catch(err => {
-    console.error(err);
-    document.getElementById('result').innerHTML += `<p>❌ エラーが発生しました。</p>`;
-  });
-});
-</script>
+<?php
+$schedule_form_js = get_stylesheet_directory() . '/assets/js/schedule/schedule-form-template.js';
+if (is_readable($schedule_form_js)) {
+    wp_enqueue_script(
+        'aidunite-schedule-form-template',
+        get_stylesheet_directory_uri() . '/assets/js/schedule/schedule-form-template.js',
+        [],
+        (string) filemtime($schedule_form_js),
+        true
+    );
+}

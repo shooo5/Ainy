@@ -29,136 +29,320 @@
 }
 
 /* スケジュール管理スタイル */
-.schedule-layout {
+.page-schedule-management .schedule-layout {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 2rem;
     margin-bottom: 2rem;
 }
 
-.schedule-operations,
-.today-schedule {
+.page-schedule-management .schedule-operations,
+.page-schedule-management .today-schedule {
     min-height: 300px;
 }
 
-.operation-buttons {
+.page-schedule-management .operation-buttons {
     display: flex;
     flex-direction: column;
     gap: 1rem;
     margin-bottom: 2rem;
 }
 
-.operation-buttons .dashboard-btn {
+.page-schedule-management .operation-buttons .dashboard-btn {
     width: 100%;
     justify-content: center;
     padding: 1rem;
 }
 
-.btn-icon {
+.page-schedule-management .btn-icon {
     margin-right: 0.5rem;
     font-size: 1.2rem;
 }
 
-.view-toggle {
+.page-schedule-management .view-toggle {
     border-top: 1px solid var(--border-light);
     padding-top: 1.5rem;
 }
 
-.view-toggle h4 {
+.page-schedule-management .view-toggle h4 {
     margin-bottom: 1rem;
     color: var(--text-primary);
 }
 
-.toggle-buttons {
+.page-schedule-management .toggle-buttons {
     display: flex;
     gap: 1rem;
 }
 
-.toggle-buttons .dashboard-btn {
+.page-schedule-management .toggle-buttons .dashboard-btn {
     flex: 1;
     justify-content: center;
 }
 
-.date-display {
+.page-schedule-management .date-display {
     color: var(--text-secondary);
     font-size: 0.9rem;
     font-weight: 500;
 }
 
-/* 仮→確定トーストモーダル（中央） */
+/* 仮→確定トーストモーダル（クイックモーダル詳細と同トンマナ） */
 .tentative-confirm-toast-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.35);
+    background: rgba(0, 0, 0, 0.35);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10000;
     opacity: 0;
-    transition: opacity .2s ease;
+    transition: opacity 0.2s ease;
 }
+
 .tentative-confirm-toast-overlay.show {
     opacity: 1;
 }
+
 .tentative-confirm-toast {
+    --sqm-view-label-bg: color-mix(in srgb, var(--info-color) 15%, var(--bg-primary));
+    --sqm-view-label-color: var(--info-color);
     background: var(--bg-primary);
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-    max-width: 480px;
-    width: 90%;
-    padding: 1.25rem 1.5rem 1rem;
+    border-radius: var(--radius-medium, 12px);
+    box-shadow: var(--shadow-xl);
+    max-width: 420px;
+    width: 92%;
+    padding: var(--spacing-base, 1rem) var(--spacing-base, 1rem) 0.85rem;
 }
-.tentative-confirm-toast .toast-header {
+
+.tentative-confirm-toast.tct--theme-male {
+    --sqm-view-label-bg: var(--gender-boys-accent-soft);
+    --sqm-view-label-color: var(--gender-boys-accent);
+}
+
+.tentative-confirm-toast.tct--theme-female {
+    --sqm-view-label-bg: var(--gender-girls-accent-soft);
+    --sqm-view-label-color: var(--gender-girls-accent);
+}
+
+.tentative-confirm-toast .tct-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: .75rem;
+    margin-bottom: 0.65rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid var(--border-color);
 }
-.tentative-confirm-toast .toast-header h3 {
+
+.tentative-confirm-toast .tct-header h3 {
     margin: 0;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
+    font-weight: 700;
 }
-.tentative-confirm-toast .toast-close {
+
+.tentative-confirm-toast .tct-close {
     border: none;
     background: none;
     font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.tentative-confirm-toast .tct-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.tentative-confirm-toast .tct-divider {
+    height: 1px;
+    margin: 0.75rem 0;
+    background: var(--border-color);
+}
+
+.tentative-confirm-toast .sqm-view-detail-list {
+    margin: 0;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-base, 8px);
+    overflow: hidden;
+    background: var(--bg-primary);
+}
+
+.tentative-confirm-toast .sqm-view-detail-row {
+    display: grid;
+    grid-template-columns: minmax(6.5rem, auto) 1px minmax(0, 1fr);
+    align-items: stretch;
+    min-height: 2.5rem;
+    border-bottom: 1px dotted #dee2e6;
+}
+
+.tentative-confirm-toast .sqm-view-detail-row:last-child {
+    border-bottom: none;
+}
+
+.tentative-confirm-toast .sqm-view-detail-row__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.55rem;
+    background: var(--sqm-view-label-bg);
+    color: var(--sqm-view-label-color);
+}
+
+.tentative-confirm-toast .sqm-view-detail-row__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: inherit;
+}
+
+.tentative-confirm-toast .sqm-view-detail-row__label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.25;
+    white-space: nowrap;
+}
+
+.tentative-confirm-toast .sqm-view-detail-row__sep {
+    width: 1px;
+    background: linear-gradient(to bottom, #cfd4da 35%, transparent 35%);
+    background-size: 1px 6px;
+    background-repeat: repeat-y;
+}
+
+.tentative-confirm-toast .sqm-view-detail-row__value {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--text-primary);
+    text-align: center;
+    word-break: break-word;
+}
+
+.tentative-confirm-toast .tct-row--edit .sqm-view-detail-row__value,
+.tentative-confirm-toast .tct-field-value {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0.45rem;
+    text-align: left;
+    font-weight: 400;
+}
+
+.tentative-confirm-toast .sqm-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
     cursor: pointer;
 }
-.tentative-confirm-toast .toast-body {
-    max-height: 320px;
-    overflow-y: auto;
-    padding-right: .25rem;
-}
-.tentative-confirm-toast .toast-row {
+
+.tentative-confirm-toast .sqm-row-time--inline {
     display: flex;
     align-items: center;
-    margin-bottom: .5rem;
-    gap: .5rem;
+    gap: 0.45rem;
+    width: 100%;
 }
-.tentative-confirm-toast .toast-row label {
-    min-width: 80px;
+
+.tentative-confirm-toast .sqm-row-time--inline.tct-is-hidden {
+    display: none;
+}
+
+.tentative-confirm-toast .sqm-row-time--inline .sqm-time-pickers {
+    flex: 1;
+    min-width: 0;
+}
+
+.tentative-confirm-toast .sqm-time-pickers {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.tentative-confirm-toast .sqm-time-select {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    text-align-last: center;
+    appearance: none;
+    -webkit-appearance: none;
+    padding: 0.35rem 0.45rem;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 0.875rem;
     font-weight: 600;
-    font-size: .9rem;
+    background: var(--bg-primary);
 }
-.tentative-confirm-toast input[type="time"],
-.tentative-confirm-toast input[type="text"],
-.tentative-confirm-toast select,
-.tentative-confirm-toast textarea {
-    flex: 1;
-    font-size: .9rem;
-    padding: .4rem .5rem;
+
+.tentative-confirm-toast .sqm-time-colon,
+.tentative-confirm-toast .sqm-time-range-sep {
+    flex-shrink: 0;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1;
+    user-select: none;
 }
-.tentative-confirm-toast .toast-time-inputs {
+
+.tentative-confirm-toast .tct-field-input,
+.tentative-confirm-toast .tct-field-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    padding: 0.4rem 0.55rem;
+    font-size: 0.875rem;
+    font-weight: 400;
+}
+
+.tentative-confirm-toast .tct-field-textarea {
+    resize: vertical;
+    min-height: 3rem;
+}
+
+.tentative-confirm-toast .tct-footer {
     display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    margin-top: 0.85rem;
+    padding-top: 0;
+    border-top: none;
+}
+
+.tentative-confirm-toast .sqm-full {
+    width: 100%;
+    text-align: center;
+}
+
+.tentative-confirm-toast .sqm-action-btn {
+    justify-content: center;
+}
+
+.tentative-confirm-toast .sqm-action-btn__leading {
+    display: inline-flex;
     align-items: center;
-    gap: .25rem;
-    flex: 1;
+    justify-content: center;
+    gap: 0.35rem;
 }
-.tentative-confirm-toast .toast-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: .5rem;
-    margin-top: .75rem;
+
+.tentative-confirm-toast .sqm-action-btn .aidunite-icon {
+    line-height: 1;
+}
+
+/* チームテーマ色はトークンで button.css に委譲 */
+.tentative-confirm-toast.tct--theme-male,
+.tentative-confirm-toast.tct--theme-female {
+    --btn-primary-background: var(--sqm-view-label-color);
+    --btn-primary-border-color: var(--sqm-view-label-color);
+    --btn-primary-hover-filter: brightness(0.92);
+    --btn-primary-hover-transform: none;
 }
 
 /* 中央トースト通知 */
@@ -199,14 +383,14 @@
     gap: .375rem;
     margin-bottom: .5rem;
 }
-.schedule-filter-bar {
+.page-schedule-management .schedule-filter-bar {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: .5rem;
     margin-bottom: .5rem;
 }
-.schedule-filter-row {
+.page-schedule-management .schedule-filter-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -215,32 +399,32 @@
 }
 /* フィルターチップ・前月次月: assets/css/pages/schedule.css */
 
-.month-navigation {
+.page-schedule-management .month-navigation {
     display: flex;
     align-items: center;
     gap: 1rem;
 }
 
-.current-month {
+.page-schedule-management .current-month {
     font-weight: 600;
     color: var(--text-primary);
     min-width: 100px;
     text-align: center;
 }
 
-.month-navigation .dashboard-btn {
+.page-schedule-management .month-navigation .dashboard-btn {
     padding: 0.5rem 1rem;
 }
 
 /* カレンダー表示は共通テンプレートから読み込み */
 
 /* リスト表示 */
-.schedule-list {
+.page-schedule-management .schedule-list {
     max-height: 600px;
     overflow-y: auto;
 }
 
-.schedule-item {
+.page-schedule-management .schedule-item {
     padding: 1rem;
     border: 1px solid var(--border-light);
     border-radius: 8px;
@@ -249,55 +433,56 @@
     transition: all 0.3s ease;
 }
 
-.schedule-item:hover {
+.page-schedule-management .schedule-item:hover {
     background: var(--bg-secondary);
     border-color: var(--primary-color);
 }
 
-.schedule-item-header {
+.page-schedule-management .schedule-item-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 0.5rem;
 }
 
-.schedule-date {
+.page-schedule-management .schedule-date {
     font-weight: 600;
     color: var(--text-primary);
 }
 
-.schedule-actions {
+.page-schedule-management .schedule-actions {
     display: flex;
     gap: 0.5rem;
 }
 
-.schedule-actions .dashboard-btn {
+.page-schedule-management .schedule-actions .dashboard-btn {
     padding: 0.25rem 0.75rem;
     font-size: 0.8rem;
 }
 
-.schedule-title {
+.page-schedule-management .schedule-title {
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 0.5rem;
 }
 
-.schedule-description {
+.page-schedule-management .schedule-description {
     color: var(--text-secondary);
     font-size: 0.9rem;
 }
 
 /* ビュー切り替え */
-.schedule-view {
+.page-schedule-management .schedule-view {
     display: none;
 }
 
-.schedule-view.active {
+.page-schedule-management .schedule-view.active {
     display: block;
 }
 
-/* モーダル */
-.modal {
+/* モーダル（フルスクリーンオーバーレイ + modal-content margin:auto） */
+body.web-app-page.page-schedule-management .modal,
+.page-schedule-management .modal {
     display: none;
     position: fixed;
     z-index: 1000;
@@ -305,10 +490,16 @@
     top: 0;
     width: 100%;
     height: 100%;
+    transform: none;
     background-color: rgba(0, 0, 0, 0.5);
 }
 
-.modal-content {
+body.web-app-page.page-schedule-management .schedule-detail-modal,
+.page-schedule-management .schedule-detail-modal {
+    transform: none;
+}
+
+.page-schedule-management .modal-content {
     background-color: var(--bg-primary);
     margin: 5% auto;
     padding: 0;
@@ -319,7 +510,7 @@
     border: 1px solid var(--border-light);
 }
 
-.modal-header {
+.page-schedule-management .modal-header {
     padding: 1.5rem;
     border-bottom: 1px solid var(--border-light);
     display: flex;
@@ -327,12 +518,12 @@
     align-items: center;
 }
 
-.modal-header h3 {
+.page-schedule-management .modal-header h3 {
     margin: 0;
     color: var(--text-primary);
 }
 
-.close {
+.page-schedule-management .close {
     color: var(--text-secondary);
     font-size: 2rem;
     font-weight: bold;
@@ -340,11 +531,11 @@
     transition: color 0.3s ease;
 }
 
-.close:hover {
+.page-schedule-management .close:hover {
     color: var(--text-primary);
 }
 
-.modal-body {
+.page-schedule-management .modal-body {
     padding: 1.5rem;
     max-height: 400px;
     overflow-y: auto;
@@ -353,7 +544,7 @@
 /* modal-footer は共通テンプレートで管理 */
 
 /* スケジュールツールチップのスタイル */
-.schedule-tooltip {
+.page-schedule-management .schedule-tooltip {
     position: absolute;
     bottom: 100%;
     left: 50%;
@@ -371,25 +562,25 @@
     pointer-events: none;
 }
 
-.calendar-day:hover .schedule-tooltip {
+.page-schedule-management .calendar-day:hover .schedule-tooltip {
     opacity: 1;
     visibility: visible;
 }
 
-.tooltip-content {
+.page-schedule-management .tooltip-content {
     text-align: center;
     line-height: 1.4;
 }
 
 /* スケジュールがある日のスタイル */
-.calendar-day.has-schedule {
+.page-schedule-management .calendar-day.has-schedule {
     background: transparent;
     border: 1px solid var(--border-color);
     position: relative;
     z-index: 0;
 }
 
-.calendar-day.has-schedule .day-number {
+.page-schedule-management .calendar-day.has-schedule .day-number {
     color: inherit;
     font-weight: inherit;
     position: relative;
@@ -397,7 +588,7 @@
 }
 
 /* 今日のスケジュールとして特別スタイル */
-.calendar-day.today-with-schedule {
+.page-schedule-management .calendar-day.today-with-schedule {
     background: rgba(23, 162, 184, 0.1);
     border: 2px solid var(--info-color);
     color: var(--text-primary);
@@ -409,38 +600,38 @@
     /* スケジュール操作エリアは削除済み */
 
 /* スケジュール一覧のヘッダーに新規登録ボタンを配置 */
-.dashboard-card .card-header {
+.page-schedule-management .dashboard-card .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.dashboard-card .card-header .dashboard-btn {
+.page-schedule-management .dashboard-card .card-header .dashboard-btn {
     white-space: nowrap;
     padding: 0.5rem 1rem;
     font-size: 0.9rem;
 }
 
-    .operation-buttons .dashboard-btn {
+    .page-schedule-management .operation-buttons .dashboard-btn {
         padding: 0.75rem;
     }
 
-    .toggle-buttons {
+    .page-schedule-management .toggle-buttons {
         flex-direction: column;
     }
 
-    .calendar-day {
+    .page-schedule-management .calendar-day {
         min-height: 100px; /* タップしやすくするため高さを増加 */
         padding: 0.5rem;
         font-size: 0.9rem;
     }
 
-    .day-number {
+    .page-schedule-management .day-number {
         font-size: 1rem;
         font-weight: 600;
     }
 
-    .add-schedule-btn {
+    .page-schedule-management .add-schedule-btn {
         width: 30px; /* タップしやすくするためサイズを増加 */
         height: 30px;
         font-size: 1.1rem;
@@ -448,13 +639,13 @@
         right: 0.5rem;
     }
 
-    .month-navigation {
+    .page-schedule-management .month-navigation {
         flex-direction: column;
         gap: 0.5rem;
         align-items: center;
     }
 
-    .modal-content {
+    .page-schedule-management .modal-content {
         width: 95%;
         margin: 5% auto; /* スマホで見やすくするためマージンを調整 */
         max-height: 90vh;
@@ -463,7 +654,7 @@
 
     /* modal-footer は共通テンプレートで管理 */
 
-    .schedule-tooltip {
+    .page-schedule-management .schedule-tooltip {
         font-size: 11px;
         padding: 8px 10px;
         max-width: 150px;
@@ -472,16 +663,16 @@
     }
 
     /* カレンダーヘッダーの調整 */
-    .calendar-header {
+    .page-schedule-management .calendar-header {
         padding: 1rem 0.5rem;
     }
 
-    .calendar-title {
+    .page-schedule-management .calendar-title {
         font-size: 1.2rem;
     }
 
     /* スケジュール表示の調整 */
-    .schedule-item {
+    .page-schedule-management .schedule-item {
         font-size: 0.8rem;
         padding: 0.25rem 0.5rem;
         margin: 0.1rem 0;
@@ -492,7 +683,7 @@
     }
 
     /* スマホ用短縮表示 */
-    .schedule-item .schedule-title {
+    .page-schedule-management .schedule-item .schedule-title {
         font-size: 0.7rem;
         font-weight: 600;
         line-height: 1.1;
@@ -503,7 +694,7 @@
         white-space: nowrap;
     }
 
-    .schedule-item .schedule-time {
+    .page-schedule-management .schedule-item .schedule-time {
         font-size: 0.65rem;
         color: var(--text-secondary);
         line-height: 1.1;
@@ -514,11 +705,11 @@
     }
 
     /* 複数スケジュール表示制限 */
-    .calendar-day .schedule-item:nth-child(n+4) {
+    .page-schedule-management .calendar-day .schedule-item:nth-child(n+4) {
         display: none;
     }
 
-    .schedule-more {
+    .page-schedule-management .schedule-more {
         font-size: 0.6rem;
         color: var(--text-secondary);
         text-align: center;
@@ -530,17 +721,17 @@
 }
 
 @media (max-width: 480px) {
-    .calendar-day {
+    .page-schedule-management .calendar-day {
         min-height: 80px; /* タップしやすさを維持 */
         padding: 0.25rem;
     }
 
-    .day-number {
+    .page-schedule-management .day-number {
         font-size: 0.9rem;
         font-weight: 600;
     }
 
-    .add-schedule-btn {
+    .page-schedule-management .add-schedule-btn {
         width: 28px; /* タップしやすさを維持 */
         height: 28px;
         font-size: 1rem;
@@ -548,27 +739,27 @@
         right: 0.25rem;
     }
 
-    .modal-content {
+    .page-schedule-management .modal-content {
         width: 98%;
         margin: 2% auto;
         max-height: 95vh;
     }
 
-    .schedule-tooltip {
+    .page-schedule-management .schedule-tooltip {
         font-size: 10px;
         padding: 6px 8px;
         max-width: 120px;
     }
 
-    .calendar-header {
+    .page-schedule-management .calendar-header {
         padding: 0.75rem 0.25rem;
     }
 
-    .calendar-title {
+    .page-schedule-management .calendar-title {
         font-size: 1.1rem;
     }
 
-    .schedule-item {
+    .page-schedule-management .schedule-item {
         font-size: 0.75rem;
         padding: 0.2rem 0.4rem;
     }
@@ -576,43 +767,43 @@
 
 /* タッチ操作最適化 */
 @media (max-width: 768px) {
-    .calendar-day {
+    .page-schedule-management .calendar-day {
         cursor: pointer;
         -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
         transition: background-color 0.2s ease;
     }
 
-    .calendar-day:active {
+    .page-schedule-management .calendar-day:active {
         background-color: rgba(0, 0, 0, 0.05);
     }
 
-    .add-schedule-btn {
+    .page-schedule-management .add-schedule-btn {
         cursor: pointer;
         -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
         transition: all 0.2s ease;
     }
 
-    .add-schedule-btn:active {
+    .page-schedule-management .add-schedule-btn:active {
         transform: scale(0.95);
     }
 
     /* ボタンのタッチ領域を拡大 */
-    .dashboard-btn {
+    .page-schedule-management .dashboard-btn {
         min-height: 44px; /* iOS推奨の最小タッチ領域 */
         min-width: 44px;
     }
 
     /* モーダル内のフォーム要素も最適化 */
-    .modal-content input,
-    .modal-content select,
-    .modal-content textarea {
+    .page-schedule-management .modal-content input,
+    .page-schedule-management .modal-content select,
+    .page-schedule-management .modal-content textarea {
         min-height: 44px;
         font-size: 16px; /* iOSでズームを防ぐ */
     }
 }
 
 /* カレンダー読み込みオーバーレイ（グリッドを隠さず表示） */
-.calendar-loading-overlay {
+.page-schedule-management .calendar-loading-overlay {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
@@ -621,7 +812,7 @@
     margin-left: auto;
     line-height: 1;
 }
-.calendar-loading-overlay .calendar-loading-spinner {
+.page-schedule-management .calendar-loading-overlay .calendar-loading-spinner {
     display: inline-block;
     width: 18px;
     height: 18px;
@@ -637,7 +828,7 @@
 /* --- detailed schedule list --- */
 
 /* 詳細スケジュールリスト用スタイル */
-.detailed-schedule-item {
+.page-schedule-management .detailed-schedule-item {
     background: white;
     border: 1px solid var(--border-light);
     border-radius: 12px;
@@ -647,13 +838,13 @@
     overflow: hidden;
 }
 
-.detailed-schedule-item:hover {
+.page-schedule-management .detailed-schedule-item:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(0,0,0,0.15);
     border-color: var(--primary-color);
 }
 
-.schedule-item-header {
+.page-schedule-management .schedule-item-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -662,60 +853,60 @@
     border-bottom: 1px solid var(--border-color);
 }
 
-.schedule-date-info {
+.page-schedule-management .schedule-date-info {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
 
-.schedule-date {
+.page-schedule-management .schedule-date {
     font-size: 1.2rem;
     font-weight: 600;
     color: var(--text-primary);
 }
 
-.schedule-time {
+.page-schedule-management .schedule-time {
     font-size: 1rem;
     color: var(--text-muted);
     font-weight: 500;
 }
 
-.schedule-actions {
+.page-schedule-management .schedule-actions {
     display: flex;
     gap: 0.5rem;
 }
 
-.schedule-content {
+.page-schedule-management .schedule-content {
     padding: 1.5rem;
 }
 
-.schedule-title {
+.page-schedule-management .schedule-title {
     font-size: 1.3rem;
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 1rem;
 }
 
-.schedule-details {
+.page-schedule-management .schedule-details {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
 }
 
-.detail-row {
+.page-schedule-management .detail-row {
     display: flex;
     align-items: flex-start;
     gap: 0.75rem;
 }
 
-.detail-label {
+.page-schedule-management .detail-label {
     font-weight: 500;
     color: var(--text-muted);
     min-width: 100px;
     font-size: 0.9rem;
 }
 
-.detail-value {
+.page-schedule-management .detail-value {
     color: var(--text-primary);
     font-size: 0.9rem;
     flex: 1;
@@ -723,23 +914,23 @@
 
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
-    .schedule-item-header {
+    .page-schedule-management .schedule-item-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 1rem;
     }
 
-    .schedule-actions {
+    .page-schedule-management .schedule-actions {
         width: 100%;
         justify-content: flex-end;
     }
 
-    .detail-row {
+    .page-schedule-management .detail-row {
         flex-direction: column;
         gap: 0.25rem;
     }
 
-    .detail-label {
+    .page-schedule-management .detail-label {
         min-width: auto;
     }
 }
@@ -747,14 +938,14 @@
 /* カレンダー表示は共通テンプレートから読み込み */
 
 /* スケジュールカード表示用スタイル */
-.schedule-cards-grid {
+.page-schedule-management .schedule-cards-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1rem;
     margin-top: 1rem;
 }
 
-.schedule-card {
+.page-schedule-management .schedule-card {
     background: white;
     border: 1px solid var(--border-light);
     border-radius: 8px;
@@ -762,12 +953,12 @@
     transition: all 0.3s ease;
 }
 
-.schedule-card:hover {
+.page-schedule-management .schedule-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
-.card-header {
+.page-schedule-management .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -775,92 +966,92 @@
     border-bottom: 1px solid var(--border-light);
 }
 
-.card-date {
+.page-schedule-management .card-date {
     font-weight: 600;
     color: var(--text-primary);
     font-size: 1rem;
 }
 
-.card-actions {
+.page-schedule-management .card-actions {
     display: flex;
     gap: 0.5rem;
 }
 
-.card-body {
+.page-schedule-management .card-body {
     padding: 1rem;
 }
 
-.card-title {
+.page-schedule-management .card-title {
     font-size: 1.2rem;
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 1rem;
 }
 
-.card-details {
+.page-schedule-management .card-details {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
 }
 
-.detail-item {
+.page-schedule-management .detail-item {
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
-.detail-label {
+.page-schedule-management .detail-label {
     font-weight: 500;
     color: var(--text-muted);
     min-width: 80px;
     font-size: 0.9rem;
 }
 
-.detail-value {
+.page-schedule-management .detail-value {
     color: var(--text-primary);
     font-size: 0.9rem;
 }
 
 /* ステータスバッジ */
-.status-badge {
+.page-schedule-management .status-badge {
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     font-size: 0.8rem;
     font-weight: 500;
 }
 
-.status-planned {
+.page-schedule-management .status-planned {
     background: rgba(23, 162, 184, 0.1);
     color: var(--info-color);
 }
 
-.status-matched {
+.page-schedule-management .status-matched {
     background: rgba(40, 167, 69, 0.1);
     color: var(--success-color);
 }
 
-.status-confirmed {
+.page-schedule-management .status-confirmed {
     background: rgba(255, 193, 7, 0.1);
     color: var(--warning-color);
 }
 
-.status-cancelled {
+.page-schedule-management .status-cancelled {
     background: rgba(220, 53, 69, 0.1);
     color: var(--danger-color);
 }
 
-.status-recruit {
-    background: rgba(23, 162, 184, 0.1);
-    color: var(--info-color);
+.page-schedule-management .status-recruit {
+    background: var(--schedule-badge-recruit-bg);
+    color: var(--text-primary);
 }
 
-.status-tentative {
+.page-schedule-management .status-tentative {
     background: rgba(108, 117, 125, 0.15);
     color: var(--text-secondary);
 }
 
 /* フィルター凡例 */
-.schedule-filter-legend {
+.page-schedule-management .schedule-filter-legend {
     margin: 0.5rem 0 0;
     font-size: 0.8rem;
     color: var(--text-secondary);
@@ -868,29 +1059,29 @@
 }
 
 /* フィルタバー内：表示切替・チーム（既存 filter-chip トンマナ） */
-.schedule-filter-bar .schedule-filter-row--view,
-.schedule-filter-bar .schedule-filter-row--team {
+.page-schedule-management .schedule-filter-bar .schedule-filter-row--view,
+.page-schedule-management .schedule-filter-bar .schedule-filter-row--team {
     margin-top: var(--spacing-sm, 0.75rem);
 }
 
-.schedule-filter-bar .schedule-view-toggle-chips {
+.page-schedule-management .schedule-filter-bar .schedule-view-toggle-chips {
     flex-wrap: wrap;
 }
 
-.schedule-filter-bar .filter-chip.active[data-view="calendar"],
-.schedule-filter-bar .filter-chip.active[data-view="list"] {
+.page-schedule-management .schedule-filter-bar .filter-chip.active[data-view="calendar"],
+.page-schedule-management .schedule-filter-bar .filter-chip.active[data-view="list"] {
     background: var(--schedule-filter-all-bg, var(--schedule-selection-gradient, var(--primary-color)));
     border-color: transparent;
     color: var(--text-on-dark, var(--text-light));
 }
 
-.schedule-filter-bar .filter-chip.active[data-team-filter] {
+.page-schedule-management .schedule-filter-bar .filter-chip.active[data-team-filter] {
     background: var(--schedule-filter-all-bg, var(--schedule-selection-gradient, var(--primary-color)));
     border-color: transparent;
     color: var(--text-on-dark, var(--text-light));
 }
 
-.schedule-filter-bar .schedule-team-filter__gender {
+.page-schedule-management .schedule-filter-bar .schedule-team-filter__gender {
     margin-left: var(--spacing-xs, 0.25rem);
     font-size: 0.85em;
     font-weight: 500;
@@ -898,152 +1089,545 @@
 }
 
 /* 月間シェル：リスト／カレンダー共通の月ナビ */
-.schedule-month-shell {
+.page-schedule-management .schedule-month-shell {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm, 0.75rem);
 }
 
-.schedule-month-shell .schedule-month-nav {
+.page-schedule-management .schedule-month-shell .schedule-month-nav {
     margin-bottom: 0;
 }
 
-.schedule-month-shell .schedule-month-list-wrap {
+.page-schedule-management .schedule-month-shell .schedule-month-list-wrap {
     margin-top: 0;
 }
 
 /* 月間リスト */
-.schedule-month-list-wrap {
+.page-schedule-management .schedule-month-list-wrap {
     margin-bottom: var(--spacing-base, 1rem);
 }
 
-.schedule-month-list__day {
+.page-schedule-management .schedule-month-list__cards-wrap {
+    display: none;
+}
+
+.page-schedule-management .schedule-month-list__table-wrap {
+    display: block;
+    overflow-x: auto;
+}
+
+.page-schedule-management .schedule-month-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.875rem;
+    background: var(--bg-primary, #fff);
+    border: 1px solid var(--border-light, #e9ecef);
+    border-radius: var(--radius-base, 8px);
+    overflow: hidden;
+}
+
+.page-schedule-management .schedule-month-table thead th {
+    padding: 0.65rem 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    background: var(--bg-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-light, #e9ecef);
+    white-space: nowrap;
+}
+
+.page-schedule-management .schedule-month-table tbody td,
+.page-schedule-management .schedule-month-table tbody th {
+    padding: 0.7rem 0.75rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-light, #eef1f4);
+    color: var(--text-primary);
+}
+
+.page-schedule-management .schedule-month-table__date {
+    width: 6.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    background: var(--bg-primary, #fff);
+    border-right: 1px solid var(--border-light, #eef1f4);
+    vertical-align: top;
+}
+
+.page-schedule-management .schedule-month-table__date-text {
+    display: inline-block;
+    padding-left: 0.35rem;
+    border-left: 3px solid var(--border-light, #dee2e6);
+}
+
+.page-schedule-management .schedule-month-table__date-text.team-gender-male {
+    border-left-color: var(--schedule-calendar-team-male-border, var(--ainy-navy-deep));
+}
+
+.page-schedule-management .schedule-month-table__date-text.team-gender-female {
+    border-left-color: var(--schedule-calendar-team-female-border, var(--theme-accent-dark));
+}
+
+.page-schedule-management .schedule-month-table__date-text.team-gender-unknown {
+    border-left-color: var(--border-light, #dee2e6);
+}
+
+.page-schedule-management .schedule-month-table__team {
+    font-weight: 600;
+    min-width: 7rem;
+}
+
+.page-schedule-management .schedule-month-table__time,
+.page-schedule-management .schedule-month-table__venue,
+.page-schedule-management .schedule-month-table__opponent,
+.page-schedule-management .schedule-month-table__memo {
+    color: var(--text-secondary, #495057);
+    max-width: 12rem;
+    word-break: break-word;
+}
+
+.page-schedule-management .schedule-month-table__opponent {
+    max-width: 10rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.page-schedule-management .schedule-month-table__actions {
+    width: 7.5rem;
+    white-space: nowrap;
+}
+
+.page-schedule-management .schedule-month-list__day {
     margin-bottom: var(--spacing-base, 1rem);
 }
 
-.schedule-month-list__date {
-    margin: 0 0 var(--spacing-sm, 0.5rem);
-    font-size: var(--font-size-base, 1rem);
+.page-schedule-management .schedule-month-list__day-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.65rem;
+}
+
+.page-schedule-management .schedule-month-list__date {
+    margin: 0;
+    padding-left: 0.45rem;
+    border-left: 3px solid var(--border-light, #dee2e6);
+    font-size: 1rem;
     font-weight: 700;
     color: var(--text-primary);
 }
 
-.schedule-month-list__item {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs, 0.25rem);
-    padding: var(--spacing-sm, 0.75rem);
-    margin-bottom: var(--spacing-sm, 0.5rem);
-    border-radius: var(--radius-base, 8px);
+.page-schedule-management .schedule-month-list__date.team-gender-male {
+    border-left-color: var(--schedule-calendar-team-male-border, var(--ainy-navy-deep));
+}
+
+.page-schedule-management .schedule-month-list__date.team-gender-female {
+    border-left-color: var(--schedule-calendar-team-female-border, var(--theme-accent-dark));
+}
+
+.page-schedule-management .schedule-month-list__date.team-gender-unknown {
+    border-left-color: var(--border-light, #dee2e6);
+}
+
+.page-schedule-management .schedule-month-list__day-count {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+/* 種別バッジ（リスト共通） */
+.page-schedule-management .schedule-list-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.page-schedule-management .schedule-list-badge--practice {
+    background: color-mix(in srgb, var(--info-color) 14%, transparent);
+    color: var(--info-color);
+}
+
+.page-schedule-management .schedule-list-badge--match-confirmed {
+    background: color-mix(in srgb, var(--success-color) 16%, transparent);
+    color: var(--success-color);
+}
+
+.page-schedule-management .schedule-list-badge--match-recruit {
+    background: color-mix(in srgb, var(--warning-color) 18%, transparent);
+    color: var(--warning-color);
+}
+
+.page-schedule-management .schedule-list-badge--meeting {
+    background: color-mix(in srgb, var(--primary-color) 16%, transparent);
+    color: var(--primary-color);
+}
+
+.page-schedule-management .schedule-list-badge--event {
+    background: color-mix(in srgb, var(--warning-color) 20%, transparent);
+    color: color-mix(in srgb, var(--warning-color) 75%, var(--text-primary));
+}
+
+.page-schedule-management .schedule-list-badge--off {
+    background: color-mix(in srgb, var(--text-muted) 18%, transparent);
+    color: var(--text-muted);
+}
+
+.page-schedule-management .schedule-list-badge--tentative {
+    background: color-mix(in srgb, var(--warning-color) 22%, transparent);
+    color: color-mix(in srgb, var(--warning-color) 70%, var(--text-primary));
+}
+
+.page-schedule-management .schedule-list-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.page-schedule-management .schedule-list-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 1px solid var(--border-light, #dee2e6);
+    border-radius: 8px;
+    background: var(--bg-primary, #fff);
+    color: var(--text-secondary, #495057);
     cursor: pointer;
 }
 
-.schedule-month-list__item:focus-visible {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
+.page-schedule-management .schedule-list-action:hover {
+    background: var(--bg-secondary, #f8f9fa);
+    color: var(--primary-color, #5b4bdb);
 }
 
-/* リスト：背景は白、外枠＝目的×種別、左太枠＝チーム性別 */
-.schedule-month-list__item {
-    border-width: 1px;
-    border-style: solid;
+.page-schedule-management .schedule-list-action--danger:hover {
+    color: var(--danger-color);
+    border-color: color-mix(in srgb, var(--danger-color) 35%, transparent);
+}
+
+.page-schedule-management .schedule-list-action .aidunite-icon {
+    display: block;
+}
+
+/* モバイルリストカード */
+.page-schedule-management .schedule-month-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 0.65rem;
+    row-gap: 0.35rem;
+    align-items: center;
+    padding: 0.85rem 0.9rem;
+    margin-bottom: 0.65rem;
+    border: 1px solid var(--border-light, #e9ecef);
     border-left-width: 4px;
-    background: var(--bg-primary);
+    border-radius: var(--radius-base, 8px);
+    background: var(--bg-primary, #fff);
 }
 
-.schedule-month-list__item--practice {
-    border-color: var(--schedule-card-border-practice);
-}
-
-.schedule-month-list__item--match-confirmed {
-    border-color: var(--schedule-card-border-match-confirmed);
-}
-
-.schedule-month-list__item--match-recruit {
-    border-color: var(--schedule-card-border-match-recruit);
-}
-
-.schedule-month-list__item--event {
-    border-color: var(--schedule-card-border-event);
-}
-
-.schedule-month-list__item--off {
+.schedule-month-card--practice { border-color: var(--schedule-card-border-practice); }
+.schedule-month-card--match-confirmed { border-color: var(--schedule-card-border-match-confirmed); }
+.schedule-month-card--match-recruit { border-color: var(--schedule-card-border-match-recruit); }
+.schedule-month-card--event { border-color: var(--schedule-card-border-event); }
+.schedule-month-card--meeting { border-color: var(--schedule-card-border-meeting); }
+.page-schedule-management .schedule-month-card--off {
     border-color: var(--schedule-card-border-off);
+    background: var(--schedule-card-bg-off);
 }
-
-.schedule-month-list__item--tentative {
+.page-schedule-management .schedule-month-card--tentative {
     border-color: var(--schedule-card-border-tentative);
     border-style: dashed;
     border-left-style: solid;
 }
 
-.schedule-month-list__item.team-gender-male {
-    border-left-color: var(--schedule-calendar-team-male-border, var(--ainy-navy-deep));
+.schedule-month-card.team-gender-male { border-left-color: var(--schedule-calendar-team-male-border, var(--ainy-navy-deep)); }
+.schedule-month-card.team-gender-female { border-left-color: var(--schedule-calendar-team-female-border, var(--theme-accent-dark)); }
+.schedule-month-card.team-gender-unknown { border-left-color: var(--border-light); }
+
+.page-schedule-management .schedule-month-card__team {
+    grid-column: 1;
+    grid-row: 1;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    min-width: 0;
 }
 
-.schedule-month-list__item.team-gender-female {
-    border-left-color: var(--schedule-calendar-team-female-border, var(--theme-accent-dark, #7c3aed));
+.page-schedule-management .schedule-month-card__status {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    max-width: 11rem;
+    text-align: right;
 }
 
-.schedule-month-list__item.team-gender-unknown {
-    border-left-color: var(--border-light);
+.page-schedule-management .schedule-month-card__time-cell {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
 }
 
-.schedule-month-list__line1 {
-    font-size: var(--font-size-sm, 0.875rem);
+.page-schedule-management .schedule-month-card__time {
+    font-size: 0.82rem;
     font-weight: 600;
-    line-height: 1.35;
     color: var(--text-primary);
 }
 
-.schedule-month-list__line2 {
-    font-size: var(--font-size-sm, 0.875rem);
-    font-weight: 500;
-    line-height: 1.35;
+.page-schedule-management .schedule-month-card__time-cell .schedule-month-card__extra {
+    margin-top: 0.2rem;
+}
+
+.page-schedule-management .schedule-month-card__actions {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+    align-self: end;
+}
+
+.page-schedule-management .schedule-month-card__meta {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+.page-schedule-management .schedule-month-card__meta + .schedule-month-card__meta {
+    margin-top: 0.15rem;
+}
+
+.page-schedule-management .schedule-month-card .schedule-list-actions--inline {
+    margin-top: 0;
+    justify-content: flex-end;
+}
+
+/* スマホ：カレンダー下の日別パネル */
+.page-schedule-management .schedule-day-panel {
+    margin-top: 0.5rem;
+}
+
+.page-schedule-management .schedule-day-panel__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.65rem;
+    padding-top: 0.25rem;
+}
+
+.page-schedule-management .schedule-day-panel__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.page-schedule-management .schedule-day-panel__count {
+    font-size: 0.8rem;
     color: var(--text-secondary);
 }
 
-.schedule-month-list-empty {
+.page-schedule-management .schedule-day-panel__empty {
+    margin: 0;
+    padding: 1rem 0;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+/* スマホ：ミニマルカレンダー（枠なし・日付中央・選択は性別テーマ色の丸） */
+@media (max-width: 768px) {
+    .page-schedule-management .schedule-calendar-panel--mobile-compact .calendar-weekdays {
+        gap: 0;
+        margin-bottom: 0.35rem;
+    }
+
+    .page-schedule-management .schedule-calendar-panel--mobile-compact .weekday {
+        border: none;
+        border-radius: 0;
+        background: transparent;
+        padding: 0.3rem 0;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .page-schedule-management .schedule-calendar-panel--mobile-compact .weekday.weekday-sunday {
+        color: var(--danger-color);
+        background: transparent;
+        border: none;
+    }
+
+    .page-schedule-management .schedule-calendar-panel--mobile-compact .weekday.weekday-saturday {
+        color: var(--gender-boys-accent-dark, #1d4ed8);
+        background: transparent;
+        border: none;
+    }
+
+    .schedule-calendar-panel--mobile-compact .calendar-grid,
+    .page-schedule-management .schedule-calendar-panel--mobile-compact .calendar-grid--mobile-compact {
+        gap: 0;
+        margin-bottom: 0.65rem;
+    }
+
+    .schedule-calendar-panel--mobile-compact #calendar-grid .se-day,
+    .page-schedule-management .schedule-calendar-panel--mobile-compact #calendar-grid .calendar-day {
+        position: relative;
+        aspect-ratio: 1;
+        min-height: 0 !important;
+        border: none !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        transform: none !important;
+        overflow: visible;
+        cursor: pointer;
+    }
+
+    .schedule-calendar-panel--mobile-compact #calendar-grid .se-day:hover,
+    .page-schedule-management .schedule-calendar-panel--mobile-compact #calendar-grid .calendar-day:hover {
+        transform: none !important;
+        background: transparent !important;
+        border: none !important;
+    }
+
+    .page-schedule-management .schedule-calendar-panel--mobile-compact #calendar-grid .se-day.se-past {
+        opacity: 0.42;
+        cursor: default;
+    }
+
+    .page-schedule-management .schedule-calendar-panel--mobile-compact #calendar-grid .se-day.se-other-month .day-number-main {
+        color: var(--text-muted);
+    }
+
+    .page-schedule-management .schedule-calendar-panel--mobile-compact #calendar-grid .day-number {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        margin: 0;
+        padding: 0;
+        border-radius: 50%;
+        flex-shrink: 0;
+        gap: 0;
+    }
+
+    .page-schedule-management .schedule-calendar-panel--mobile-compact #calendar-grid .day-number-main {
+        line-height: 1;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .page-schedule-management .schedule-calendar-panel--mobile-compact #calendar-grid .day-label {
+        display: none;
+    }
+
+    .page-schedule-management .schedule-calendar-panel--mobile-compact #calendar-grid .schedule-list {
+        display: none;
+    }
+
+    .schedule-calendar-panel--mobile-compact #calendar-grid .se-day.se-sunday:not(.se-selected) .day-number-main,
+    .page-schedule-management .schedule-calendar-panel--mobile-compact #calendar-grid .se-day.se-holiday:not(.se-selected) .day-number-main {
+        color: var(--danger-color);
+    }
+
+    .page-schedule-management .schedule-calendar-panel--mobile-compact #calendar-grid .se-day.se-saturday:not(.se-selected) .day-number-main {
+        color: var(--gender-boys-accent-dark, #1d4ed8);
+    }
+
+    .page-schedule-management .schedule-calendar-panel--mobile-compact #calendar-grid .se-day.se-today:not(.se-selected) .day-number {
+        box-shadow: inset 0 0 0 2px var(--warning-color, #ffc107);
+    }
+
+    .page-schedule-management .schedule-calendar-panel--mobile-compact #calendar-grid .se-day.se-selected .day-number {
+        background: var(--gender-girls-accent-dark, var(--theme-accent-dark));
+        color: var(--text-on-dark);
+        box-shadow: none;
+    }
+
+    body[data-team-theme="boys"] .schedule-calendar-panel--mobile-compact #calendar-grid .se-day.se-selected .day-number,
+    .page-schedule-management body[data-gender-theme="male"] .schedule-calendar-panel--mobile-compact #calendar-grid .se-day.se-selected .day-number {
+        background: var(--gender-boys-navy-deep, var(--ainy-navy-deep, #061a2f));
+    }
+
+    body[data-team-theme="girls"] .schedule-calendar-panel--mobile-compact #calendar-grid .se-day.se-selected .day-number,
+    .page-schedule-management body[data-gender-theme="female"] .schedule-calendar-panel--mobile-compact #calendar-grid .se-day.se-selected .day-number {
+        background: var(--gender-girls-accent-dark, var(--theme-accent-dark));
+    }
+
+    .page-schedule-management .schedule-calendar-panel--mobile-compact #calendar-grid .se-day.se-selected .day-number-main {
+        color: var(--text-on-dark);
+    }
+}
+
+.page-schedule-management .schedule-month-list-empty {
     text-align: center;
     color: var(--text-secondary);
     padding: var(--spacing-lg, 1.5rem);
 }
 
+@media (max-width: 768px) {
+    .page-schedule-management .schedule-month-list__table-wrap {
+        display: none;
+    }
+
+    .page-schedule-management .schedule-month-list__cards-wrap {
+        display: block;
+    }
+
+    .page-schedule-management .schedule-calendar-panel .schedule-list {
+        min-height: 0;
+    }
+}
+
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
-    .calendar-day {
+    .page-schedule-management .schedule-calendar-panel:not(.schedule-calendar-panel--mobile-compact) .calendar-day {
         min-height: 50px;
         padding: 0.25rem;
     }
 
-    .day-number {
+    .page-schedule-management .schedule-calendar-panel:not(.schedule-calendar-panel--mobile-compact) .day-number {
         font-size: 0.8rem;
     }
 
-    .schedule-cards-grid {
+    .page-schedule-management .schedule-cards-grid {
         grid-template-columns: 1fr;
         gap: 1rem;
     }
 
-    .card-header {
+    .page-schedule-management .card-header {
         padding: 0.75rem;
     }
 
-    .card-body {
+    .page-schedule-management .card-body {
         padding: 0.75rem;
     }
 
-    .card-details {
+    .page-schedule-management .card-details {
         gap: 0.5rem;
     }
 
-    .detail-item {
+    .page-schedule-management .detail-item {
         flex-direction: column;
         align-items: flex-start;
         gap: 0.25rem;
     }
 
-    .detail-label {
+    .page-schedule-management .detail-label {
         min-width: auto;
     }
 }
@@ -1055,7 +1639,7 @@
 /* スケジュールカード表示は共通テンプレートから読み込み済み */
 
 /* モーダル表示 */
-.schedule-detail-modal {
+.page-schedule-management .schedule-detail-modal {
     position: fixed;
     top: 0;
     left: 0;
@@ -1068,7 +1652,7 @@
     z-index: 1000;
 }
 
-.modal-content {
+.page-schedule-management .modal-content {
     background: white;
     border-radius: 8px;
     max-width: 500px;
@@ -1079,17 +1663,17 @@
 }
 
 /* このページで生成するスケジュール詳細モーダルの中身は中央寄せを強制 */
-.schedule-detail-modal .modal-content {
+.page-schedule-management .schedule-detail-modal .modal-content {
     margin: 0 auto; /* 左寄りになる他の .modal-content ルールを打ち消し */
 }
 
 /* ポップアップも中央寄せを強制（管理ページでの他CSS干渉を遮断） */
-.schedule-detail-popup {
+.page-schedule-management .schedule-detail-popup {
     display: flex;
     align-items: center;
     justify-content: center;
 }
-.schedule-detail-popup .popup-content {
+.page-schedule-management .schedule-detail-popup .popup-content {
     margin: 0 auto;
     width: 90%;
     max-width: 600px;
@@ -1098,7 +1682,7 @@
     transform: none;
 }
 
-.modal-header {
+.page-schedule-management .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1107,12 +1691,12 @@
     background: var(--bg-secondary);
 }
 
-.modal-header h3 {
+.page-schedule-management .modal-header h3 {
     margin: 0;
     font-size: 1.2rem;
 }
 
-.modal-close {
+.page-schedule-management .modal-close {
     background: none;
     border: none;
     font-size: 1.5rem;
@@ -1126,35 +1710,35 @@
     justify-content: center;
 }
 
-.modal-close:hover {
+.page-schedule-management .modal-close:hover {
     color: var(--text-primary);
 }
 
-.modal-body {
+.page-schedule-management .modal-body {
     padding: 1rem;
 }
 
-.detail-item {
+.page-schedule-management .detail-item {
     margin-bottom: 1rem;
     display: flex;
     align-items: flex-start;
 }
 
-.detail-item label {
+.page-schedule-management .detail-item label {
     font-weight: 600;
     min-width: 100px;
     margin-right: 0.5rem;
     color: var(--text-primary);
 }
 
-.detail-item span {
+.page-schedule-management .detail-item span {
     flex: 1;
     color: var(--text-secondary);
 }
 
 /* modal-footer は共通テンプレートで管理 */
 
-.all-schedule-item {
+.page-schedule-management .all-schedule-item {
     background: var(--bg-secondary);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-small);
@@ -1164,38 +1748,38 @@
     transition: background-color 0.2s;
 }
 
-.all-schedule-item:hover {
+.page-schedule-management .all-schedule-item:hover {
     background: var(--border-light);
 }
 
 /* レスポンシブ対応（モーダル） */
 @media (max-width: 768px) {
-    .modal-content {
+    .page-schedule-management .modal-content {
         width: 95%;
         margin: 1rem;
     }
 
-    .modal-header {
+    .page-schedule-management .modal-header {
         padding: 0.75rem;
     }
 
-    .modal-body {
+    .page-schedule-management .modal-body {
         padding: 0.75rem;
     }
 
     /* modal-footer は共通テンプレートで管理 */
 
-    .detail-item {
+    .page-schedule-management .detail-item {
         flex-direction: column;
         align-items: flex-start;
     }
 
-    .detail-item label {
+    .page-schedule-management .detail-item label {
         min-width: auto;
         margin-bottom: 0.25rem;
     }
 
-    .schedule-card {
+    .page-schedule-management .schedule-card {
         font-size: 0.65rem;
         padding: 0.15rem 0.3rem;
         text-align: left;
@@ -1203,30 +1787,29 @@
         justify-content: center;
     }
 
-    .schedule-line-1 {
+    .page-schedule-management .schedule-line-1 {
         margin-bottom: 0.1rem;
         text-align: left;
         padding-left: 0;
         margin-left: 0;
     }
 
-    .schedule-line-2 {
+    .page-schedule-management .schedule-line-2 {
         font-size: 0.6rem;
         margin-bottom: 0.1rem;
     }
 
-    .schedule-line-3 {
+    .page-schedule-management .schedule-line-3 {
         font-size: 0.6rem;
         margin-bottom: 0.1rem;
     }
 
-    .schedule-line-4 {
+    .page-schedule-management .schedule-line-4 {
         font-size: 0.55rem;
         margin-bottom: 0.1rem;
     }
 
-    .schedule-line-5 {
+    .page-schedule-management .schedule-line-5 {
         font-size: 0.5rem;
     }
 }
-

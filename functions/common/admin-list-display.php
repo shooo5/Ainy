@@ -94,11 +94,16 @@ function aidunite_admin_list_resolve_schedule_venue_meta($schedule_id) {
         }
         $venue_name = (string) get_post_meta($schedule_id, 'venue_name', true);
     } else {
-        $place = (string) get_post_meta($schedule_id, 'schedule_place', true);
-        if ($place === '') {
-            $place = (string) get_post_meta($schedule_id, 'schedule_place_option', true);
+        if (function_exists('aidunite_schedule_get_display_bundle')) {
+            $bundle = aidunite_schedule_get_display_bundle($schedule_id);
+            $place = (string) ($bundle['place'] ?? '');
+            $venue_name = (string) ($bundle['venue_name'] ?? '');
+        } else {
+            $place = function_exists('aidunite_schedule_read_place_raw')
+                ? (string) aidunite_schedule_read_place_raw($schedule_id)
+                : '';
+            $venue_name = (string) get_post_meta($schedule_id, 'venue_name', true);
         }
-        $venue_name = (string) get_post_meta($schedule_id, 'venue_name', true);
     }
 
     return ['place' => $place, 'venue_name' => $venue_name];
@@ -159,26 +164,6 @@ function aidunite_admin_list_get_schedule_venue_parts($schedule_id) {
         'place_label' => aidunite_admin_list_format_place_code_display($meta['place']),
         'venue_name' => aidunite_admin_list_format_venue_name_display($meta['venue_name']),
     ];
-}
-
-/**
- * @deprecated 会場条件のみ。会場名は aidunite_admin_list_get_schedule_venue_parts を使用。
- * @param int $schedule_id
- * @return string
- */
-function aidunite_admin_list_format_schedule_venue_display($schedule_id) {
-    $parts = aidunite_admin_list_get_schedule_venue_parts($schedule_id);
-
-    return $parts['place_label'];
-}
-
-/**
- * @deprecated aidunite_admin_list_format_place_code_display を使用（会場名は別列）
- */
-function aidunite_admin_list_format_place_display($place, $venue_name = '') {
-    unset($venue_name);
-
-    return aidunite_admin_list_format_place_code_display($place);
 }
 
 /**

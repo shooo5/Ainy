@@ -439,6 +439,217 @@ function aidunite_get_team_registration_complete_context() {
 }
 
 /**
+ * 申請日（Y/m/d）
+ *
+ * @param array<string, mixed> $team_ctx
+ */
+function aidunite_format_team_application_date_short($team_ctx) {
+    $team_id = (int) ($team_ctx['team_id'] ?? 0);
+    if ($team_id > 0) {
+        $formatted = get_the_date('Y/m/d', $team_id);
+        if (is_string($formatted) && $formatted !== '') {
+            return $formatted;
+        }
+    }
+
+    return wp_date('Y/m/d');
+}
+
+/**
+ * @param array<string, mixed> $team_ctx
+ */
+function aidunite_team_application_pending_gender_slug($team_ctx) {
+    $raw = (string) ($team_ctx['team_gender_option'] ?? '');
+    if (function_exists('aidunite_normalize_team_gender_option')) {
+        $raw = (string) aidunite_normalize_team_gender_option($raw);
+    }
+
+    if ($raw === 'male') {
+        return 'male';
+    }
+    if ($raw === 'female') {
+        return 'female';
+    }
+
+    return '';
+}
+
+/**
+ * @param array<string, mixed> $team_ctx
+ */
+function aidunite_render_team_application_pending_avatar($team_ctx) {
+    $gender = aidunite_team_application_pending_gender_slug($team_ctx);
+    $logo = (string) ($team_ctx['team_logo'] ?? '');
+    $mod = $gender !== '' ? ' team-reg-pending__avatar--' . $gender : '';
+
+    ob_start();
+    ?>
+    <span class="team-reg-pending__avatar<?php echo esc_attr($mod); ?>" aria-hidden="true">
+      <?php if ($logo !== '' && function_exists('aidunite_team_logo_is_displayable') && aidunite_team_logo_is_displayable($logo)) : ?>
+        <img class="team-reg-pending__avatar-img" src="<?php echo esc_url($logo); ?>" alt="" width="40" height="40" loading="lazy" />
+      <?php else : ?>
+        <span class="team-reg-pending__avatar-icon"><?php echo aidunite_get_theme_icon_svg('group', ['width' => '22', 'height' => '22']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+      <?php endif; ?>
+    </span>
+    <?php
+    return (string) ob_get_clean();
+}
+
+/**
+ * 申請中ステータスバッジ
+ */
+function aidunite_render_team_application_pending_status_badge() {
+    ob_start();
+    ?>
+    <span class="team-reg-pending__status">
+      <span class="team-reg-pending__status-icon" aria-hidden="true"><?php echo aidunite_get_theme_icon_svg('hourglass_empty', ['width' => '16', 'height' => '16']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+      確認中
+    </span>
+    <?php
+    return (string) ob_get_clean();
+}
+
+/**
+ * 申請中チームの性別ラベル
+ *
+ * @param array<string, mixed> $team_ctx
+ */
+function aidunite_get_team_application_pending_gender_label($team_ctx) {
+    $gender_label = (string) ($team_ctx['team_gender_label'] ?? '');
+    if ($gender_label === '' && function_exists('aidunite_format_team_application_gender_label')) {
+        $gender_label = aidunite_format_team_application_gender_label($team_ctx['team_gender_option'] ?? '');
+    }
+
+    return $gender_label;
+}
+
+/**
+ * 申請内容確認パネル本体（ロゴ + チップグリッド）
+ *
+ * @param array<string, mixed> $context
+ * @param array<string, bool>  $options
+ */
+function aidunite_render_team_application_review_panel($context, $options = []) {
+    $context = is_array($context) ? $context : [];
+    $team_name = (string) ($context['team_name'] ?? '');
+    $logo_url  = (string) ($context['team_logo'] ?? '');
+    $logo_crop = isset($context['logo_crop']) && is_array($context['logo_crop'])
+        ? $context['logo_crop']
+        : ['x' => 0, 'y' => 0, 'zoom' => 100];
+    $logo_style = sprintf(
+        'transform: translate(%d%%, %d%%) scale(%s);',
+        (int) ($logo_crop['x'] ?? 0),
+        (int) ($logo_crop['y'] ?? 0),
+        max(0.5, (int) ($logo_crop['zoom'] ?? 100) / 100)
+    );
+    $has_logo = $logo_url !== '';
+
+    ob_start();
+    ?>
+    <div class="team-reg-complete-details__body<?php echo $has_logo ? '' : ' team-reg-complete-details__body--no-logo'; ?>">
+      <aside class="team-reg-complete-details__logo-side" aria-label="チームロゴ">
+        <?php if ($has_logo) : ?>
+          <div class="team-reg-complete-details__logo-frame">
+            <img
+              class="team-reg-complete-details__logo"
+              src="<?php echo esc_url($logo_url); ?>"
+              alt="<?php echo esc_attr($team_name); ?>のロゴ"
+              width="168"
+              height="168"
+              decoding="async"
+              style="<?php echo esc_attr($logo_style); ?>"
+            >
+          </div>
+        <?php else : ?>
+          <div class="team-reg-complete-details__logo-frame team-reg-complete-details__logo-frame--placeholder" aria-hidden="true"></div>
+        <?php endif; ?>
+      </aside>
+
+      <div class="team-reg-complete-details__content">
+        <?php
+        if (function_exists('aidunite_render_application_review_card_layout')) {
+            echo aidunite_render_application_review_card_layout($context, array_merge([
+                'include_submitted_at' => true,
+                'include_contact'      => false,
+            ], $options)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        }
+        ?>
+      </div>
+    </div>
+    <?php
+    return (string) ob_get_clean();
+}
+
+/**
+ * 申請中チームカード（2行レイアウト・押下で申請内容を展開）
+ *
+ * @param array<string, mixed> $team_ctx
+ */
+function aidunite_render_team_registration_pending_card($team_ctx) {
+    $gender_slug  = aidunite_team_application_pending_gender_slug($team_ctx);
+    $gender_label = aidunite_get_team_application_pending_gender_label($team_ctx);
+    $gender_mod   = $gender_slug !== '' ? ' team-reg-pending__details--' . $gender_slug : '';
+    $team_name    = (string) ($team_ctx['team_name'] ?? '');
+
+    ob_start();
+    ?>
+    <li class="team-reg-pending__item">
+      <details class="team-reg-pending__details<?php echo esc_attr($gender_mod); ?>">
+        <summary class="team-reg-pending__card">
+          <span class="team-reg-pending__card-logo">
+            <?php echo aidunite_render_team_application_pending_avatar($team_ctx); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+          </span>
+          <p class="team-reg-pending__card-name"><?php echo esc_html($team_name); ?></p>
+          <div class="team-reg-pending__card-status"><?php echo aidunite_render_team_application_pending_status_badge(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
+          <p class="team-reg-pending__card-meta">
+            <?php echo esc_html($gender_label !== '' ? $gender_label : '—'); ?>
+            <span class="team-reg-pending__card-meta-sep" aria-hidden="true">|</span>
+            <?php echo esc_html(aidunite_format_team_application_date_short($team_ctx)); ?>
+          </p>
+          <span class="team-reg-pending__card-chev" aria-hidden="true"></span>
+          <span class="screen-reader-text"><?php echo esc_html($team_name); ?>の申請内容を表示</span>
+        </summary>
+        <div class="team-reg-pending__card-panel">
+          <?php echo aidunite_render_team_application_review_panel($team_ctx); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        </div>
+      </details>
+    </li>
+    <?php
+    return (string) ob_get_clean();
+}
+
+/**
+ * 申請中チーム一覧
+ *
+ * @param array<int, array<string, mixed>> $teams
+ */
+function aidunite_render_team_registration_pending_section(array $teams) {
+    $teams = array_values(array_filter($teams, static function ($row) {
+        return is_array($row) && !empty($row['team_name']);
+    }));
+
+    if ($teams === []) {
+        return '';
+    }
+
+    $count = count($teams);
+
+    ob_start();
+    ?>
+    <section class="team-reg-pending" aria-labelledby="team-reg-pending-heading">
+      <h2 id="team-reg-pending-heading" class="team-reg-pending__heading">申請中のチーム（<?php echo (int) $count; ?>件）</h2>
+
+      <ul class="team-reg-pending__cards">
+        <?php foreach ($teams as $team_ctx) : ?>
+          <?php echo aidunite_render_team_registration_pending_card($team_ctx); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        <?php endforeach; ?>
+      </ul>
+    </section>
+    <?php
+    return (string) ob_get_clean();
+}
+
+/**
  * 申請内容確認アコーディオン（完了画面・承認待ちマイページ共通）
  *
  * @param array<string, mixed> $context

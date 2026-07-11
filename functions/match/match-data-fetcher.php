@@ -71,9 +71,16 @@ function get_schedule_match_data() {
   foreach ($schedules as $schedule) {
     $schedule_id = $schedule->ID;
 
+    $sch_bundle = function_exists('aidunite_schedule_get_display_bundle')
+      ? aidunite_schedule_get_display_bundle((int) $schedule_id)
+      : [];
     // スケジュール基本情報
-    $schedule_date_raw = get_post_meta($schedule_id, 'schedule_date', true);
-    $team_id = get_post_meta($schedule_id, 'team_id', true);
+    $schedule_date_raw = (string) ($sch_bundle['date'] ?? (function_exists('aidunite_schedule_read_normalized_date')
+      ? aidunite_schedule_read_normalized_date((int) $schedule_id)
+      : ''));
+    $team_id = (int) ($sch_bundle['team_id'] ?? (function_exists('aidunite_schedule_read_team_id')
+      ? aidunite_schedule_read_team_id((int) $schedule_id)
+      : 0));
     $team_name = get_the_title($team_id);
 
     // 日付計算
@@ -83,7 +90,10 @@ function get_schedule_match_data() {
 
     // マッチボード情報
     $board_id = get_board_id_from_schedule($schedule_id);
-    $board_status = $board_id ? get_post_meta($board_id, 'match_board_status', true) : '-';
+    $board_status = '-';
+    if ($board_id && function_exists('aidunite_match_board_get_canonical_meta')) {
+        $board_status = (string) (aidunite_match_board_get_canonical_meta((int) $board_id)['board_status'] ?? '-');
+    }
 
     // マッチリクエスト情報
     $match_requests = get_match_requests_by_schedule($schedule_id);
@@ -92,12 +102,15 @@ function get_schedule_match_data() {
 
     foreach ($match_requests as $request) {
       $request_id = $request->ID;
-      $from_team_id = get_post_meta($request_id, 'from_team_id', true);
+      $mr_row = function_exists('aidunite_match_request_get_canonical_meta')
+        ? aidunite_match_request_get_canonical_meta((int) $request_id)
+        : [];
+      $from_team_id = (int) ($mr_row['from_team_id'] ?? 0);
       $from_team_name = get_the_title($from_team_id);
-      $from_schedule_id = get_post_meta($request_id, 'from_schedule_id', true);
-      $to_schedule_id = get_post_meta($request_id, 'to_schedule_id', true);
-      $status = get_post_meta($request_id, 'status', true);
-      $type = get_post_meta($request_id, 'type', true);
+      $from_schedule_id = (int) ($mr_row['from_schedule_id'] ?? 0);
+      $to_schedule_id = (int) ($mr_row['to_schedule_id'] ?? 0);
+      $status = (string) ($mr_row['status'] ?? '');
+      $type = !empty($mr_row['is_auto']) ? 'auto' : (string) ($mr_row['type'] ?? '');
 
       if ($status === 'accepted' || $status === 'established') {
         $accepted_count++;
@@ -208,26 +221,29 @@ function get_schedule_match_data() {
      $total_capacity_rate = ($male_capacity + $female_capacity) > 0 ? round(($participant_count / ($male_capacity + $female_capacity)) * 100, 1) : 0;
 
      // スケジュールの詳細情報
-     $start_time = get_post_meta($schedule_id, 'schedule_start_time', true);
-     $end_time = get_post_meta($schedule_id, 'schedule_end_time', true);
-     $place = get_post_meta($schedule_id, 'schedule_place', true);
-     // Phase 2: 統一メタキーを優先、後方互換性のために旧キーもフォールバック
-     $place_condition = get_post_meta($schedule_id, 'schedule_place', true);
-     if (empty($place_condition)) {
-         $place_condition = get_post_meta($schedule_id, 'schedule_place_option', true);
+     $sch_api = function_exists('aidunite_schedule_get_api_display_fields')
+       ? aidunite_schedule_get_api_display_fields((int) $schedule_id)
+       : [];
+     $start_time = (string) ($sch_bundle['start_time'] ?? $sch_api['start_time'] ?? '');
+     $end_time = (string) ($sch_bundle['end_time'] ?? $sch_api['end_time'] ?? '');
+     $place = (string) ($sch_bundle['place'] ?? '');
+     if ($place === '' && function_exists('aidunite_schedule_read_place_raw')) {
+         $place = aidunite_schedule_read_place_raw((int) $schedule_id);
      }
+     $place_condition = $place;
 
-     // Phase 2: 統一メタキーを優先、後方互換性のために旧キーもフォールバック
-     $gender_condition = get_post_meta($schedule_id, 'schedule_gender', true);
-     if (empty($gender_condition)) {
-         $gender_condition = get_post_meta($schedule_id, 'matching_gender_condition', true);
+     $gender_condition = (string) ($sch_bundle['gender'] ?? '');
+     if ($gender_condition === '' && function_exists('aidunite_schedule_read_gender_raw')) {
+         $gender_condition = aidunite_schedule_read_gender_raw((int) $schedule_id);
      }
      $participation_fee = get_post_meta($schedule_id, 'participation_fee', true);
-     $notes = get_post_meta($schedule_id, 'schedule_note', true);
+     $notes = (string) ($sch_bundle['memo'] ?? '');
 
      // 種別情報の取得と表示変換
-     $schedule_type = get_post_meta($schedule_id, 'schedule_type', true);
-     $intent = get_post_meta($schedule_id, 'intent', true);
+     $schedule_type = (string) ($sch_bundle['schedule_type'] ?? '');
+     $intent = (string) ($sch_bundle['intent'] ?? (function_exists('aidunite_schedule_read_intent')
+       ? aidunite_schedule_read_intent((int) $schedule_id)
+       : ''));
      $schedule_type_display = get_schedule_type_display($schedule_type, $intent);
 
      $result[] = [

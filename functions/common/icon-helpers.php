@@ -80,7 +80,7 @@ function aidunite_get_theme_icons_path() {
 /**
  * UI 用 SVG をインラインで取得（currentColor 対応）
  *
- * `aidunite_get_chat_icon_svg` の後継。ファイルは assets/images/icons/{name}.svg。
+ * ファイルは assets/images/icons/{name}.svg。
  *
  * @param string $basename  拡張子なし（例: home）
  * @param array  $attrs
@@ -99,13 +99,6 @@ function aidunite_get_theme_icon_svg($basename, $attrs = [], $use_current_color 
     }
 
     return aidunite_get_inline_icon_svg($basename, $attrs);
-}
-
-/**
- * @deprecated 3.0 use aidunite_get_theme_icon_svg()
- */
-function aidunite_get_chat_icon_svg($basename, $attrs = [], $use_current_color = true) {
-    return aidunite_get_theme_icon_svg($basename, $attrs, $use_current_color);
 }
 
 /**

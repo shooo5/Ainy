@@ -68,23 +68,18 @@
   min-width: 0;
 }
 
-/* ヒーロー */
-.member-register-hero {
-  text-align: center;
-  margin: 0 0 var(--spacing-lg);
-  min-width: 0;
-}
-
+/* カード上部タイトル */
 .member-register-title {
-  margin: 0 0 var(--spacing-sm);
+  margin: 0 0 var(--spacing-lg);
   font-size: clamp(1.75rem, 5vw, 2.25rem);
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
+  text-align: center;
 }
 
 .member-register-subtitle {
-  margin: 0;
+  margin: 0 0 var(--spacing-md);
   font-size: var(--font-size-base);
   color: var(--text-secondary);
   line-height: 1.6;
@@ -101,44 +96,51 @@
 
 .member-register-card-intro {
   display: flex;
-  gap: var(--spacing-base);
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
   margin-bottom: var(--spacing-lg);
   padding-bottom: var(--spacing-md);
   border-bottom: 1px solid var(--border-light);
 }
 
 .member-register-card-intro-icon {
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
-  border-radius: var(--radius-medium);
-  background: rgba(106, 90, 249, 0.1);
+  margin-bottom: var(--spacing-md);
   color: var(--primary-color);
 }
 
 .member-register-card-intro-icon svg {
   display: block;
-  width: 28px;
-  height: 28px;
+  width: 48px;
+  height: 48px;
   color: inherit;
 }
 
-.member-register-card-title {
-  margin: 0 0 var(--spacing-xs);
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
 .member-register-card-lead {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
   margin: 0;
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
   line-height: 1.6;
+}
+
+.member-register-card-lead-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--primary-color);
+}
+
+.member-register-card-lead-icon svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  color: inherit;
 }
 
 /* エラー */
@@ -406,8 +408,9 @@
 }
 
 .member-register-terms-label {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--text-secondary);
+  margin-top: 2px;
   line-height: 1.6;
   cursor: pointer;
 }
@@ -639,12 +642,6 @@
   .member-register-card {
     padding: var(--spacing-md);
     border-radius: var(--radius-medium);
-  }
-
-  .member-register-card-intro {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
   }
 
   .member-register-name-row {

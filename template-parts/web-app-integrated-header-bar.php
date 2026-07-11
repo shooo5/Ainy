@@ -16,7 +16,42 @@ if ($notification_count <= 0 && function_exists('aidunite_get_notification_count
 }
 
 $notif_active  = $active_nav === 'notifications' ? ' is-active' : '';
+$joy_layout    = !empty($args['joy_layout']);
+$team_name     = isset($args['team_name']) ? trim((string) $args['team_name']) : '';
 ?>
+
+<?php if ($joy_layout) : ?>
+<div class="mypage-joy-hero-bar" role="banner">
+    <div class="mypage-joy-hero-bar__actions mypage-v2-hero-actions">
+        <span class="ainy-header-notification-wrap">
+            <a href="<?php echo esc_url(home_url('/notifications')); ?>" class="ainy-header-icon-link ainy-header-notification-link ainy-webapp-hero-icon-link mypage-v2-hero-icon-link<?php echo $notif_active; ?>" aria-label="<?php echo $notification_count > 0 ? esc_attr('お知らせ（未読' . $notification_count . '件）') : 'お知らせ'; ?>"<?php echo $notif_active ? ' aria-current="page"' : ''; ?>>
+                <svg width="24" height="24" viewBox="0 -960 960 960" fill="#EAC452" aria-hidden="true"><path d="M160-200v-80h80v-280q0-83 50-147.5T420-792v-28q0-25 17.5-42.5T480-880q25 0 42.5 17.5T540-820v28q80 20 130 84.5T720-560v280h80v80H160Zm320-300Zm0 420q-33 0-56.5-23.5T400-160h160q0 33-23.5 56.5T480-80ZM320-280h320v-280q0-66-47-113t-113-47q-66 0-113 47t-47 113v280Z"/></svg>
+                <?php if ($notification_count > 0) : ?>
+                    <span class="ainy-notification-dot" aria-hidden="true"></span>
+                <?php endif; ?>
+            </a>
+        </span>
+        <button type="button" class="ainy-hamburger ainy-webapp-hero-hamburger mypage-v2-hero-hamburger" title="メニュー" aria-label="メニューを開く">
+            <span class="ainy-hamburger-icon" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
+        </button>
+    </div>
+
+    <div class="mypage-joy-hero-bar__center">
+        <a href="<?php echo esc_url(home_url('/')); ?>" class="ainy-webapp-hero-logo mypage-v2-hero-logo mypage-joy-hero-logo" aria-label="Ainy ホーム">
+            <span class="ainy-webapp-hero-logo-icon mypage-v2-hero-logo-icon" aria-hidden="true">A</span>
+            <span class="ainy-webapp-hero-logo-text mypage-v2-hero-logo-text">Ainy</span>
+        </a>
+        <?php if ($team_name !== '') : ?>
+            <p class="mypage-joy-hero-bar__team"><?php echo esc_html($team_name); ?></p>
+        <?php endif; ?>
+    </div>
+</div>
+<?php return; ?>
+<?php endif; ?>
 
 <div class="ainy-webapp-hero-bar mypage-v2-hero-bar">
     <a href="<?php echo esc_url(home_url('/')); ?>" class="ainy-webapp-hero-logo mypage-v2-hero-logo" aria-label="Ainy ホーム">

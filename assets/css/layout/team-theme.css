@@ -20,14 +20,12 @@ body[data-team-theme="boys"] {
   --schedule-filter-all-bg: var(--schedule-selection-gradient);
   --schedule-filter-confirmed-bg: color-mix(in srgb, var(--gender-boys-accent) 22%, transparent);
   --schedule-filter-confirmed-border: var(--theme-accent);
-  --schedule-filter-recruit-bg: color-mix(in srgb, var(--gender-boys-navy-700) 14%, transparent);
-  --schedule-filter-recruit-border: var(--ainy-navy-700);
   --schedule-filter-tentative-bg: rgba(255, 193, 7, 0.28);
   --schedule-filter-tentative-border: var(--warning-color, #ffc107);
   --schedule-filter-tentative-text: #5c4a00;
   --schedule-status-confirmed-bg: rgba(147, 197, 253, 0.55);
   --schedule-status-tentative-bg: rgba(255, 249, 196, 0.95);
-  --schedule-status-recruit-bg: rgba(191, 219, 254, 0.65);
+  --schedule-status-recruit-bg: var(--schedule-badge-recruit-bg);
 }
 
 /* 女子チーム */
@@ -51,14 +49,12 @@ body[data-team-theme="girls"] {
   --schedule-filter-all-bg: var(--schedule-selection-gradient);
   --schedule-filter-confirmed-bg: color-mix(in srgb, var(--gender-girls-accent) 35%, transparent);
   --schedule-filter-confirmed-border: var(--theme-accent-dark);
-  --schedule-filter-recruit-bg: color-mix(in srgb, var(--gender-girls-accent-light) 28%, transparent);
-  --schedule-filter-recruit-border: var(--ainy-navy-700);
   --schedule-filter-tentative-bg: rgba(255, 193, 7, 0.28);
   --schedule-filter-tentative-border: var(--warning-color, #ffc107);
   --schedule-filter-tentative-text: #5c4a00;
   --schedule-status-confirmed-bg: rgba(221, 214, 254, 0.85);
   --schedule-status-tentative-bg: rgba(255, 249, 196, 0.95);
-  --schedule-status-recruit-bg: rgba(233, 213, 255, 0.75);
+  --schedule-status-recruit-bg: var(--schedule-badge-recruit-bg);
 }
 
 /* 統一ページヘッダー（dashboard-header / communication-header） */
@@ -80,12 +76,22 @@ body.web-app-page[data-team-theme] .communication-header p {
   color: var(--page-header-description-color);
 }
 
-/* コミュニケーション／チャット Pattern C：アクセントのみ切替（構造・背景は messaging.css で共通） */
-body[data-team-theme] .page-communication-main .communication-content--pattern-c,
-body[data-team-theme] .chat-page-shell {
+/* コミュニケーション一覧：ライト UI + テーマアクセント（チャット画面は下記で別途ダーク） */
+body[data-team-theme] .page-communication-main .communication-content--pattern-c {
   --comm-accent: var(--theme-accent);
   --comm-accent-dark: var(--theme-accent-dark);
-  --comm-accent-soft: color-mix(in srgb, var(--theme-accent) 22%, transparent);
+  --comm-accent-soft: color-mix(in srgb, var(--theme-accent) 12%, transparent);
+  --comm-filter-active-bg: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--theme-accent) 8%, transparent),
+    var(--comm-surface, var(--bg-primary))
+  );
+  --comm-filter-active-ring: color-mix(in srgb, var(--theme-accent) 14%, transparent);
+}
+
+body[data-team-theme] .page-communication-main .chat-page-shell {
+  --chat-accent: var(--theme-accent);
+  --chat-accent-own: var(--theme-accent);
 }
 
 /* 通知一覧：タブアクセント（一体型ヒーローは web-app-integrated-ui.css） */
@@ -116,28 +122,16 @@ body.web-app-page.page-team-settings[data-team-theme] .team-settings-dash__btn--
   color: var(--text-on-dark);
 }
 
-/* ボトムナビ（マイページ v2 専用ナビ以外・footer インライン と競合） */
-body.web-app-page[data-team-theme] nav.ainy-bottom-nav:not(.ainy-bottom-nav--mypage-v2) {
+/* ボトムナビ：チームテーマ色（web-app-integrated-ui.css のベースを上書き） */
+body.ainy-has-bottom-nav[data-team-theme] nav.ainy-bottom-nav {
   background: var(--nav-dark-gradient);
-  border-top: none;
   box-shadow: 0 -8px 28px rgba(8, 24, 39, 0.3);
 }
 
-body.web-app-page[data-team-theme="girls"] nav.ainy-bottom-nav:not(.ainy-bottom-nav--mypage-v2) {
+body.ainy-has-bottom-nav[data-team-theme="girls"] nav.ainy-bottom-nav {
   box-shadow: 0 -8px 28px var(--gender-girls-glow-strong);
 }
 
-body.web-app-page[data-team-theme] nav.ainy-bottom-nav:not(.ainy-bottom-nav--mypage-v2) .ainy-bottom-nav-link {
-  color: rgba(255, 255, 255, 0.82);
-}
-
-body.web-app-page[data-team-theme] nav.ainy-bottom-nav:not(.ainy-bottom-nav--mypage-v2) .ainy-bottom-nav-link:hover,
-body.web-app-page[data-team-theme] nav.ainy-bottom-nav:not(.ainy-bottom-nav--mypage-v2) .ainy-bottom-nav-link.active {
-  color: var(--text-on-dark);
-  background: rgba(255, 255, 255, 0.12);
-}
-
-body.web-app-page[data-team-theme] nav.ainy-bottom-nav:not(.ainy-bottom-nav--mypage-v2) .ainy-bottom-nav-link.active svg,
-body.web-app-page[data-team-theme] nav.ainy-bottom-nav:not(.ainy-bottom-nav--mypage-v2) .ainy-bottom-nav-link:hover svg {
-  color: var(--theme-accent);
+body.ainy-has-bottom-nav[data-team-theme] nav.ainy-bottom-nav .ainy-bottom-nav-link.active::after {
+  background: var(--theme-accent, var(--primary-color, #60a5fa));
 }

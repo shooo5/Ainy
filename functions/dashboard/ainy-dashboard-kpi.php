@@ -428,49 +428,29 @@ function aidunite_dashboard_get_kpi_data($period = '7d') {
 }
 
 /**
- * 支払い済みユーザー数（売上目安・ショートカット用）
+ * 支払い済みチーム数（関数名は互換のため paid_users のまま）
  */
 function aidunite_dashboard_count_paid_users() {
-    $q = new WP_User_Query([
-        'meta_key' => 'payment_status',
-        'meta_value' => 'paid',
-        'count_total' => true,
-        'number' => 1,
-        'fields' => 'ID',
-    ]);
-    return $q->get_total();
+    return function_exists('aidunite_payment_read_count_paid_teams')
+        ? aidunite_payment_read_count_paid_teams()
+        : 0;
 }
 
 /**
- * 全体の継続月数（有料会員の平均）と LTV を取得
- * 有料会員の payment_status_updated または user_registered から現在までの経過月数の平均。
- * LTV = 月額 × 平均継続月数（1人あたり）。全体LTV = 1人あたりLTV × 有料会員数。
+ * 全体の継続月数（有料チームの平均）と LTV を取得
+ * team_payment_status_updated から現在までの経過月数の平均。
  *
  * @param int|null $monthly_amount 学校（個人契約）月額。null の場合は payment_config から取得を試みる。
  * @return array { retention_months_avg, ltv_per_user, ltv_total, paid_count }
  */
 function aidunite_dashboard_get_retention_ltv($monthly_amount = null) {
-    $q = new WP_User_Query([
-        'meta_key' => 'payment_status',
-        'meta_value' => 'paid',
-        'number' => -1,
-        'fields' => 'ID',
-    ]);
-    $user_ids = $q->get_results();
-    $paid_count = is_array($user_ids) ? count($user_ids) : 0;
-
+    $paid_count = aidunite_dashboard_count_paid_users();
     $retention_months_avg = 0;
-    if ($paid_count > 0 && is_array($user_ids)) {
-        $now = current_time('timestamp');
-        $months_list = [];
-        foreach ($user_ids as $uid) {
-            $uid = (int) $uid;
-            $updated = get_user_meta($uid, 'payment_status_updated', true);
-            $user = get_userdata($uid);
-            $base_ts = !empty($updated) ? strtotime($updated) : ($user && !empty($user->user_registered) ? strtotime($user->user_registered) : $now);
-            $months_list[] = max(0, ($now - $base_ts) / (30.44 * 24 * 3600)); // 約30.44日で1ヶ月
+    if ($paid_count > 0 && function_exists('aidunite_payment_read_paid_team_retention_months')) {
+        $months_list = aidunite_payment_read_paid_team_retention_months();
+        if ($months_list !== []) {
+            $retention_months_avg = array_sum($months_list) / count($months_list);
         }
-        $retention_months_avg = array_sum($months_list) / count($months_list);
     }
 
     if ($monthly_amount === null && function_exists('aidunite_get_payment_config')) {
@@ -507,6 +487,7 @@ function aidunite_dashboard_get_data_management_shortcuts() {
         ['label' => 'マッチ申請一覧', 'url' => home_url('/match-requests'), 'icon' => 'handshake'],
         ['label' => '試合後のアンケート一覧', 'url' => home_url('/admin-match-feedback-list'), 'icon' => 'list_alt_add'],
         ['label' => '決済一覧', 'url' => home_url('/admin-payment-list'), 'icon' => 'payments'],
+        ['label' => '売上・見込み', 'url' => home_url('/admin-payment-revenue'), 'icon' => 'currency_yen'],
     ];
 }
 
@@ -526,14 +507,4 @@ function aidunite_dashboard_get_admin_shortcuts() {
         ['label' => '試合後モジュール', 'url' => home_url('/admin-post-match-modules'), 'icon' => 'campaign'],
         ['label' => 'WordPress管理', 'url' => admin_url(), 'icon' => 'build'],
     ];
-}
-
-/**
- * @deprecated 後方互換。データ管理＋管理ショートカットを結合して返す。
- */
-function aidunite_dashboard_get_shortcuts() {
-    return array_merge(
-        aidunite_dashboard_get_data_management_shortcuts(),
-        aidunite_dashboard_get_admin_shortcuts()
-    );
 }

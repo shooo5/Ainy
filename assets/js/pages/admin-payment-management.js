@@ -3,6 +3,57 @@
         var cfg = typeof aidunitePaymentAdmin !== 'undefined' ? aidunitePaymentAdmin : {};
         var nonce = cfg.nonce || '';
         var ajaxUrl = cfg.ajaxUrl || '';
+        var restUrl = (cfg.restUrl || '').replace(/\/$/, '');
+        var restNonce = cfg.restNonce || '';
+
+        function assignFoundingTeam(teamId, onSuccess) {
+            var id = parseInt(teamId, 10);
+            if (!id || !restUrl || !restNonce) {
+                aiduniteToast('設定が不足しています', 'error');
+                return;
+            }
+            fetch(restUrl + '/teams/' + id + '/payment-plan/founding', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'X-WP-Nonce': restNonce,
+                    'Content-Type': 'application/json',
+                },
+            })
+                .then(function (r) {
+                    return r.json().then(function (body) {
+                        return { ok: r.ok, body: body };
+                    });
+                })
+                .then(function (res) {
+                    if (res.ok && res.body && res.body.success) {
+                        aiduniteToast((res.body.message) || 'Founding Team に割り当てました', 'success');
+                        if (typeof onSuccess === 'function') {
+                            onSuccess(res.body);
+                        } else {
+                            window.location.reload();
+                        }
+                        return;
+                    }
+                    var msg =
+                        (res.body && (res.body.message || (res.body.data && res.body.data.message))) ||
+                        '割当に失敗しました';
+                    aiduniteToast(msg, 'error');
+                })
+                .catch(function () {
+                    aiduniteToast('通信エラー', 'error');
+                });
+        }
+
+        function updateFoundingSlotsRemaining(payload) {
+            var el = document.getElementById('founding-slots-remaining');
+            if (!el || !payload || !payload.founding) {
+                return;
+            }
+            if (typeof payload.founding.slots_remaining !== 'undefined') {
+                el.textContent = String(payload.founding.slots_remaining);
+            }
+        }
 
         document.querySelectorAll('.ainy-dashboard-tab-btn').forEach(function (btn) {
             btn.addEventListener('click', function () {
@@ -25,22 +76,30 @@
         if (formAmount) {
             formAmount.addEventListener('submit', function (e) {
                 e.preventDefault();
+                var matchAmount = document.getElementById('match_monthly_amount').value;
                 var data = new FormData();
                 data.append('action', 'aidunite_save_payment_config');
-                data.append('board_amount', document.getElementById('board_amount').value);
-                data.append('school_amount', document.getElementById('school_amount').value);
-                data.append('personal_amount', document.getElementById('personal_amount').value);
-                data.append('club_base_amount', document.getElementById('club_base_amount').value);
+                data.append('match_monthly_amount', matchAmount);
+                data.append('personal_amount', matchAmount);
+                data.append('corporate_amount', matchAmount);
+                data.append('club_per_player_amount', document.getElementById('club_per_player_amount').value);
+                data.append('club_minimum_addon', document.getElementById('club_minimum_addon').value);
+                data.append('founding_max_slots', document.getElementById('founding_max_slots').value);
+                data.append('founding_discount_percent', document.getElementById('founding_discount_percent').value);
+                data.append('multi_team_discount_percent', document.getElementById('multi_team_discount_percent').value);
                 data.append('nonce', nonce);
                 fetch(ajaxUrl, { method: 'POST', body: data, credentials: 'same-origin' })
                     .then(function (r) {
                         return r.json();
                     })
                     .then(function (res) {
-                        alert(res.success ? '設定を保存しました' : (res.data && res.data.message) || '保存に失敗しました');
+                        aiduniteToast(
+                            res.success ? '設定を保存しました' : (res.data && res.data.message) || '保存に失敗しました',
+                            res.success ? 'success' : 'error'
+                        );
                     })
                     .catch(function () {
-                        alert('通信エラー');
+                        aiduniteToast('通信エラー', 'error');
                     });
             });
         }
@@ -60,51 +119,50 @@
                         return r.json();
                     })
                     .then(function (res) {
-                        alert(res.success ? 'Stripe設定を保存しました' : (res.data && res.data.message) || '保存に失敗しました');
+                        aiduniteToast(
+                            res.success ? 'Stripe設定を保存しました' : (res.data && res.data.message) || '保存に失敗しました',
+                            res.success ? 'success' : 'error'
+                        );
                     })
                     .catch(function () {
-                        alert('通信エラー');
+                        aiduniteToast('通信エラー', 'error');
                     });
             });
         }
 
-        var genBtn = document.getElementById('generate-code-btn');
-        if (genBtn) {
-            genBtn.addEventListener('click', function () {
-                var data = new FormData();
-                data.append('action', 'aidunite_generate_registration_code');
-                data.append('nonce', nonce);
-                fetch(ajaxUrl, { method: 'POST', body: data, credentials: 'same-origin' })
-                    .then(function (r) {
-                        return r.json();
-                    })
-                    .then(function (res) {
-                        if (res.success && res.data && res.data.code) {
-                            document.getElementById('code-value').textContent = res.data.code;
-                            document.getElementById('generated-code').style.display = 'block';
-                        } else {
-                            alert('コード生成に失敗しました');
-                        }
-                    })
-                    .catch(function () {
-                        alert('通信エラー');
-                    });
-            });
-        }
-
-        var copyBtn = document.getElementById('copy-code-btn');
-        if (copyBtn) {
-            copyBtn.addEventListener('click', function () {
-                var code = document.getElementById('code-value').textContent;
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(code).then(function () {
-                        alert('コピーしました: ' + code);
-                    });
-                } else {
-                    alert('コード: ' + code);
+        var foundingAssignBtn = document.getElementById('founding-assign-btn');
+        if (foundingAssignBtn) {
+            foundingAssignBtn.addEventListener('click', function () {
+                var input = document.getElementById('founding-assign-team-id');
+                var teamId = input ? input.value : '';
+                if (!teamId) {
+                    aiduniteToast('チームIDを入力してください', 'error');
+                    return;
                 }
+                if (!window.confirm('チームID ' + teamId + ' を Founding Team に割り当てますか？')) {
+                    return;
+                }
+                assignFoundingTeam(teamId, function (body) {
+                    updateFoundingSlotsRemaining(body.payload || {});
+                    if (input) {
+                        input.value = '';
+                    }
+                });
             });
         }
+
+        document.querySelectorAll('.aidunite-assign-founding-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var teamId = this.getAttribute('data-team-id');
+                if (!teamId) {
+                    return;
+                }
+                if (!window.confirm('チームID ' + teamId + ' を Founding Team に割り当てますか？')) {
+                    return;
+                }
+                assignFoundingTeam(teamId);
+            });
+        });
 
         var formPlanDisplayMode = document.getElementById('plan-display-mode-form');
         if (formPlanDisplayMode) {
@@ -123,14 +181,15 @@
                         return r.json();
                     })
                     .then(function (res) {
-                        alert(
+                        aiduniteToast(
                             res.success
                                 ? (res.data && res.data.message) || '保存しました'
-                                : (res.data && res.data.message) || '保存に失敗しました'
+                                : (res.data && res.data.message) || '保存に失敗しました',
+                            res.success ? 'success' : 'error'
                         );
                     })
                     .catch(function () {
-                        alert('通信エラー');
+                        aiduniteToast('通信エラー', 'error');
                     });
             });
         }

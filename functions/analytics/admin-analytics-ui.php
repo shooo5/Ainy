@@ -17,6 +17,7 @@ function aidunite_analytics_get_admin_nav_items() {
         ['slug' => 'pv', 'label' => 'PVデータ', 'path' => '/admin-analytics-pv'],
         ['slug' => 'churn', 'label' => '離脱分析', 'path' => '/admin-analytics-churn'],
         ['slug' => 'ai', 'label' => 'AI月次レポート', 'path' => '/admin-analytics-ai-report'],
+        ['slug' => 'revenue', 'label' => '売上・見込み', 'path' => '/admin-payment-revenue'],
     ];
 }
 

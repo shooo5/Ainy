@@ -3,8 +3,14 @@ backups/
 *.sql
 *.log
 
-# テスト関連
-tests/
+# テスト関連（ソースは追跡、生成物・巨大バイナリは除外）
+tests/screenshots/
+tests/playwright-report/
+tests/test-results/
+tests/_output_backup*/
+tests/chromedriver.exe
+tests/acceptance/
+tests/Manual/
 chromedriver/
 .phpunit.result.cache
 acceptance.suite.yml
@@ -15,13 +21,8 @@ test-simple.php
 
 # 開発専用フォルダ
 bin/
-.github/
 node_modules/
 vendor/
-
-# Composer関連（本番不要）
-composer.json
-composer.lock
 
 # OSやIDE系
 .DS_Store
@@ -30,5 +31,8 @@ composer.lock
 # ドキュメント（本番不要）
 *.md
 
-tests/
+# E2E（ローカル専用・秘密情報を含む可能性あり）
+e2e.config.ps1
+PaymentE2E_Results_*.csv
+scripts/e2e-*.json
 

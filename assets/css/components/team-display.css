@@ -1,0 +1,323 @@
+/** team-display-template.php */
+/* ===== チーム申請承認カード（統一UI・Design Tokens） ===== */
+    .team-approval-card {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-medium);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        transition: box-shadow 0.2s ease;
+    }
+    .team-approval-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+    .team-approval-card__content {
+        padding: var(--spacing-base);
+    }
+    .team-approval-card__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-base);
+        padding-bottom: var(--spacing-sm);
+        border-bottom: 1px solid var(--border-light);
+    }
+    .team-approval-card__title {
+        margin: 0;
+        font-size: var(--font-size-lg);
+        font-weight: bold;
+        color: var(--text-primary);
+    }
+    .team-approval-card__badge {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--radius-small);
+        font-size: var(--font-size-xs);
+        font-weight: bold;
+    }
+    .team-approval-card__badge--pending {
+        background: rgba(255, 193, 7, 0.15);
+        color: var(--warning-color);
+    }
+    .team-approval-card__badge--publish {
+        background: rgba(40, 167, 69, 0.15);
+        color: var(--success-color);
+    }
+    .team-approval-card__body {
+        margin-bottom: var(--spacing-base);
+    }
+    .team-approval-card__logo-wrap {
+        display: flex;
+        justify-content: center;
+        margin-bottom: var(--spacing-base);
+    }
+    .team-approval-card__logo-frame {
+        width: 72px;
+        height: 72px;
+        overflow: hidden;
+        border-radius: 50%;
+        border: 2px solid var(--border-light);
+        background: var(--bg-primary);
+    }
+    .team-approval-card__logo {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform-origin: center center;
+    }
+    .team-approval-card__grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: var(--spacing-sm);
+    }
+    .team-approval-card__grid .info-item .info-value a {
+        color: var(--primary-color);
+        word-break: break-all;
+    }
+    .team-approval-card__grid .info-item {
+        padding: var(--spacing-sm) var(--spacing-base);
+        background: var(--bg-secondary);
+        border-radius: var(--radius-small);
+    }
+    .team-approval-card__grid .info-item label {
+        display: block;
+        font-size: var(--font-size-xs);
+        color: var(--text-secondary);
+        margin-bottom: var(--spacing-xs);
+    }
+    .team-approval-card__grid .info-item .info-value {
+        font-size: var(--font-size-sm);
+        color: var(--text-primary);
+    }
+    .team-approval-card__desc {
+        margin-top: var(--spacing-base);
+    }
+    .team-approval-card__label {
+        font-size: var(--font-size-xs);
+        color: var(--text-secondary);
+        display: block;
+        margin-bottom: var(--spacing-xs);
+    }
+    .team-approval-card__value {
+        margin: 0;
+        font-size: var(--font-size-sm);
+        color: var(--text-primary);
+        line-height: 1.5;
+    }
+    .team-approval-card__actions {
+        display: flex;
+        gap: var(--spacing-sm);
+        padding-top: var(--spacing-base);
+        border-top: 1px solid var(--border-light);
+    }
+    .team-approval-card__btn {
+        flex: 1;
+        min-height: 44px;
+        padding: var(--spacing-sm) var(--spacing-base);
+        border-radius: var(--radius-small);
+        font-size: var(--font-size-base);
+        font-weight: bold;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+    }
+    .team-approval-card__btn:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+    }
+    .team-approval-card__btn--approve {
+        background: var(--success-color);
+        color: #fff;
+        border: none;
+    }
+    .team-approval-card__btn--approve:hover {
+        background: #218838;
+    }
+    .team-approval-card__btn--reject {
+        background: var(--bg-secondary);
+        color: var(--danger-color);
+        border: 1px solid var(--danger-color);
+    }
+    .team-approval-card__btn--reject:hover {
+        background: rgba(220, 53, 69, 0.1);
+    }
+    .team-approval-card__revision {
+        margin-top: var(--spacing-base);
+        padding-top: var(--spacing-base);
+        border-top: 1px solid var(--border-light);
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+    .team-approval-card__revision-label {
+        font-size: var(--font-size-sm);
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    .team-approval-card__revision-input {
+        width: 100%;
+        min-height: 96px;
+        padding: var(--spacing-sm) var(--spacing-base);
+        font-size: var(--font-size-sm);
+        font-family: inherit;
+        color: var(--text-primary);
+        background: var(--bg-primary);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-small);
+        resize: vertical;
+        box-sizing: border-box;
+    }
+    .team-approval-card__revision-input:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+        border-color: var(--primary-color);
+    }
+    .team-approval-card__revision-note {
+        margin: 0;
+        font-size: var(--font-size-xs);
+        color: var(--text-muted);
+        line-height: 1.55;
+    }
+    .team-approval-card__btn--revision {
+        background: rgba(253, 126, 20, 0.12);
+        color: var(--warning-color, #fd7e14);
+        border: 1px solid rgba(253, 126, 20, 0.35);
+    }
+    .team-approval-card__btn--revision:hover {
+        background: rgba(253, 126, 20, 0.2);
+    }
+    @media (max-width: 768px) {
+        .team-approval-card__header { flex-direction: column; align-items: flex-start; }
+        .team-approval-card__grid { grid-template-columns: 1fr; }
+        .team-approval-card__actions { flex-direction: column; }
+    }
+
+    /* ===== 従来の team-info-* （match_request / supporter_view 用） ===== */
+  .team-info-match-request,
+  .team-info-supporter-view {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-base);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+      box-shadow: var(--shadow-sm);
+      max-width: 100%;
+  }
+    .team-info-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-md);
+        padding-bottom: var(--spacing-base);
+        border-bottom: 1px solid var(--border-light);
+    }
+    .team-info-header h3 {
+        margin: 0;
+        color: var(--text-primary);
+        font-size: var(--font-size-lg);
+    }
+    .status-badge {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--radius-small);
+        font-size: var(--font-size-sm);
+        font-weight: bold;
+    }
+    .status-pending { background: rgba(255, 193, 7, 0.15); color: var(--warning-color); }
+    .status-publish { background: rgba(40, 167, 69, 0.15); color: var(--success-color); }
+    .team-info-section { margin-bottom: var(--spacing-md); }
+    .team-info-section h4 {
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-base);
+        font-size: var(--font-size-base);
+        border-left: 4px solid var(--info-color);
+        padding-left: var(--spacing-sm);
+    }
+  .team-info-match-request .info-grid,
+  .team-info-supporter-view .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--spacing-base);
+  }
+  .team-info-match-request .info-item,
+  .team-info-supporter-view .info-item {
+      padding: var(--spacing-sm) var(--spacing-base);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-small);
+  }
+  .team-info-match-request .info-item label,
+  .team-info-supporter-view .info-item label {
+      display: block;
+      font-weight: bold;
+      color: var(--text-secondary);
+      font-size: var(--font-size-sm);
+      margin-bottom: var(--spacing-xs);
+  }
+  .team-info-match-request .info-item .info-value,
+  .team-info-supporter-view .info-item .info-value {
+      color: var(--text-primary);
+  }
+    .team-description,
+    .team-achievements {
+        background: var(--bg-secondary);
+        padding: var(--spacing-base);
+        border-radius: var(--radius-small);
+        line-height: 1.6;
+    }
+    .match-conditions {
+        background: rgba(23, 162, 184, 0.08);
+        padding: var(--spacing-base);
+        border-radius: var(--radius-small);
+    }
+    .condition-item { margin-bottom: var(--spacing-sm); }
+    .condition-item:last-child { margin-bottom: 0; }
+    .team-info-actions {
+        display: flex;
+        gap: var(--spacing-base);
+        margin-top: var(--spacing-md);
+        padding-top: var(--spacing-base);
+        border-top: 1px solid var(--border-light);
+    }
+  .team-info-match-request .btn,
+  .team-info-supporter-view .btn {
+      padding: var(--spacing-sm) var(--spacing-md);
+      min-height: 44px;
+      border: none;
+      border-radius: var(--radius-small);
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: bold;
+      text-align: center;
+      transition: background 0.2s;
+  }
+  .team-info-match-request .btn-approve,
+  .team-info-supporter-view .btn-approve {
+      background: var(--success-color);
+      color: #fff;
+  }
+  .team-info-match-request .btn-approve:hover,
+  .team-info-supporter-view .btn-approve:hover { background: #218838; }
+  .team-info-match-request .btn-reject,
+  .team-info-supporter-view .btn-reject {
+      background: var(--danger-color);
+      color: #fff;
+  }
+  .team-info-match-request .btn-reject:hover,
+  .team-info-supporter-view .btn-reject:hover { background: #c82333; }
+  .team-info-match-request .btn-support,
+  .team-info-supporter-view .btn-support {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      color: #fff;
+  }
+  .team-info-match-request .btn-support:hover,
+  .team-info-supporter-view .btn-support:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+  }
+    .team-logo { text-align: center; }
+    @media (max-width: 768px) {
+        .team-info-match-request .info-grid,
+        .team-info-supporter-view .info-grid { grid-template-columns: 1fr; }
+        .team-info-header { flex-direction: column; text-align: center; }
+        .team-info-actions { flex-direction: column; }
+    }

@@ -122,6 +122,10 @@ function aidunite_web_app_page_shell_open(array $args = []) {
     $legacy_title = isset($args['legacy_title']) ? (string) $args['legacy_title'] : $title;
     $legacy_subtitle = isset($args['legacy_subtitle']) ? (string) $args['legacy_subtitle'] : $subtitle;
     $content_class = isset($args['content_class']) ? (string) $args['content_class'] : '';
+    $team_theme = isset($args['team_theme']) ? (string) $args['team_theme'] : '';
+    if ($team_theme !== '' && !in_array($team_theme, ['boys', 'girls'], true)) {
+        $team_theme = '';
+    }
 
     $use_integrated = function_exists('aidunite_should_use_web_app_integrated_ui')
         && aidunite_should_use_web_app_integrated_ui()
@@ -135,7 +139,7 @@ function aidunite_web_app_page_shell_open(array $args = []) {
         $wrapper_class .= ' ainy-webapp-page';
     }
 
-    echo '<div class="' . esc_attr(trim($wrapper_class)) . '">';
+    echo '<div class="' . esc_attr(trim($wrapper_class)) . '"' . ($team_theme !== '' ? ' data-team-theme="' . esc_attr($team_theme) . '"' : '') . '>';
 
     if ($use_integrated) {
         $hero_args = isset($args['hero']) && is_array($args['hero'])
@@ -179,4 +183,163 @@ function aidunite_web_app_page_shell_close() {
         aidunite_render_web_app_content_close();
     }
     echo '</div>';
+}
+
+/**
+ * 一体型 / ヒーローシェルを使うページで body_class を事前登録（get_header より前に呼ぶ）
+ */
+function aidunite_web_app_page_prepare_hero_shell_body_class() {
+    $use_integrated = function_exists('aidunite_should_use_web_app_integrated_ui')
+        && aidunite_should_use_web_app_integrated_ui();
+    $use_hero = function_exists('aidunite_render_web_app_page_hero');
+
+    if (!$use_integrated && !$use_hero) {
+        return;
+    }
+
+    static $registered = false;
+    if ($registered) {
+        return;
+    }
+    $registered = true;
+
+    add_filter('body_class', static function ($classes) {
+        if (!in_array('web-app-integrated-ui', $classes, true)) {
+            $classes[] = 'web-app-integrated-ui';
+        }
+        if (!in_array('web-app-page', $classes, true)) {
+            $classes[] = 'web-app-page';
+        }
+
+        return $classes;
+    }, 30);
+}
+
+/**
+ *
+ * payment-setup 正本: integrated のときのみ shell_open。それ以外はヒーローまたはレガシー。
+ *
+ * @param array<string, mixed> $shell_args page_class, title, subtitle, back, back_url, active_nav, team_theme, …
+ * @param array<string, mixed> $legacy legacy_container_class, legacy_back_label, legacy_back_nav_class, legacy_back_link_class, legacy_header_class
+ * @return string integrated|hero|legacy
+ */
+function aidunite_web_app_page_shell_begin(array $shell_args, array $legacy = []) {
+    $legacy = wp_parse_args($legacy, [
+        'legacy_container_class' => 'page-container',
+        'legacy_back_url' => (string) ($shell_args['back_url'] ?? ''),
+        'legacy_back_label' => '戻る',
+        'legacy_back_nav_class' => 'payment-setup-legacy-back',
+        'legacy_back_link_class' => 'payment-setup-legacy-back__link',
+        'legacy_header_class' => 'payment-setup-header',
+    ]);
+
+    if (!isset($shell_args['back']) && ($shell_args['back_url'] ?? '') !== '') {
+        $shell_args['back'] = true;
+    }
+
+    if (
+        function_exists('aidunite_should_use_web_app_integrated_ui')
+        && aidunite_should_use_web_app_integrated_ui()
+        && function_exists('aidunite_web_app_page_shell_open')
+    ) {
+        aidunite_web_app_page_shell_open($shell_args);
+
+        return 'integrated';
+    }
+
+    if (function_exists('aidunite_render_web_app_page_hero')) {
+        $hero_args = function_exists('aidunite_build_default_web_app_hero_args')
+            ? aidunite_build_default_web_app_hero_args($shell_args)
+            : array_merge(['size' => 'md'], $shell_args);
+        $page_class = isset($shell_args['page_class'])
+            ? aidunite_sanitize_html_class_list((string) $shell_args['page_class'])
+            : '';
+        $team_theme = isset($shell_args['team_theme']) ? (string) $shell_args['team_theme'] : '';
+        if ($team_theme !== '' && !in_array($team_theme, ['boys', 'girls'], true)) {
+            $team_theme = '';
+        }
+        $wrapper = 'team-dashboard-container ainy-webapp-page';
+        if ($page_class !== '') {
+            $wrapper .= ' ' . $page_class;
+        }
+        echo '<div class="' . esc_attr(trim($wrapper)) . '"'
+            . ($team_theme !== '' ? ' data-team-theme="' . esc_attr($team_theme) . '"' : '')
+            . '>';
+        aidunite_render_web_app_page_hero($hero_args);
+        if (function_exists('aidunite_render_web_app_content_open')) {
+            aidunite_render_web_app_content_open();
+        }
+
+        return 'hero';
+    }
+
+    $container = aidunite_sanitize_html_class_list((string) $legacy['legacy_container_class']);
+    if ($container === '') {
+        $container = 'page-container';
+    }
+    echo '<div class="' . esc_attr($container) . '">';
+
+    $back_url = (string) $legacy['legacy_back_url'];
+    if ($back_url === '') {
+        $back_url = (string) ($shell_args['back_url'] ?? '');
+    }
+    if ($back_url !== '' && !empty($shell_args['back'])) {
+        echo '<nav class="' . esc_attr((string) $legacy['legacy_back_nav_class']) . '" aria-label="ページ戻る">';
+        echo '<a href="' . esc_url($back_url) . '" class="' . esc_attr((string) $legacy['legacy_back_link_class']) . '">';
+        if (function_exists('aidunite_render_theme_icon')) {
+            echo aidunite_render_theme_icon('chevron_left', ['width' => '20', 'height' => '20'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        }
+        echo '<span>' . esc_html((string) $legacy['legacy_back_label']) . '</span></a></nav>';
+    }
+
+    $title = (string) ($shell_args['title'] ?? '');
+    $subtitle = (string) ($shell_args['subtitle'] ?? '');
+    if ($title !== '') {
+        echo '<div class="' . esc_attr((string) $legacy['legacy_header_class']) . '">';
+        echo '<h1>' . esc_html($title) . '</h1>';
+        if ($subtitle !== '') {
+            echo '<p>' . esc_html($subtitle) . '</p>';
+        }
+        echo '</div>';
+    }
+
+    return 'legacy';
+}
+
+/**
+ * @param string $mode aidunite_web_app_page_shell_begin() の戻り値
+ */
+function aidunite_web_app_page_shell_end($mode) {
+    $mode = (string) $mode;
+    if ($mode === 'integrated' && function_exists('aidunite_web_app_page_shell_close')) {
+        aidunite_web_app_page_shell_close();
+
+        return;
+    }
+    if ($mode === 'hero' && function_exists('aidunite_render_web_app_content_close')) {
+        aidunite_render_web_app_content_close();
+        echo '</div>';
+
+        return;
+    }
+    echo '</div>';
+}
+
+/**
+ * 決済系ページ共通: payment-setup.css
+ */
+function aidunite_enqueue_payment_setup_shared_styles() {
+    $payment_setup_css = get_stylesheet_directory() . '/assets/css/pages/payment-setup.css';
+    if (!is_readable($payment_setup_css)) {
+        return;
+    }
+    if (wp_style_is('aidunite-payment-setup', 'enqueued')) {
+        return;
+    }
+    wp_enqueue_style(
+        'aidunite-payment-setup',
+        get_stylesheet_directory_uri() . '/assets/css/pages/payment-setup.css',
+        ['aidunite-style', 'button-style'],
+        (string) filemtime($payment_setup_css)
+    );
 }

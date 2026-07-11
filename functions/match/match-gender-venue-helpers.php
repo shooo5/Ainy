@@ -130,11 +130,16 @@ if (!function_exists('aidunite_market_recruitment_gender_canonical')) {
         if ($schedule_id <= 0) {
             return '';
         }
-        $sources = [
-            get_post_meta($schedule_id, 'schedule_gender', true),
-            get_post_meta($schedule_id, 'matching_gender_condition', true),
-            get_post_meta($schedule_id, 'gender_condition', true),
-        ];
+        $sources = [];
+        if (function_exists('aidunite_schedule_get_display_bundle')) {
+            $bundle = aidunite_schedule_get_display_bundle($schedule_id);
+            if (($bundle['gender'] ?? '') !== '') {
+                $sources[] = (string) $bundle['gender'];
+            }
+        }
+        if (function_exists('aidunite_schedule_read_gender_raw')) {
+            $sources[] = aidunite_schedule_read_gender_raw($schedule_id);
+        }
         foreach ($sources as $raw) {
             if (function_exists('aidunite_mvp_gender_raw_is_both_legacy') && aidunite_mvp_gender_raw_is_both_legacy($raw)) {
                 continue;
@@ -168,17 +173,25 @@ if (!function_exists('aidunite_schedule_is_guest_slot_schedule')) {
         if ($place_lock === 'away') {
             return true;
         }
-        $intent = (string) get_post_meta($schedule_id, 'intent', true);
+        $intent = function_exists('aidunite_schedule_read_intent')
+            ? aidunite_schedule_read_intent($schedule_id)
+            : (string) get_post_meta($schedule_id, 'intent', true);
         if ($intent === 'tentative') {
             return true;
         }
-        $place_raw = get_post_meta($schedule_id, 'schedule_place', true) ?: get_post_meta($schedule_id, 'schedule_place_option', true);
+        $place_raw = function_exists('aidunite_schedule_read_place_raw')
+            ? aidunite_schedule_read_place_raw($schedule_id)
+            : '';
+        $bundle_match = function_exists('aidunite_schedule_get_display_bundle')
+            ? aidunite_schedule_get_display_bundle($schedule_id)
+            : [];
         $place_lc = function_exists('aidunite_normalize_place_for_lock')
             ? aidunite_normalize_place_for_lock($place_raw)
             : strtolower(trim((string) $place_raw));
         $matching_on = function_exists('aidunite_schedule_matching_meta_on')
             ? aidunite_schedule_matching_meta_on($schedule_id)
-            : (get_post_meta($schedule_id, 'matching', true) === '1'
+            : (($bundle_match['matching'] ?? '') === '1'
+                || get_post_meta($schedule_id, 'matching', true) === '1'
                 || get_post_meta($schedule_id, 'is_match_requested', true) === '1');
         // 参加側のマッチ希望（アウェイ／どちらでも可系）
         if ($matching_on && in_array($place_lc, ['away', 'either'], true)) {
@@ -225,7 +238,9 @@ if (!function_exists('aidunite_schedule_guest_remaining')) {
         if (!aidunite_schedule_is_guest_slot_schedule($schedule_id)) {
             return 1;
         }
-        if ((string) get_post_meta($schedule_id, 'intent', true) === 'confirmed') {
+        if (function_exists('aidunite_schedule_read_intent')
+            ? aidunite_schedule_read_intent($schedule_id) === 'confirmed'
+            : (string) get_post_meta($schedule_id, 'intent', true) === 'confirmed') {
             return 0;
         }
         // status だけで絞ると pending のまま established_at がある漏れが出るため、my_schedule_id のみで取得して counts_as で判定
@@ -267,7 +282,9 @@ if (!function_exists('aidunite_market_schedule_unavailable_as_opponent_recruitme
             return true;
         }
 
-        if ((string) get_post_meta($schedule_id, 'intent', true) === 'confirmed') {
+        if (function_exists('aidunite_schedule_read_intent')
+            ? aidunite_schedule_read_intent($schedule_id) === 'confirmed'
+            : (string) get_post_meta($schedule_id, 'intent', true) === 'confirmed') {
             $place_lock = function_exists('aidunite_get_schedule_place_lock')
                 ? aidunite_get_schedule_place_lock($schedule_id)
                 : '';
@@ -276,11 +293,15 @@ if (!function_exists('aidunite_market_schedule_unavailable_as_opponent_recruitme
             }
         }
 
-        $team_id = (int) get_post_meta($schedule_id, 'team_id', true);
-        $date_raw = get_post_meta($schedule_id, 'schedule_date', true);
-        $date_norm = function_exists('_aidunite_match_apply_normalize_schedule_date')
-            ? _aidunite_match_apply_normalize_schedule_date($date_raw)
-            : trim((string) $date_raw);
+        $unavail_bundle = function_exists('aidunite_schedule_get_display_bundle')
+            ? aidunite_schedule_get_display_bundle($schedule_id)
+            : [];
+        $team_id = (int) ($unavail_bundle['team_id'] ?? (function_exists('aidunite_schedule_read_team_id')
+            ? aidunite_schedule_read_team_id($schedule_id)
+            : 0));
+        $date_norm = function_exists('aidunite_schedule_read_normalized_date')
+            ? aidunite_schedule_read_normalized_date($schedule_id)
+            : '';
         if ($team_id > 0 && $date_norm !== ''
             && function_exists('aidunite_team_has_guest_committed_schedule_on_date')
             && aidunite_team_has_guest_committed_schedule_on_date($team_id, $date_norm)) {
@@ -308,10 +329,9 @@ if (!function_exists('aidunite_normalize_schedule_place_meta_value')) {
         if ($schedule_id <= 0) {
             return '';
         }
-        $place = get_post_meta($schedule_id, 'schedule_place', true);
-        if ($place === '' || $place === null) {
-            $place = get_post_meta($schedule_id, 'schedule_place_option', true);
-        }
+        $place = function_exists('aidunite_schedule_read_place_raw')
+            ? aidunite_schedule_read_place_raw($schedule_id)
+            : '';
         if (function_exists('aidunite_normalize_place_for_lock')) {
             $norm = aidunite_normalize_place_for_lock($place);
         } else {
@@ -321,8 +341,11 @@ if (!function_exists('aidunite_normalize_schedule_place_meta_value')) {
             $norm = 'either';
         }
         if (in_array($norm, ['home', 'away', 'either'], true)) {
-            update_post_meta($schedule_id, 'schedule_place', $norm);
-            update_post_meta($schedule_id, 'schedule_place_option', $norm);
+            if (function_exists('aidunite_schedule_write_place_meta')) {
+                aidunite_schedule_write_place_meta($schedule_id, $norm);
+            } else {
+                update_post_meta($schedule_id, 'schedule_place', $norm);
+            }
         }
 
         return $norm;
@@ -365,6 +388,11 @@ if (!function_exists('aidunite_recruit_accepts_match_applications')) {
         }
         if (function_exists('aidunite_market_schedule_unavailable_as_opponent_recruitment')
             && aidunite_market_schedule_unavailable_as_opponent_recruitment($pid)) {
+            return false;
+        }
+        // 当該募集 schedule に成立 MR が付いていれば新規申請・掲示板母集団から外す（6889 型）
+        if (function_exists('aidunite_count_established_for_schedule')
+            && aidunite_count_established_for_schedule($pid) > 0) {
             return false;
         }
         if (aidunite_schedule_matching_meta_on($pid)) {
@@ -426,7 +454,9 @@ if (!function_exists('aidunite_recruit_open_for_market_board_reason')) {
             }
         }
         // 枠残0: 複数枠主催で1件だけ成立済み（intent=confirmed でも）ここで閉じる
-        if ((string) get_post_meta($pid, 'intent', true) === 'confirmed') {
+        if (function_exists('aidunite_schedule_read_intent')
+            ? aidunite_schedule_read_intent($pid) === 'confirmed'
+            : (string) get_post_meta($pid, 'intent', true) === 'confirmed') {
             return ['open' => false, 'reason' => 'intent_confirmed_slots_full'];
         }
         if (!function_exists('aidunite_schedule_matching_meta_on')
@@ -509,11 +539,12 @@ if (!function_exists('aidunite_place_lock_matches_candidate')) {
  */
 if (!function_exists('aidunite_get_schedule_gender')) {
     function aidunite_get_schedule_gender($schedule_id) {
-        $g = get_post_meta($schedule_id, 'schedule_gender', true);
-        if ($g) {
-            return $g;
+        $schedule_id = (int) $schedule_id;
+        if (function_exists('aidunite_schedule_read_gender_raw')) {
+            return (string) aidunite_schedule_read_gender_raw($schedule_id);
         }
-        return get_post_meta($schedule_id, 'matching_gender_condition', true) ?: '';
+
+        return '';
     }
 }
 
@@ -569,13 +600,16 @@ if (!function_exists('aidunite_get_remaining_gender_slots')) {
                 $female_consumed++;
                 continue;
             }
-            $my_id = (int) get_post_meta($req->ID, 'my_schedule_id', true);
-            $to_id = (int) get_post_meta($req->ID, 'to_schedule_id', true);
+            $mr_slots = function_exists('aidunite_match_request_get_canonical_meta')
+                ? aidunite_match_request_get_canonical_meta((int) $req->ID)
+                : [];
+            $my_id = (int) ($mr_slots['my_schedule_id'] ?? get_post_meta($req->ID, 'my_schedule_id', true));
+            $to_id = (int) ($mr_slots['to_schedule_id'] ?? get_post_meta($req->ID, 'to_schedule_id', true));
             $other_schedule_id = ($my_id === (int) $schedule_id) ? $to_id : $my_id;
             if ($other_schedule_id <= 0) {
                 continue;
             }
-            $other_gender = function_exists('aidunite_get_schedule_gender') ? aidunite_get_schedule_gender($other_schedule_id) : get_post_meta($other_schedule_id, 'schedule_gender', true);
+            $other_gender = function_exists('aidunite_get_schedule_gender') ? aidunite_get_schedule_gender($other_schedule_id) : '';
             if ($other_gender === 'male') {
                 $male_consumed++;
             } elseif ($other_gender === 'female') {
@@ -648,8 +682,14 @@ if (!function_exists('aidunite_applicant_can_apply_to_recruit_now')) {
         if (function_exists('aidunite_evaluate_match_apply_context')) {
             $g = function_exists('aidunite_get_schedule_gender') ? aidunite_get_schedule_gender($my_schedule_id) : '';
             $g = is_string($g) ? $g : '';
-            $st = (string) get_post_meta($my_schedule_id, 'schedule_start_time', true);
-            $en = (string) get_post_meta($my_schedule_id, 'schedule_end_time', true);
+            $my_apply_bundle = function_exists('aidunite_schedule_get_display_bundle')
+                ? aidunite_schedule_get_display_bundle($my_schedule_id)
+                : [];
+            $my_apply_api = function_exists('aidunite_schedule_get_api_display_fields')
+                ? aidunite_schedule_get_api_display_fields($my_schedule_id)
+                : [];
+            $st = (string) ($my_apply_bundle['start_time'] ?? $my_apply_api['start_time'] ?? '');
+            $en = (string) ($my_apply_bundle['end_time'] ?? $my_apply_api['end_time'] ?? '');
             $evp = aidunite_evaluate_match_apply_context($recruit_schedule_id, $my_schedule_id, ['mode' => 'preview']);
             if (!empty($evp['can_apply'])) {
                 return ['ok' => true, 'reason' => ''];
@@ -673,7 +713,9 @@ if (!function_exists('aidunite_applicant_can_apply_to_recruit_now')) {
             ];
         }
         $to_place_lock = function_exists('aidunite_get_schedule_place_lock') ? aidunite_get_schedule_place_lock($recruit_schedule_id) : '';
-        $applicant_place = get_post_meta($my_schedule_id, 'schedule_place', true) ?: get_post_meta($my_schedule_id, 'schedule_place_option', true);
+        $applicant_place = function_exists('aidunite_schedule_read_place_raw')
+            ? aidunite_schedule_read_place_raw($my_schedule_id)
+            : '';
         if ($to_place_lock !== '') {
             if (!function_exists('aidunite_place_lock_matches_candidate') || !aidunite_place_lock_matches_candidate($to_place_lock, $applicant_place)) {
                 return ['ok' => false, 'reason' => '現在の募集の会場条件と自チームの開催形式が一致しません。'];
@@ -747,20 +789,23 @@ if (!function_exists('aidunite_get_established_requests_for_schedule')) {
 
         $out = [];
         foreach ($requests as $req) {
-            $status = get_post_meta($req->ID, 'status', true);
+            $mr_row = function_exists('aidunite_match_request_get_canonical_meta')
+                ? aidunite_match_request_get_canonical_meta((int) $req->ID)
+                : [];
+            $status = (string) ($mr_row['status'] ?? get_post_meta($req->ID, 'status', true));
             if ($exclude_terminal && function_exists('aidunite_normalize_match_request_status')) {
                 $norm_early = aidunite_normalize_match_request_status((string) $status, isset($req->post_status) ? (string) $req->post_status : '');
                 if (in_array($norm_early, ['canceled', 'rejected'], true)) {
                     continue;
                 }
             }
-            $my_id = (int) get_post_meta($req->ID, 'my_schedule_id', true);
+            $my_id = (int) ($mr_row['my_schedule_id'] ?? get_post_meta($req->ID, 'my_schedule_id', true));
             if ($my_id <= 0) {
-                $my_id = (int) get_post_meta($req->ID, 'from_schedule_id', true);
+                $my_id = (int) ($mr_row['from_schedule_id'] ?? get_post_meta($req->ID, 'from_schedule_id', true));
             }
-            $to_id = (int) get_post_meta($req->ID, 'to_schedule_id', true);
-            $from_team_id = (int) get_post_meta($req->ID, 'from_team_id', true);
-            $to_team_id = (int) get_post_meta($req->ID, 'to_team_id', true);
+            $to_id = (int) ($mr_row['to_schedule_id'] ?? get_post_meta($req->ID, 'to_schedule_id', true));
+            $from_team_id = (int) ($mr_row['from_team_id'] ?? get_post_meta($req->ID, 'from_team_id', true));
+            $to_team_id = (int) ($mr_row['to_team_id'] ?? get_post_meta($req->ID, 'to_team_id', true));
 
             // 申請者／受信者は my_schedule_id と一覧アンカーの一致に依存させない（メタずれで申請中↔承認待ちが逆転するのを防ぐ）
             $i_am_applicant = ($from_team_id > 0 && (int) $from_team_id === (int) $current_user_team_id);
@@ -790,7 +835,7 @@ if (!function_exists('aidunite_get_established_requests_for_schedule')) {
             }
             $team_name = $other_team_id ? get_the_title($other_team_id) : '—';
 
-            $selected_gender = get_post_meta($req->ID, 'selected_gender', true);
+            $selected_gender = (string) ($mr_row['selected_gender'] ?? get_post_meta($req->ID, 'selected_gender', true));
             $established_slot_meta = get_post_meta($req->ID, 'established_gender_slot', true);
             // 試合確定後は実際に消費した枠（male/female）を優先（selected_gender='both' だと UI が女子枠だけに偏るのを防ぐ）
             if (in_array($status, ['established', '試合確定'], true) && in_array($established_slot_meta, ['male', 'female'], true)) {
@@ -834,7 +879,7 @@ if (!function_exists('aidunite_get_established_requests_for_schedule')) {
             }
 
             $place_display = '—';
-            $selected_place = get_post_meta($req->ID, 'selected_place', true);
+            $selected_place = (string) ($mr_row['selected_place'] ?? get_post_meta($req->ID, 'selected_place', true));
             if ($selected_place === 'both') {
                 $selected_place = 'either';
             }
@@ -858,8 +903,15 @@ if (!function_exists('aidunite_get_established_requests_for_schedule')) {
                 } else {
                     $place_source_sid = (int) $other_schedule_id;
                 }
-                $other_place = $place_source_sid ? (get_post_meta($place_source_sid, 'schedule_place', true) ?: get_post_meta($place_source_sid, 'schedule_place_option', true)) : '';
-                $venue_name = $place_source_sid ? get_post_meta($place_source_sid, 'venue_name', true) : '';
+                $place_src_bundle = ($place_source_sid > 0 && function_exists('aidunite_schedule_get_display_bundle'))
+                    ? aidunite_schedule_get_display_bundle($place_source_sid)
+                    : [];
+                $other_place = $place_source_sid
+                    ? (function_exists('aidunite_schedule_read_place_raw')
+                        ? aidunite_schedule_read_place_raw($place_source_sid)
+                        : '')
+                    : '';
+                $venue_name = $place_source_sid ? (string) ($place_src_bundle['venue_name'] ?? get_post_meta($place_source_sid, 'venue_name', true)) : '';
                 if (in_array($other_place, ['home', 'ホーム'], true) && !empty(trim((string) $venue_name))) {
                     $place_display = $venue_name;
                 } elseif ($other_place && function_exists('aidunite_jp_place')) {
@@ -870,20 +922,32 @@ if (!function_exists('aidunite_get_established_requests_for_schedule')) {
             }
 
             $time_display = '—';
-            $selected_start = get_post_meta($req->ID, 'selected_start_time', true);
-            $selected_end = get_post_meta($req->ID, 'selected_end_time', true);
+            $selected_start = (string) ($mr_row['selected_start_time'] ?? get_post_meta($req->ID, 'selected_start_time', true));
+            $selected_end = (string) ($mr_row['selected_end_time'] ?? get_post_meta($req->ID, 'selected_end_time', true));
             if (!empty($selected_start) && !empty($selected_end)) {
                 $s = $selected_start;
                 $e = $selected_end;
                 $time_display = trim(($s ?: '') . '–' . ($e ?: ''));
             } elseif ($other_schedule_id) {
-                $s = get_post_meta($other_schedule_id, 'schedule_start_time', true);
-                $e = get_post_meta($other_schedule_id, 'schedule_end_time', true);
+                $other_time_bundle = function_exists('aidunite_schedule_get_display_bundle')
+                    ? aidunite_schedule_get_display_bundle((int) $other_schedule_id)
+                    : [];
+                $other_time_api = function_exists('aidunite_schedule_get_api_display_fields')
+                    ? aidunite_schedule_get_api_display_fields((int) $other_schedule_id)
+                    : [];
+                $s = (string) ($other_time_bundle['start_time'] ?? $other_time_api['start_time'] ?? '');
+                $e = (string) ($other_time_bundle['end_time'] ?? $other_time_api['end_time'] ?? '');
                 $time_display = trim(($s ?: '') . '–' . ($e ?: ''));
             }
             if ($time_display === '–' || $time_display === '') {
-                $s = get_post_meta($schedule_id, 'schedule_start_time', true);
-                $e = get_post_meta($schedule_id, 'schedule_end_time', true);
+                $anchor_time_bundle = function_exists('aidunite_schedule_get_display_bundle')
+                    ? aidunite_schedule_get_display_bundle($schedule_id)
+                    : [];
+                $anchor_time_api = function_exists('aidunite_schedule_get_api_display_fields')
+                    ? aidunite_schedule_get_api_display_fields((int) $schedule_id)
+                    : [];
+                $s = (string) ($anchor_time_bundle['start_time'] ?? $anchor_time_api['start_time'] ?? '');
+                $e = (string) ($anchor_time_bundle['end_time'] ?? $anchor_time_api['end_time'] ?? '');
                 $time_display = trim(($s ?: '') . '–' . ($e ?: ''));
             }
             if ($time_display === '' || $time_display === '–') {
@@ -939,7 +1003,9 @@ if (!function_exists('aidunite_get_established_requests_for_schedule')) {
             }
 
             $post_match_survey = null;
-            if (in_array($status, ['established', '試合確定'], true) && function_exists('aidunite_resolve_post_match_survey_cta')) {
+            if (in_array($status, ['established', '試合確定'], true) && function_exists('aidunite_match_board_read_post_match_survey_payload')) {
+                $post_match_survey = aidunite_match_board_read_post_match_survey_payload((int) $req->ID, $current_user_team_id);
+            } elseif (in_array($status, ['established', '試合確定'], true) && function_exists('aidunite_resolve_post_match_survey_cta')) {
                 $post_match_survey = aidunite_resolve_post_match_survey_cta((int) $req->ID, $current_user_team_id);
             }
 

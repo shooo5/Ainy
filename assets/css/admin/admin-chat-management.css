@@ -1,0 +1,19 @@
+/** admin chat management */
+input[type="checkbox"] {
+                appearance: auto;
+                -webkit-appearance: checkbox;
+                opacity: 1;
+                visibility: visible;
+                position: static;
+                display: inline-block;
+                width: 16px;
+                height: 16px;
+                margin: 0;
+                vertical-align: middle;
+                cursor: pointer;
+            }
+            .aidunite-chat-admin-table th.col-check,
+            .aidunite-chat-admin-table td.col-check {
+                width: 44px;
+                text-align: center;
+            }

@@ -70,6 +70,7 @@ function aidunite_normalize_attendance_status_value($raw) {
         'leave_early' => 'leave_early',
         'no_response' => 'no_response',
         'pending' => 'no_response',
+        'maybe' => 'no_response',
     ];
     return $map[$s] ?? $s;
 }
@@ -190,17 +191,17 @@ function aidunite_normalize_team_org_type_value($raw) {
 }
 
 /**
- * payment_mode: school → business
+ * payment_mode: レガシー school/business/board → corporate | personal
  *
  * @param mixed $raw
  * @return string
  */
 function aidunite_normalize_payment_mode_value($raw) {
     $v = strtolower(trim((string) $raw));
-    if ($v === 'school') {
-        return 'business';
+    if (in_array($v, ['school', 'business', 'board'], true)) {
+        return $v === 'board' ? 'personal' : 'corporate';
     }
-    if (in_array($v, ['board', 'business', 'personal'], true)) {
+    if (in_array($v, ['corporate', 'personal'], true)) {
         return $v;
     }
     return $v;
@@ -223,7 +224,30 @@ function aidunite_normalize_registration_source_value($raw) {
     if ($v === 'member_register') {
         return 'member_register';
     }
+    if ($v === 'guardian_invite') {
+        return 'guardian_invite';
+    }
+    if ($v === 'guardian_invite_email') {
+        return 'guardian_invite_email';
+    }
+    if ($v === 'guardian_invite_qr') {
+        return 'guardian_invite_qr';
+    }
     return $v;
+}
+
+/**
+ * 保護者 membership status
+ *
+ * @param mixed $raw
+ * @return string active|pending|rejected|''
+ */
+function aidunite_normalize_parent_membership_status($raw) {
+    $v = strtolower(trim((string) $raw));
+    if (in_array($v, ['active', 'pending', 'rejected'], true)) {
+        return $v;
+    }
+    return '';
 }
 
 /**
@@ -381,6 +405,28 @@ function aidunite_normalize_match_board_payload(array $payload) {
 }
 
 /**
+ * usermeta aidunite_market_board_card_seen
+ *
+ * @param mixed $raw
+ * @return array<string, string>
+ */
+function aidunite_normalize_market_board_card_seen_payload($raw) {
+    if (!is_array($raw)) {
+        return [];
+    }
+    $out = [];
+    foreach ($raw as $key => $value) {
+        $key = trim((string) $key);
+        if (!preg_match('/^(mr|recruit):\d+$/', $key)) {
+            continue;
+        }
+        $out[$key] = trim((string) $value);
+    }
+
+    return $out;
+}
+
+/**
  * @param array $payload
  * @return array
  */
@@ -395,6 +441,30 @@ function aidunite_normalize_notification_payload(array $payload) {
     if (isset($payload['is_read'])) {
         $out['is_read'] = aidunite_normalize_boolean_payload_value($payload['is_read']);
     }
+    return $out;
+}
+
+/**
+ * player 編集フォーム payload（page-edit-player 保存前）
+ *
+ * @param array<string, mixed> $payload
+ * @return array<string, mixed>
+ */
+function aidunite_normalize_player_payload(array $payload) {
+    if (!aidunite_normalize_payload_enabled()) {
+        return $payload;
+    }
+    $out = $payload;
+
+    if (isset($payload['player_email'])) {
+        $email = function_exists('aidunite_normalize_email')
+            ? aidunite_normalize_email((string) $payload['player_email'])
+            : sanitize_email((string) $payload['player_email']);
+        if ($email !== '') {
+            $out['player_email'] = $email;
+        }
+    }
+
     return $out;
 }
 
@@ -431,6 +501,65 @@ function aidunite_normalize_team_payload(array $payload) {
     }
 
     return $out;
+}
+
+/**
+ * 保護者招待メール送信 payload
+ *
+ * @param array<string, mixed> $raw
+ * @return array<string, mixed>
+ */
+function aidunite_normalize_guardian_invite_payload(array $raw) {
+    if (!aidunite_normalize_payload_enabled()) {
+        return $raw;
+    }
+
+    $email_raw = $raw['invite_email'] ?? $raw['guardian_email'] ?? '';
+    $email = function_exists('aidunite_normalize_email')
+        ? aidunite_normalize_email((string) $email_raw)
+        : sanitize_email((string) $email_raw);
+
+    return [
+        'invite_email' => $email,
+        'team_id' => (int) ($raw['team_id'] ?? 0),
+        'inviter_user_id' => (int) ($raw['inviter_user_id'] ?? 0),
+    ];
+}
+
+/**
+ * 保護者招待サインアップ payload
+ *
+ * @param array<string, mixed> $raw
+ * @return array<string, mixed>
+ */
+function aidunite_normalize_parent_signup_payload(array $raw) {
+    if (!aidunite_normalize_payload_enabled()) {
+        return $raw;
+    }
+
+    $email = function_exists('aidunite_normalize_email')
+        ? aidunite_normalize_email((string) ($raw['parent_email'] ?? ''))
+        : sanitize_email((string) ($raw['parent_email'] ?? ''));
+
+    $agree_terms_raw = $raw['agree_terms'] ?? false;
+    $agree_terms = filter_var($agree_terms_raw, FILTER_VALIDATE_BOOLEAN);
+
+    return [
+        'parent_name_sei' => sanitize_text_field((string) ($raw['parent_name_sei'] ?? '')),
+        'parent_name_mei' => sanitize_text_field((string) ($raw['parent_name_mei'] ?? '')),
+        'parent_kana_sei' => sanitize_text_field((string) ($raw['parent_kana_sei'] ?? '')),
+        'parent_kana_mei' => sanitize_text_field((string) ($raw['parent_kana_mei'] ?? '')),
+        'parent_email' => $email,
+        'parent_phone' => sanitize_text_field((string) ($raw['parent_phone'] ?? '')),
+        'password' => (string) ($raw['password'] ?? ''),
+        'password_confirm' => (string) ($raw['password_confirm'] ?? ''),
+        'token' => sanitize_text_field((string) ($raw['token'] ?? '')),
+        'team_id' => (int) ($raw['team_id'] ?? 0),
+        'agree_terms' => $agree_terms,
+        'registration_source' => aidunite_normalize_registration_source_value(
+            (string) ($raw['registration_source'] ?? 'guardian_invite')
+        ) ?: 'guardian_invite',
+    ];
 }
 
 /**
@@ -474,6 +603,15 @@ function aidunite_normalize_user_payload(array $payload) {
  * @param array $payload
  * @return array
  */
+function aidunite_normalize_product_plan_value($raw) {
+    if (function_exists('aidunite_payment_normalize_product_plan_value')) {
+        return aidunite_payment_normalize_product_plan_value($raw);
+    }
+    $v = strtolower(trim((string) $raw));
+
+    return $v === 'club' ? 'club' : 'match';
+}
+
 function aidunite_normalize_payment_payload(array $payload) {
     if (!aidunite_normalize_payload_enabled()) {
         return $payload;
@@ -481,6 +619,12 @@ function aidunite_normalize_payment_payload(array $payload) {
     $out = $payload;
     if (isset($payload['payment_mode'])) {
         $out['payment_mode'] = aidunite_normalize_payment_mode_value($payload['payment_mode']);
+    }
+    if (isset($payload['product_plan'])) {
+        $out['product_plan'] = aidunite_normalize_product_plan_value($payload['product_plan']);
+    }
+    if (isset($payload['assign_founding'])) {
+        $out['assign_founding'] = filter_var($payload['assign_founding'], FILTER_VALIDATE_BOOLEAN);
     }
     return $out;
 }
@@ -546,7 +690,11 @@ function aidunite_normalize_analytics_payload(array $payload) {
         $out['event_type'] = $payload['event_type'];
     }
     if (isset($payload['funnel_step_id'])) {
-        $out['funnel_step_id'] = strtolower(trim((string) $payload['funnel_step_id']));
+        $step = strtolower(trim((string) $payload['funnel_step_id']));
+        if ($step === 'accepted') {
+            $step = 'established';
+        }
+        $out['funnel_step_id'] = $step;
     }
     return $out;
 }
@@ -584,6 +732,10 @@ function aidunite_normalize_payload_by_domain($domain, array $payload, array $op
             return aidunite_normalize_chat_payload($payload);
         case 'analytics':
             return aidunite_normalize_analytics_payload($payload);
+        case 'parent':
+            return aidunite_normalize_parent_signup_payload($payload);
+        case 'guardian_invite':
+            return aidunite_normalize_guardian_invite_payload($payload);
         default:
             return $payload;
     }
@@ -596,6 +748,10 @@ function aidunite_normalize_payload_by_domain($domain, array $payload, array $op
  * @param array $normalized aidunite_normalize_match_request_payload の戻り値
  */
 function aidunite_apply_normalized_match_request_meta($match_request_id, array $normalized) {
+    if (function_exists('aidunite_match_request_write_normalized_meta')) {
+        aidunite_match_request_write_normalized_meta((int) $match_request_id, $normalized);
+        return;
+    }
     $match_request_id = (int) $match_request_id;
     if ($match_request_id <= 0) {
         return;
@@ -631,6 +787,9 @@ function aidunite_apply_normalized_match_request_meta($match_request_id, array $
  * @return string 保存した canonical status
  */
 function aidunite_update_match_request_status_meta($match_request_id, $status_raw, $post_status = '') {
+    if (function_exists('aidunite_match_request_update_status_meta')) {
+        return aidunite_match_request_update_status_meta((int) $match_request_id, (string) $status_raw, (string) $post_status);
+    }
     $match_request_id = (int) $match_request_id;
     if ($match_request_id <= 0) {
         return '';
@@ -652,6 +811,10 @@ function aidunite_update_match_request_status_meta($match_request_id, $status_ra
  * @return void
  */
 function aidunite_update_match_request_cancel_reason_meta($match_request_id, $reason_code, $legacy_message = '') {
+    if (function_exists('aidunite_match_request_update_cancel_reason_meta')) {
+        aidunite_match_request_update_cancel_reason_meta((int) $match_request_id, (string) $reason_code, (string) $legacy_message);
+        return;
+    }
     $match_request_id = (int) $match_request_id;
     if ($match_request_id <= 0) {
         return;
@@ -661,7 +824,6 @@ function aidunite_update_match_request_cancel_reason_meta($match_request_id, $re
         return;
     }
     update_post_meta($match_request_id, 'cancel_reason_code', $code);
-    // backward compatibility
     update_post_meta($match_request_id, 'canceled_reason', $code);
     update_post_meta($match_request_id, 'aidunite_cancel_reason', $code);
     if ($legacy_message !== '') {
@@ -681,17 +843,36 @@ function aidunite_apply_normalized_schedule_meta($schedule_id, array $normalized
         return;
     }
     if (isset($normalized['intent'])) {
-        update_post_meta($schedule_id, 'intent', $normalized['intent']);
+        $intent_val = (string) $normalized['intent'];
+        $match_flag = null;
+        if (array_key_exists('is_match_requested', $normalized)) {
+            $match_flag = ((int) $normalized['is_match_requested'] === 1);
+        }
+        if (function_exists('aidunite_schedule_persist_intent_flags')) {
+            aidunite_schedule_persist_intent_flags($schedule_id, $intent_val, $match_flag);
+        } else {
+            update_post_meta($schedule_id, 'intent', $intent_val);
+        }
     }
     $place = $normalized['schedule_place'] ?? $normalized['place_type'] ?? $normalized['venue_condition'] ?? null;
     if ($place !== null && $place !== '') {
-        update_post_meta($schedule_id, 'schedule_place', $place);
-        update_post_meta($schedule_id, 'schedule_place_option', $place);
+        if (function_exists('aidunite_schedule_write_place_meta')) {
+            aidunite_schedule_write_place_meta($schedule_id, $place);
+        } else {
+            update_post_meta($schedule_id, 'schedule_place', $place);
+        }
     }
-    $gender = $normalized['matching_gender_condition'] ?? $normalized['gender'] ?? $normalized['gender_condition'] ?? null;
+    $gender = $normalized['schedule_gender']
+        ?? $normalized['matching_gender_condition']
+        ?? $normalized['gender']
+        ?? $normalized['gender_condition']
+        ?? null;
     if ($gender !== null && $gender !== '') {
-        update_post_meta($schedule_id, 'matching_gender_condition', $gender);
-        update_post_meta($schedule_id, 'schedule_gender', $gender);
+        if (function_exists('aidunite_schedule_write_gender_meta')) {
+            aidunite_schedule_write_gender_meta($schedule_id, $gender);
+        } else {
+            update_post_meta($schedule_id, 'schedule_gender', $gender);
+        }
     }
     if (isset($normalized['is_match_requested'])) {
         $is_mr = (int) $normalized['is_match_requested'];
@@ -742,6 +923,9 @@ function aidunite_update_team_type_meta($team_id, $team_type_raw) {
  * @return string 保存した値（空なら未保存）
  */
 function aidunite_update_team_payment_mode_meta($team_id, $payment_mode_raw) {
+    if (function_exists('aidunite_team_write_payment_mode_meta')) {
+        return aidunite_team_write_payment_mode_meta((int) $team_id, (string) $payment_mode_raw);
+    }
     $team_id = (int) $team_id;
     if ($team_id <= 0) {
         return '';
@@ -751,6 +935,7 @@ function aidunite_update_team_payment_mode_meta($team_id, $payment_mode_raw) {
         return '';
     }
     update_post_meta($team_id, 'payment_mode', $normalized);
+
     return $normalized;
 }
 
@@ -762,6 +947,9 @@ function aidunite_update_team_payment_mode_meta($team_id, $payment_mode_raw) {
  * @return string 保存した値（空なら未保存）
  */
 function aidunite_update_user_registration_status_meta($user_id, $status_raw) {
+    if (function_exists('aidunite_user_write_registration_status_meta')) {
+        return aidunite_user_write_registration_status_meta((int) $user_id, (string) $status_raw);
+    }
     $user_id = (int) $user_id;
     if ($user_id <= 0) {
         return '';
@@ -772,5 +960,6 @@ function aidunite_update_user_registration_status_meta($user_id, $status_raw) {
         return '';
     }
     update_user_meta($user_id, 'registration_status', $status);
+
     return $status;
 }

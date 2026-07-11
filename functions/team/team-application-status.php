@@ -125,7 +125,7 @@ function aidunite_send_team_application_approved_notification($user_id, $team_id
         'title'      => 'チーム申請が承認されました',
         'message'    => "チーム「{$team_name}」の申請が承認されました。\n最初の試合募集を公開しましょう。",
         'related_id' => $team_id,
-        'link_url'   => function_exists('aidunite_get_activation_recruit_edit_url') ? aidunite_get_activation_recruit_edit_url() : home_url('/schedule-edit/'),
+        'link_url'   => function_exists('aidunite_get_activation_recruit_edit_url') ? aidunite_get_activation_recruit_edit_url() : home_url('/mypage/?open_recruit=1'),
         'idempotency_key' => 'team_application_approved:' . $team_id . ':' . $user_id,
     ]);
 }
@@ -198,7 +198,11 @@ function aidunite_request_team_application_revision($team_id, $revision_message)
 
     update_post_meta($team_id, AIDUNITE_TEAM_META_REVISION_MESSAGE, $revision_message);
     update_post_meta($team_id, AIDUNITE_TEAM_META_REVISION_REQUESTED_AT, current_time('mysql'));
-    update_post_meta($team_id, 'team_status', 'needs_revision');
+    if (function_exists('aidunite_team_write_status_meta')) {
+        aidunite_team_write_status_meta($team_id, 'needs_revision');
+    } else {
+        update_post_meta($team_id, 'team_status', 'needs_revision');
+    }
 
     remove_action('transition_post_status', 'aidunite_handle_team_application_status_change', 10);
     wp_update_post([

@@ -56,6 +56,11 @@ $feedback_partial = get_template_directory() . '/includes/design-reference/secti
 if (is_readable($feedback_partial)) {
     include $feedback_partial;
 }
+
+$schedule_feedback_partial = get_template_directory() . '/includes/design-reference/section-schedule-feedback.php';
+if (is_readable($schedule_feedback_partial)) {
+    include $schedule_feedback_partial;
+}
 ?>
 
 <!-- アラート -->

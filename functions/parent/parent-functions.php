@@ -5,166 +5,6 @@
  */
 
 /*--------------------------------------------------------------
-  AidUnite統一仕様：保護者登録処理
---------------------------------------------------------------*/
-function aidunite_register_parent($user_id, $parent_data) {
-    if (!$user_id || !$parent_data) {
-        return false;
-    }
-
-    // 保護者としてユーザータイプを設定
-    aidunite_set_user_type($user_id, 'parent');
-
-    // 保護者メタデータを保存
-    $meta_fields = [
-        'parent_name',
-        'parent_name_kana',
-        'parent_phone',
-        'parent_email',
-        'parent_address',
-        'parent_emergency_contact',
-        'parent_relationship',
-        'parent_children_count'
-    ];
-
-    foreach ($meta_fields as $field) {
-        if (isset($parent_data[$field])) {
-            update_user_meta($user_id, $field, sanitize_text_field($parent_data[$field]));
-        }
-    }
-
-    // チームIDが指定されている場合は設定
-    if (!empty($parent_data['team_id'])) {
-        aidunite_set_user_team($user_id, $parent_data['team_id']);
-    }
-
-    return true;
-}
-
-/*--------------------------------------------------------------
-  AidUnite統一仕様：子供（選手）登録処理
---------------------------------------------------------------*/
-function aidunite_register_child_player($parent_id, $child_data) {
-    if (!$parent_id || !$child_data) {
-        return false;
-    }
-
-    // 子供のユーザーアカウント作成（メールアドレスまたはニックネーム対応）
-    $team_id_for_slug = function_exists('aidunite_get_current_team_id')
-        ? (int) aidunite_get_current_team_id((int) $parent_id)
-        : (int) get_user_meta($parent_id, 'team_id', true);
-    $username = aidunite_generate_child_username($child_data['child_name'], $team_id_for_slug);
-
-    // メールアドレス設定（任意・正規化）
-    $email = !empty($child_data['child_email'])
-        ? (function_exists('aidunite_normalize_email') ? aidunite_normalize_email($child_data['child_email']) : sanitize_email($child_data['child_email']))
-        : 'child_' . time() . '@temp.aidunite.local';
-
-    $password = wp_generate_password(12, false);
-    $child_user_id = wp_create_user($username, $password, $email);
-
-    if (is_wp_error($child_user_id)) {
-        return false;
-    }
-
-    // 子供のユーザー情報を設定
-    wp_update_user([
-        'ID' => $child_user_id,
-        'display_name' => $child_data['child_name'],
-        'first_name' => $child_data['child_name'],
-        'nickname' => $child_data['child_name']
-    ]);
-
-    // 子供を選手として設定
-    aidunite_set_user_type($child_user_id, 'player');
-    aidunite_set_minor_status($child_user_id, true);
-
-    // 保護者と子供を連携
-    aidunite_link_parent_and_player($parent_id, $child_user_id);
-
-    // 子供の選手メタデータを保存
-    $child_meta_fields = [
-        'player_name',
-        'player_name_kana',
-        'birth_date',
-        'age',
-        'gender',
-        'position',
-        'jersey_number',
-        'height',
-        'weight',
-        'player_description',
-        'medical_info',
-        'emergency_contact'
-    ];
-
-    foreach ($child_meta_fields as $field) {
-        if (isset($child_data[$field])) {
-            update_user_meta($child_user_id, $field, sanitize_text_field($child_data[$field]));
-        }
-    }
-
-    // 年齢自動計算
-    if (!empty($child_data['birth_date'])) {
-        $birth = new DateTime($child_data['birth_date']);
-        $today = new DateTime();
-        $age = $today->diff($birth)->y;
-        update_user_meta($child_user_id, 'age', $age);
-    }
-
-    // 保護者のチームIDを子供にも設定（操作中チーム／プライマリを優先）
-    $parent_team_id = function_exists('aidunite_get_current_team_id')
-        ? (int) aidunite_get_current_team_id((int) $parent_id)
-        : (int) get_user_meta($parent_id, 'team_id', true);
-    if ($parent_team_id) {
-        aidunite_set_user_team($child_user_id, $parent_team_id);
-    }
-
-    // 保護者に通知メール送信
-    aidunite_notify_parent_child_registration($parent_id, $child_user_id, $password);
-
-    return $child_user_id;
-}
-
-/*--------------------------------------------------------------
-  AidUnite統一仕様：出欠カスタム投稿タイプ登録
---------------------------------------------------------------*/
-function aidunite_register_attendance_post_type() {
-    $labels = array(
-        'name'               => '出欠管理',
-        'singular_name'      => '出欠',
-        'menu_name'          => '出欠管理',
-        'add_new'            => '新規追加',
-        'add_new_item'       => '新しい出欠を追加',
-        'edit_item'          => '出欠を編集',
-        'new_item'           => '新しい出欠',
-        'view_item'          => '出欠を表示',
-        'search_items'       => '出欠を検索',
-        'not_found'          => '出欠が見つかりませんでした',
-        'not_found_in_trash' => 'ゴミ箱に出欠が見つかりませんでした'
-    );
-
-    $args = array(
-        'labels'              => $labels,
-        'public'              => false,
-        'publicly_queryable'  => false,
-        'show_ui'             => true,
-        'show_in_menu'        => true,
-        'query_var'           => true,
-        'rewrite'             => array('slug' => 'attendance'),
-        'capability_type'     => 'post',
-        'has_archive'         => false,
-        'hierarchical'        => false,
-        'menu_position'       => null,
-        'supports'            => array('title', 'author', 'custom-fields'),
-        'menu_icon'           => 'dashicons-calendar-alt'
-    );
-
-    register_post_type('attendance', $args);
-}
-add_action('init', 'aidunite_register_attendance_post_type');
-
-/*--------------------------------------------------------------
   AidUnite統一仕様：保護者の子供取得（基本関数）
 --------------------------------------------------------------*/
 function aidunite_get_parent_children($parent_id) {
@@ -172,7 +12,32 @@ function aidunite_get_parent_children($parent_id) {
         return [];
     }
 
-    // 保護者の子供を取得（player カスタム投稿タイプから）
+    $parent_id = (int) $parent_id;
+    $children_list = [];
+    $seen = [];
+
+    if (function_exists('aidunite_parent_read_linked_child_user_ids')) {
+        foreach (aidunite_parent_read_linked_child_user_ids($parent_id) as $user_id) {
+            $user_id = (int) $user_id;
+            if ($user_id <= 0 || isset($seen[$user_id])) {
+                continue;
+            }
+            $user = get_userdata($user_id);
+            $team_id = function_exists('aidunite_get_current_team_id')
+                ? (int) aidunite_get_current_team_id($user_id)
+                : (int) get_user_meta($user_id, 'team_id', true);
+
+            $children_list[] = [
+                'user_id' => $user_id,
+                'display_name' => $user ? (string) $user->display_name : '',
+                'is_minor' => true,
+                'team_id' => $team_id,
+            ];
+            $seen[$user_id] = true;
+        }
+    }
+
+    // レガシー: player カスタム投稿タイプ
     $children = get_posts([
         'post_type' => 'player',
         'post_status' => 'publish',
@@ -181,26 +46,27 @@ function aidunite_get_parent_children($parent_id) {
             [
                 'key' => 'parent_id',
                 'value' => $parent_id,
-                'compare' => '='
-            ]
-        ]
+                'compare' => '=',
+            ],
+        ],
     ]);
 
-    $children_list = [];
-
     foreach ($children as $child) {
-        $user_id = get_post_meta($child->ID, 'user_id', true);
-        $team_id = get_post_meta($child->ID, 'team_id', true);
+        $user_id = (int) get_post_meta($child->ID, 'user_id', true);
+        $team_id = (int) get_post_meta($child->ID, 'team_id', true);
 
-        if ($user_id) {
-            $user = get_userdata($user_id);
-            $children_list[] = [
-                'user_id' => $user_id,
-                'display_name' => $user ? $user->display_name : '',
-                'is_minor' => true, // 子供は未成年として扱う
-                'team_id' => $team_id
-            ];
+        if ($user_id <= 0 || isset($seen[$user_id])) {
+            continue;
         }
+
+        $user = get_userdata($user_id);
+        $children_list[] = [
+            'user_id' => $user_id,
+            'display_name' => $user ? (string) $user->display_name : '',
+            'is_minor' => true,
+            'team_id' => $team_id,
+        ];
+        $seen[$user_id] = true;
     }
 
     return $children_list;
@@ -232,14 +98,6 @@ function aidunite_get_parent_children_list($parent_id) {
     }
 
     return $children_list;
-}
-
-/**
- * 後方互換性のためのラッパー関数（段階的削除予定）
- * @deprecated 代わりに aidunite_get_parent_children_list() を使用してください
- */
-function tunageru_get_parent_children_list($parent_id) {
-    return aidunite_get_parent_children_list($parent_id);
 }
 
 /*--------------------------------------------------------------
@@ -291,239 +149,26 @@ function aidunite_get_child_schedules($child_id, $date_range = null) {
     $schedule_list = [];
 
     foreach ($schedules as $schedule) {
-        $schedule_date = get_post_meta($schedule->ID, 'schedule_date', true);
-        $schedule_start_time = get_post_meta($schedule->ID, 'schedule_start_time', true);
-        $schedule_end_time = get_post_meta($schedule->ID, 'schedule_end_time', true);
+        $sch_par = function_exists('aidunite_schedule_get_display_bundle')
+            ? aidunite_schedule_get_display_bundle((int) $schedule->ID)
+            : [];
+        $schedule_date = (string) ($sch_par['date'] ?? '');
+        $schedule_start_time = (string) ($sch_par['start_time'] ?? '');
+        $schedule_end_time = (string) ($sch_par['end_time'] ?? '');
 
         $schedule_list[] = [
             'schedule_id' => $schedule->ID,
             'date' => $schedule_date,
             'time' => $schedule_start_time . ($schedule_end_time ? ' - ' . $schedule_end_time : ''),
             'title' => $schedule->post_title,
-            'place' => get_post_meta($schedule->ID, 'schedule_place', true),
-            'type' => get_post_meta($schedule->ID, 'schedule_type', true),
-            'note' => get_post_meta($schedule->ID, 'schedule_note', true),
-            'matching' => (bool)get_post_meta($schedule->ID, 'matching', true) // 統一されたキー名を使用
+            'place' => (string) ($sch_par['place'] ?? ''),
+            'type' => (string) ($sch_par['schedule_type'] ?? ''),
+            'note' => (string) ($sch_par['memo'] ?? ''),
+            'matching' => in_array((string) ($sch_par['matching'] ?? '0'), ['1', 'true'], true),
         ];
     }
 
     return $schedule_list;
-}
-
-/**
- * 後方互換性のためのラッパー関数（段階的削除予定）
- * @deprecated 代わりに aidunite_get_child_schedules() を使用してください
- */
-function tunageru_get_child_schedules($child_id, $date_range = null) {
-    return aidunite_get_child_schedules($child_id, $date_range);
-}
-
-/*--------------------------------------------------------------
-  AidUnite統一仕様：出欠回答処理
---------------------------------------------------------------*/
-function aidunite_submit_attendance($parent_id, $schedule_id, $child_id, $attendance_data) {
-    if (!$parent_id || !$schedule_id || !$child_id || !$attendance_data) {
-        return false;
-    }
-
-    $attendance_team_id = 0;
-    if (function_exists('aidunite_resolve_schedule_owner_team_id')) {
-        $attendance_team_id = (int) aidunite_resolve_schedule_owner_team_id((int) $schedule_id);
-    }
-    if ($attendance_team_id <= 0 && function_exists('aidunite_get_current_team_id')) {
-        $attendance_team_id = (int) aidunite_get_current_team_id((int) $child_id);
-    }
-    if ($attendance_team_id <= 0) {
-        $attendance_team_id = (int) get_user_meta($child_id, 'team_id', true);
-    }
-
-    // 出欠投稿を作成
-    $post_data = [
-        'post_type' => 'attendance',
-        'post_title' => '出欠回答: ' . get_userdata($child_id)->display_name . ' - ' . get_the_title($schedule_id),
-        'post_status' => 'publish',
-        'post_author' => $parent_id,
-        'meta_input' => [
-            'schedule_id' => $schedule_id,
-            'child_id' => $child_id,
-            'parent_id' => $parent_id,
-            'attendance_status' => $attendance_data['status'], // attending, not_attending, maybe
-            'attendance_note' => isset($attendance_data['note']) ? $attendance_data['note'] : '',
-            'attendance_date' => current_time('mysql'),
-            'team_id' => $attendance_team_id
-        ]
-    ];
-
-    $attendance_id = wp_insert_post($post_data);
-
-    if (is_wp_error($attendance_id)) {
-        return false;
-    }
-
-    // チーム代表者に通知
-    if ($attendance_team_id) {
-        $team_post = get_post($attendance_team_id);
-        if ($team_post) {
-            aidunite_notify_team_leader_attendance($team_post->post_author, $attendance_id);
-        }
-    }
-
-    return $attendance_id;
-}
-
-/*--------------------------------------------------------------
-  AidUnite統一仕様：出欠一覧取得（統一命名）
---------------------------------------------------------------*/
-function aidunite_get_attendance_list($schedule_id) {
-    if (!$schedule_id) {
-        return [];
-    }
-
-    $attendances = get_posts([
-        'post_type' => 'attendance',
-        'post_status' => 'publish',
-        'posts_per_page' => -1,
-        'meta_query' => [
-            [
-                'key' => 'schedule_id',
-                'value' => $schedule_id,
-                'compare' => '='
-            ]
-        ]
-    ]);
-
-    $attendance_list = [];
-
-    foreach ($attendances as $attendance) {
-        $child_id = get_post_meta($attendance->ID, 'child_id', true);
-        $parent_id = get_post_meta($attendance->ID, 'parent_id', true);
-
-        $child = get_userdata($child_id);
-        $parent = get_userdata($parent_id);
-
-        $attendance_list[] = [
-            'attendance_id' => $attendance->ID,
-            'child_name' => $child ? $child->display_name : '',
-            'parent_name' => $parent ? $parent->display_name : '',
-            'status' => get_post_meta($attendance->ID, 'attendance_status', true),
-            'note' => get_post_meta($attendance->ID, 'attendance_note', true),
-            'submitted_date' => get_post_meta($attendance->ID, 'attendance_date', true)
-        ];
-    }
-
-    return $attendance_list;
-}
-
-/**
- * 後方互換性のためのラッパー関数（段階的削除予定）
- * @deprecated 代わりに aidunite_get_attendance_list() を使用してください
- */
-function tunageru_get_attendance_list($schedule_id) {
-    return aidunite_get_attendance_list($schedule_id);
-}
-
-/*--------------------------------------------------------------
-  AidUnite統一仕様：招待トークン生成
---------------------------------------------------------------*/
-function aidunite_generate_invite_token($user_id, $team_id, $hours_valid = 72) {
-    if (!$team_id) {
-        return false;
-    }
-
-    // トークンを生成
-    $token = bin2hex(random_bytes(32));
-    $expires_at = time() + ($hours_valid * 3600);
-
-    // トークンを一時的に保存（オプション：データベースに保存する場合は別途実装）
-    // ここでは、トークンと有効期限をメタデータとして保存
-    $token_data = [
-        'token' => $token,
-        'user_id' => $user_id,
-        'team_id' => $team_id,
-        'expires_at' => $expires_at,
-        'created_at' => time()
-    ];
-
-    // トークンデータを一時的に保存（セッションまたはオプションとして）
-    $option_key = 'aidunite_invite_token_' . md5($token);
-    update_option($option_key, $token_data, false);
-
-    return $token;
-}
-
-/*--------------------------------------------------------------
-  AidUnite統一仕様：招待トークン検証
---------------------------------------------------------------*/
-function aidunite_verify_invite_token($token, $team_id = null) {
-    if (empty($token)) {
-        return false;
-    }
-
-    // トークンデータを取得
-    $option_key = 'aidunite_invite_token_' . md5($token);
-    $token_data = get_option($option_key);
-
-    if (!$token_data || !is_array($token_data)) {
-        return false;
-    }
-
-    // 有効期限チェック
-    if (isset($token_data['expires_at']) && $token_data['expires_at'] < time()) {
-        delete_option($option_key);
-        return false;
-    }
-
-    // トークン一致チェック
-    if ($token_data['token'] !== $token) {
-        return false;
-    }
-
-    // チームIDチェック（指定されている場合）
-    if ($team_id !== null && isset($token_data['team_id']) && $token_data['team_id'] != $team_id) {
-        return false;
-    }
-
-    return $token_data;
-}
-
-/*--------------------------------------------------------------
-  AidUnite統一仕様：保護者招待処理
---------------------------------------------------------------*/
-function aidunite_invite_parent_to_team($team_id, $invite_email, $invite_message = '') {
-    if (!$team_id || !$invite_email) {
-        return false;
-    }
-
-    $team_info = aidunite_get_team_info($team_id);
-    if (!$team_info) {
-        return false;
-    }
-
-    // 招待トークンを生成
-    $invite_token = aidunite_generate_invite_token(0, $team_id, 72); // 72時間有効
-
-    // 招待メール送信
-    $invite_url = home_url('/guardian-signup/?token=' . $invite_token . '&team_id=' . $team_id);
-
-    $subject = '【AidUnite】チーム参加のご案内（保護者向け）';
-    $message = "
-{$invite_message}
-
-チーム名：{$team_info['team_name']}
-競技：{$team_info['sport_type']}
-地域：{$team_info['region']}
-
-以下のURLより保護者として登録し、チームに参加できます：
-{$invite_url}
-
-※このリンクは72時間有効です。
-
-AidUnite運営チーム
-";
-
-    $headers = ['Content-Type: text/plain; charset=UTF-8'];
-
-    return wp_mail($invite_email, $subject, $message, $headers);
 }
 
 /*--------------------------------------------------------------
@@ -538,10 +183,7 @@ function aidunite_link_parent_and_player($parent_id, $child_user_id) {
     $parent_id = (int) $parent_id;
     $child_user_id = (int) $child_user_id;
     // 世帯ID = 保護者ユーザーID（同じ保護者に紐づく親子は同じ世帯IDになる）
-    $family_id = (string) $parent_id;
-    update_user_meta($parent_id, 'family_id', $family_id);
-    update_user_meta($child_user_id, 'family_id', $family_id);
-    update_user_meta($child_user_id, 'linked_parent_id', $parent_id);
+    aidunite_parent_persist_family_link($parent_id, $child_user_id);
 }
 }
 
@@ -553,284 +195,116 @@ function aidunite_link_parent_to_child($child_id, $parent_data) {
         return false;
     }
 
-    // 保護者情報をメタデータとして保存（選手のユーザーメタに保存）
-    $parent_meta_fields = [
-        'parent_name' => sanitize_text_field($parent_data['parent_name'] ?? ''),
-        'parent_name_sei' => sanitize_text_field($parent_data['parent_name_sei'] ?? ''),
-        'parent_name_mei' => sanitize_text_field($parent_data['parent_name_mei'] ?? ''),
-        'parent_name_kana' => sanitize_text_field($parent_data['parent_name_kana'] ?? ''),
-        'parent_phone' => sanitize_text_field($parent_data['parent_phone'] ?? ''),
-        'parent_email' => function_exists('aidunite_normalize_email') ? aidunite_normalize_email($parent_data['parent_email'] ?? '') : sanitize_email($parent_data['parent_email'] ?? ''),
-        'parent_relationship' => sanitize_text_field($parent_data['parent_relationship'] ?? '父'),
-        'parent_emergency_contact' => sanitize_text_field($parent_data['parent_emergency_contact'] ?? ''),
-        'parent_linked_date' => current_time('mysql')
-    ];
-
-    foreach ($parent_meta_fields as $key => $value) {
-        update_user_meta($child_id, $key, $value);
-    }
-
-    // 保護者情報紐付け完了フラグ
-    update_user_meta($child_id, 'parent_info_linked', true);
-    delete_user_meta($child_id, 'needs_parent_link');
-
-    return true;
+    return aidunite_parent_persist_contact_on_player($child_id, $parent_data);
 }
 
-/*--------------------------------------------------------------
-  AidUnite統一仕様：チーム代表者による選手登録（保護者情報付き）
---------------------------------------------------------------*/
-function aidunite_team_leader_register_player_with_parent($team_leader_id, $player_data, $parent_data) {
-    if (!aidunite_is_team_leader($team_leader_id)) {
-        return ['success' => false, 'message' => 'チーム代表者権限が必要です'];
+/**
+ * ログイン中の保護者自身の連絡先データ（子供登録時の紐付け用）
+ *
+ * @param int $parent_user_id
+ * @return array<string, string>
+ */
+function aidunite_parent_build_self_contact_data($parent_user_id) {
+    if (function_exists('aidunite_parent_read_self_contact_payload')) {
+        return aidunite_parent_read_self_contact_payload($parent_user_id);
     }
 
-    $team_id = function_exists('aidunite_get_current_team_id')
-        ? (int) aidunite_get_current_team_id((int) $team_leader_id)
-        : (int) get_user_meta($team_leader_id, 'team_id', true);
-    if (!$team_id) {
-        return ['success' => false, 'message' => 'チーム情報が見つかりません'];
+    return [];
+}
+
+/**
+ * 保護者によるお子様（選手）登録
+ *
+ * @param int                  $parent_user_id
+ * @param int                  $team_id
+ * @param array<string, mixed> $player_data
+ * @return array<string, mixed>
+ */
+function aidunite_parent_register_child($parent_user_id, $team_id, array $player_data) {
+    $parent_user_id = (int) $parent_user_id;
+    $team_id = (int) $team_id;
+
+    if ($parent_user_id <= 0 || $team_id <= 0) {
+        return ['success' => false, 'message' => '必要な情報が不足しています'];
     }
 
-    // 既存ユーザーチェック（メールアドレスが指定されている場合・照合時は正規化）
-    $existing_user = null;
-    if (!empty($player_data['player_email'])) {
-        $email_for_check = function_exists('aidunite_normalize_email') ? aidunite_normalize_email($player_data['player_email']) : sanitize_email($player_data['player_email']);
-        $existing_user = get_user_by('email', $email_for_check);
+    if (function_exists('aidunite_get_user_role') && aidunite_get_user_role($parent_user_id) !== 'parent') {
+        return ['success' => false, 'message' => '保護者のみが実行できます'];
     }
 
-    if ($existing_user) {
-        // 既存ユーザーの場合: 選手ロールを追加
-        $player_user_id = $existing_user->ID;
-
-        // 選手として設定
-        aidunite_set_user_type($player_user_id, 'player');
-        aidunite_set_minor_status($player_user_id, true);
-
-        // 複数チーム所属対応: 既存のチーム所属を確認
-        $existing_teams = aidunite_get_user_teams($player_user_id);
-
-        // team_id が存在するが team_memberships が空の場合、team_id から team_memberships を作成
-        if (empty($existing_teams)) {
-            $managed_ids = function_exists('aidunite_get_managed_team_ids')
-                ? aidunite_get_managed_team_ids((int) $player_user_id)
-                : [];
-            $existing_team_id = !empty($managed_ids) ? (int) $managed_ids[0] : (int) get_user_meta($player_user_id, 'team_id', true);
-            if ($existing_team_id) {
-                // 既存の team_id を team_memberships に変換
-                $existing_teams = [
-                    $existing_team_id => [
-                        'team_id' => $existing_team_id,
-                        'role' => 'player',
-                        'joined_date' => current_time('mysql'),
-                        'status' => 'active'
-                    ]
-                ];
-                update_user_meta($player_user_id, 'team_memberships', $existing_teams);
-                // キャッシュをクリアして、次の処理で最新の値を取得できるようにする
-                clean_user_cache($player_user_id);
-            }
+    if (function_exists('aidunite_parent_read_user_membership_status')) {
+        $status = aidunite_parent_read_user_membership_status($parent_user_id, $team_id);
+        if ($status !== 'active') {
+            return ['success' => false, 'message' => 'チーム代表者の承認後にご利用いただけます'];
         }
+    }
 
-        // 新しいチームに追加（既存チームがある場合もない場合も統一処理）
-        aidunite_add_user_to_multiple_teams($player_user_id, $team_id, 'player');
-
-        // 選手情報を更新（既存ユーザーの場合も情報を更新可能）
-        if (!empty($player_data['nickname']) || !empty($player_data['player_name'])) {
-            wp_update_user([
-                'ID' => $player_user_id,
-                'display_name' => $player_data['nickname'] ?? $player_data['player_name'] ?? get_userdata($player_user_id)->display_name,
-                'first_name' => $player_data['player_name'] ?? get_userdata($player_user_id)->first_name,
-                'nickname' => $player_data['nickname'] ?? $player_data['player_name'] ?? get_userdata($player_user_id)->nickname
-            ]);
-        }
-
-        // 選手メタデータ保存（既存のメタデータを更新）
-        $player_meta_fields = [
-            'player_name' => $player_data['player_name'] ?? '',
-            'player_name_sei' => $player_data['player_name_sei'] ?? '',
-            'player_name_mei' => $player_data['player_name_mei'] ?? '',
-            'player_name_kana' => $player_data['player_name_kana'] ?? '',
-            'player_kana_sei' => $player_data['player_kana_sei'] ?? '',
-            'player_kana_mei' => $player_data['player_kana_mei'] ?? '',
-            'player_birth_date' => $player_data['birth_date'] ?? '',
-            'player_grade' => $player_data['grade'] ?? '',
-            'player_position' => $player_data['position'] ?? '',
-            'player_nickname' => $player_data['nickname'] ?? '',
-            'player_club_team' => $player_data['club_team'] ?? '',
-            'player_email' => $player_data['player_email'] ?? '',
-            'player_height' => $player_data['height'] ?? '',
-            'player_weight' => $player_data['weight'] ?? '',
-            'jersey_number' => $player_data['jersey_number'] ?? '',
-            'registered_by_team_leader' => $team_leader_id,
-            'registration_date' => current_time('mysql')
+    $team_display = function_exists('aidunite_team_get_display_bundle')
+        ? aidunite_team_get_display_bundle($team_id)
+        : [];
+    $team_category = (string) ($team_display['team_category'] ?? '');
+    if (
+        !function_exists('aidunite_player_is_minor_team_category')
+        || !aidunite_player_is_minor_team_category($team_category)
+    ) {
+        return [
+            'success' => false,
+            'message' => 'お子様の登録は小学生・中学生・高校生チームでのみ利用できます',
         ];
+    }
 
-        // 後方互換性のため、旧メタキーも保存
-        $legacy_meta_fields = [
-            'birth_date' => $player_data['birth_date'] ?? '',
-            'grade' => $player_data['grade'] ?? '',
-            'position' => $player_data['position'] ?? '',
+    $parent_data = aidunite_parent_build_self_contact_data($parent_user_id);
+    if (empty($parent_data['parent_email'])) {
+        return ['success' => false, 'message' => '保護者のメールアドレスが登録されていません'];
+    }
+
+    $player_name = (string) ($player_data['player_name'] ?? '');
+    if ($player_name === '') {
+        return ['success' => false, 'message' => '選手名は必須です'];
+    }
+
+    $username = aidunite_generate_child_username($player_name, $team_id);
+    $temp_email = 'player_' . time() . '_' . wp_generate_password(6, false) . '@temp.aidunite.local';
+    $password = wp_generate_password(12, false);
+
+    $player_user_id = wp_create_user($username, $password, $temp_email);
+    if (is_wp_error($player_user_id)) {
+        return [
+            'success' => false,
+            'message' => 'アカウント作成に失敗しました: ' . $player_user_id->get_error_message(),
         ];
+    }
 
-        foreach ($player_meta_fields as $key => $value) {
-            if (!empty($value)) {
-                update_user_meta($player_user_id, $key, $value);
-            }
-        }
+    wp_update_user([
+        'ID' => $player_user_id,
+        'display_name' => $player_data['nickname'] ?? $player_name,
+        'first_name' => $player_name,
+        'nickname' => $player_data['nickname'] ?? $player_name,
+    ]);
 
-        foreach ($legacy_meta_fields as $key => $value) {
-            if (!empty($value)) {
-                update_user_meta($player_user_id, $key, $value);
-            }
-        }
-
-        // 年齢・学年自動計算
-        if (!empty($player_data['birth_date'])) {
-            $birth = new DateTime($player_data['birth_date']);
-            $today = new DateTime();
-            $age = $today->diff($birth)->y;
-            update_user_meta($player_user_id, 'age', $age);
-
-            // 学年計算（4月基準）
-            if (empty($player_data['grade'])) {
-                $grade = aidunite_calculate_grade_from_birthdate($player_data['birth_date']);
-                update_user_meta($player_user_id, 'player_grade', $grade);
-                // 後方互換性のため旧キーも保存
-                update_user_meta($player_user_id, 'grade', $grade);
-            }
-        }
-
-        // 既存ユーザーの場合、パスワードは変更しない（ユーザーが既に設定済み）
-        $password = null;
-        $username = $existing_user->user_login;
-
-        // キャッシュをクリアしてメタデータの更新を確実に反映
-        clean_user_cache($player_user_id);
-        wp_cache_flush();
-    } else {
-        // 新規ユーザーの場合: アカウント作成
-        $username = aidunite_generate_child_username($player_data['player_name'], $team_id);
-        $temp_email = !empty($player_data['player_email'])
-            ? (function_exists('aidunite_normalize_email') ? aidunite_normalize_email($player_data['player_email']) : sanitize_email($player_data['player_email']))
-            : 'player_' . time() . '@temp.aidunite.local';
-
-        // パスワード設定（カスタムまたは自動生成）
-        if (!empty($player_data['password_option']) && $player_data['password_option'] === 'manual' && !empty($player_data['custom_password'])) {
-            $password = $player_data['custom_password'];
-        } else {
-            $password = wp_generate_password(12, false);
-        }
-
-        $player_user_id = wp_create_user($username, $password, $temp_email);
-
-        if (is_wp_error($player_user_id)) {
-            return ['success' => false, 'message' => 'アカウント作成に失敗しました: ' . $player_user_id->get_error_message()];
-        }
-
-        // 選手情報設定
-        wp_update_user([
-            'ID' => $player_user_id,
-            'display_name' => $player_data['nickname'] ?? $player_data['player_name'],
-            'first_name' => $player_data['player_name'],
-            'nickname' => $player_data['nickname'] ?? $player_data['player_name']
+    if (function_exists('aidunite_player_persist_registration_meta')) {
+        aidunite_player_persist_registration_meta($player_user_id, $player_data, [
+            'team_leader_id' => 0,
+            'registered_by_parent_id' => $parent_user_id,
+            'skip_empty' => false,
         ]);
+    }
 
-        // 選手メタデータ保存
-        $player_meta_fields = [
-            'player_name' => $player_data['player_name'],
-            'player_name_sei' => $player_data['player_name_sei'] ?? '',
-            'player_name_mei' => $player_data['player_name_mei'] ?? '',
-            'player_name_kana' => $player_data['player_name_kana'] ?? '',
-            'player_kana_sei' => $player_data['player_kana_sei'] ?? '',
-            'player_kana_mei' => $player_data['player_kana_mei'] ?? '',
-            'player_birth_date' => $player_data['birth_date'] ?? '',
-            'player_grade' => $player_data['grade'] ?? '',
-            'player_position' => $player_data['position'] ?? '',
-            'player_nickname' => $player_data['nickname'] ?? '',
-            'player_club_team' => $player_data['club_team'] ?? '',
-            'player_email' => $player_data['player_email'] ?? '',
-            'player_height' => $player_data['height'] ?? '',
-            'player_weight' => $player_data['weight'] ?? '',
-            'jersey_number' => $player_data['jersey_number'] ?? '',
-            'registered_by_team_leader' => $team_leader_id,
-            'registration_date' => current_time('mysql')
-        ];
+    aidunite_set_user_type($player_user_id, 'player');
+    aidunite_set_minor_status($player_user_id, true);
 
-        // 後方互換性のため、旧メタキーも保存
-        $legacy_meta_fields = [
-            'birth_date' => $player_data['birth_date'] ?? '',
-            'grade' => $player_data['grade'] ?? '',
-            'position' => $player_data['position'] ?? '',
-        ];
-
-        foreach ($player_meta_fields as $key => $value) {
-            update_user_meta($player_user_id, $key, $value);
-        }
-
-        foreach ($legacy_meta_fields as $key => $value) {
-            if (!empty($value)) {
-                update_user_meta($player_user_id, $key, $value);
-            }
-        }
-
-        // 年齢・学年自動計算
-        if (!empty($player_data['birth_date'])) {
-            $birth = new DateTime($player_data['birth_date']);
-            $today = new DateTime();
-            $age = $today->diff($birth)->y;
-            update_user_meta($player_user_id, 'age', $age);
-
-            // 学年計算（4月基準）
-            if (empty($player_data['grade'])) {
-                $grade = aidunite_calculate_grade_from_birthdate($player_data['birth_date']);
-                update_user_meta($player_user_id, 'player_grade', $grade);
-                // 後方互換性のため旧キーも保存
-                update_user_meta($player_user_id, 'grade', $grade);
-            }
-        }
-
-        // 選手設定
-        aidunite_set_user_type($player_user_id, 'player');
-        aidunite_set_minor_status($player_user_id, true);
+    if (function_exists('aidunite_add_user_to_multiple_teams')) {
+        aidunite_add_user_to_multiple_teams($player_user_id, $team_id, 'player');
+    } else {
         aidunite_set_user_team($player_user_id, $team_id);
     }
 
-    // 保護者情報紐付け・アカウント作成
-    $parent_user_id = null;
-    $parent_password = null;
-
-    if (!empty($parent_data)) {
-        // 保護者アカウント作成が指定されている場合
-        if (!empty($parent_data['create_account']) && !empty($parent_data['parent_email'])) {
-            $parent_result = aidunite_create_parent_account($parent_data, $team_id);
-
-            if ($parent_result['success']) {
-                $parent_user_id = $parent_result['parent_id'];
-                $parent_password = $parent_result['password'];
-
-                // 保護者と選手を紐付け
-                aidunite_link_parent_and_player($parent_user_id, $player_user_id);
-            }
-        } else {
-            // 保護者情報のみ紐付け（アカウント作成なし）
-            aidunite_link_parent_to_child($player_user_id, $parent_data);
-        }
-
-        // 保護者にメール通知
-        if (!empty($parent_data['parent_email'])) {
-            aidunite_notify_parent_child_registration_by_team(
-                $parent_data['parent_email'],
-                $player_data,
-                $username,
-                $password,
-                $parent_password
-            );
-        }
-    } else {
-        // 保護者情報は後で紐付け
-        update_user_meta($player_user_id, 'needs_parent_link', true);
+    if (function_exists('aidunite_link_parent_and_player')) {
+        aidunite_link_parent_and_player($parent_user_id, $player_user_id);
     }
+    aidunite_link_parent_to_child($player_user_id, $parent_data);
+
+    clean_user_cache($player_user_id);
 
     return [
         'success' => true,
@@ -838,7 +312,7 @@ function aidunite_team_leader_register_player_with_parent($team_leader_id, $play
         'username' => $username,
         'password' => $password,
         'parent_id' => $parent_user_id,
-        'parent_password' => $parent_password
+        'message' => 'お子様の登録が完了しました。',
     ];
 }
 
@@ -892,79 +366,12 @@ function aidunite_team_leader_register_adult_player($team_leader_id, $player_dat
             ]);
         }
 
-        // 選手メタデータ保存（既存のメタデータを更新）
-        $player_meta_fields = [
-            'player_name' => $player_data['player_name'] ?? '',
-            'player_name_sei' => $player_data['player_name_sei'] ?? '',
-            'player_name_mei' => $player_data['player_name_mei'] ?? '',
-            'player_name_kana' => $player_data['player_name_kana'] ?? '',
-            'player_kana_sei' => $player_data['player_kana_sei'] ?? '',
-            'player_kana_mei' => $player_data['player_kana_mei'] ?? '',
-            'player_birth_date' => $player_data['birth_date'] ?? '',
-            'player_grade' => $player_data['grade'] ?? '',
-            'player_position' => $player_data['position'] ?? '',
-            'player_nickname' => $player_data['nickname'] ?? '',
-            'player_club_team' => $player_data['club_team'] ?? '',
-            'player_email' => $player_data['player_email'] ?? '',
-            'player_height' => $player_data['height'] ?? '',
-            'player_weight' => $player_data['weight'] ?? '',
-            'jersey_number' => $player_data['jersey_number'] ?? '',
-            'registered_by_team_leader' => $team_leader_id,
-            'registration_date' => current_time('mysql'),
-            'is_adult_player' => true
-        ];
-
-        // 後方互換性のため、旧メタキーも保存
-        $legacy_meta_fields = [
-            'birth_date' => $player_data['birth_date'] ?? '',
-            'grade' => $player_data['grade'] ?? '',
-            'position' => $player_data['position'] ?? '',
-        ];
-
-        foreach ($player_meta_fields as $key => $value) {
-            if (!empty($value)) {
-                update_user_meta($player_user_id, $key, $value);
-            }
-        }
-
-        foreach ($legacy_meta_fields as $key => $value) {
-            if (!empty($value)) {
-                update_user_meta($player_user_id, $key, $value);
-            }
-        }
-
-        // 年齢・学年自動計算
-        if (!empty($player_data['birth_date'])) {
-            $birth = new DateTime($player_data['birth_date']);
-            $today = new DateTime();
-            $age = $today->diff($birth)->y;
-            update_user_meta($player_user_id, 'age', $age);
-
-            // 学年計算（4月基準）
-            if (empty($player_data['grade'])) {
-                $grade = aidunite_calculate_grade_from_birthdate($player_data['birth_date']);
-                update_user_meta($player_user_id, 'player_grade', $grade);
-                // 後方互換性のため旧キーも保存
-                update_user_meta($player_user_id, 'grade', $grade);
-            }
-        }
-
-        // 緊急連絡先情報保存
-        if (!empty($emergency_contact_data)) {
-            $emergency_contact_fields = [
-                'emergency_contact_name' => $emergency_contact_data['emergency_contact_name'] ?? '',
-                'emergency_contact_relationship' => $emergency_contact_data['emergency_contact_relationship'] ?? '',
-                'emergency_contact_phone' => $emergency_contact_data['emergency_contact_phone'] ?? '',
-                'emergency_contact_email' => $emergency_contact_data['emergency_contact_email'] ?? '',
-                'emergency_contact_linked_date' => current_time('mysql')
-            ];
-
-            foreach ($emergency_contact_fields as $key => $value) {
-                if (!empty($value)) {
-                    update_user_meta($player_user_id, $key, $value);
-                }
-            }
-        }
+        aidunite_player_persist_registration_meta($player_user_id, $player_data, [
+            'team_leader_id' => $team_leader_id,
+            'skip_empty' => true,
+            'is_adult' => true,
+        ]);
+        aidunite_player_persist_emergency_contact_meta($player_user_id, $emergency_contact_data, true);
 
         // 既存ユーザーの場合、パスワードは変更しない（ユーザーが既に設定済み）
         $password = null;
@@ -997,77 +404,12 @@ function aidunite_team_leader_register_adult_player($team_leader_id, $player_dat
             'nickname' => $player_data['nickname'] ?? $player_data['player_name']
         ]);
 
-        // 選手メタデータ保存
-        $player_meta_fields = [
-            'player_name' => $player_data['player_name'],
-            'player_name_sei' => $player_data['player_name_sei'] ?? '',
-            'player_name_mei' => $player_data['player_name_mei'] ?? '',
-            'player_name_kana' => $player_data['player_name_kana'] ?? '',
-            'player_kana_sei' => $player_data['player_kana_sei'] ?? '',
-            'player_kana_mei' => $player_data['player_kana_mei'] ?? '',
-            'player_birth_date' => $player_data['birth_date'] ?? '',
-            'player_grade' => $player_data['grade'] ?? '',
-            'player_position' => $player_data['position'] ?? '',
-            'player_nickname' => $player_data['nickname'] ?? '',
-            'player_club_team' => $player_data['club_team'] ?? '',
-            'player_email' => $player_data['player_email'] ?? '',
-            'player_height' => $player_data['height'] ?? '',
-            'player_weight' => $player_data['weight'] ?? '',
-            'jersey_number' => $player_data['jersey_number'] ?? '',
-            'registered_by_team_leader' => $team_leader_id,
-            'registration_date' => current_time('mysql'),
-            'is_adult_player' => true
-        ];
-
-        // 後方互換性のため、旧メタキーも保存
-        $legacy_meta_fields = [
-            'birth_date' => $player_data['birth_date'] ?? '',
-            'grade' => $player_data['grade'] ?? '',
-            'position' => $player_data['position'] ?? '',
-        ];
-
-        foreach ($player_meta_fields as $key => $value) {
-            update_user_meta($player_user_id, $key, $value);
-        }
-
-        foreach ($legacy_meta_fields as $key => $value) {
-            if (!empty($value)) {
-                update_user_meta($player_user_id, $key, $value);
-            }
-        }
-
-        // 年齢・学年自動計算
-        if (!empty($player_data['birth_date'])) {
-            $birth = new DateTime($player_data['birth_date']);
-            $today = new DateTime();
-            $age = $today->diff($birth)->y;
-            update_user_meta($player_user_id, 'age', $age);
-
-            // 学年計算（4月基準）
-            if (empty($player_data['grade'])) {
-                $grade = aidunite_calculate_grade_from_birthdate($player_data['birth_date']);
-                update_user_meta($player_user_id, 'player_grade', $grade);
-                // 後方互換性のため旧キーも保存
-                update_user_meta($player_user_id, 'grade', $grade);
-            }
-        }
-
-        // 緊急連絡先情報保存
-        if (!empty($emergency_contact_data)) {
-            $emergency_contact_fields = [
-                'emergency_contact_name' => $emergency_contact_data['emergency_contact_name'] ?? '',
-                'emergency_contact_relationship' => $emergency_contact_data['emergency_contact_relationship'] ?? '',
-                'emergency_contact_phone' => $emergency_contact_data['emergency_contact_phone'] ?? '',
-                'emergency_contact_email' => $emergency_contact_data['emergency_contact_email'] ?? '',
-                'emergency_contact_linked_date' => current_time('mysql')
-            ];
-
-            foreach ($emergency_contact_fields as $key => $value) {
-                if (!empty($value)) {
-                    update_user_meta($player_user_id, $key, $value);
-                }
-            }
-        }
+        aidunite_player_persist_registration_meta($player_user_id, $player_data, [
+            'team_leader_id' => $team_leader_id,
+            'skip_empty' => false,
+            'is_adult' => true,
+        ]);
+        aidunite_player_persist_emergency_contact_meta($player_user_id, $emergency_contact_data, true);
 
         // 選手設定
         aidunite_set_user_type($player_user_id, 'player');
@@ -1140,79 +482,6 @@ AidUnite運営チーム
 
     $headers = ['Content-Type: text/plain; charset=UTF-8'];
     return wp_mail($player_email, $subject, $message, $headers);
-}
-
-/*--------------------------------------------------------------
-  AidUnite統一仕様：保護者アカウント作成
---------------------------------------------------------------*/
-function aidunite_create_parent_account($parent_data, $team_id) {
-    if (empty($parent_data['parent_email']) || empty($parent_data['parent_name'])) {
-        return ['success' => false, 'message' => '保護者の必須情報が不足しています'];
-    }
-
-    $parent_email = function_exists('aidunite_normalize_email') ? aidunite_normalize_email($parent_data['parent_email']) : sanitize_email($parent_data['parent_email']);
-
-    // メールアドレス重複チェック
-    if (email_exists($parent_email)) {
-        return ['success' => false, 'message' => 'このメールアドレスは既に使用されています'];
-    }
-
-    // パスワード設定（カスタムまたは自動生成）
-    if (!empty($parent_data['password_option']) && $parent_data['password_option'] === 'manual' && !empty($parent_data['custom_password'])) {
-        $password = $parent_data['custom_password'];
-    } else {
-        $password = wp_generate_password(12, false);
-    }
-
-    // 保護者アカウント作成（メールは正規化済み）
-    $parent_user_id = wp_create_user(
-        $parent_email, // ユーザー名はメールアドレス
-        $password,
-        $parent_email
-    );
-
-    if (is_wp_error($parent_user_id)) {
-        return ['success' => false, 'message' => '保護者アカウント作成に失敗しました: ' . $parent_user_id->get_error_message()];
-    }
-
-    // 保護者情報設定（共通メタ: 姓・名。parent_name のみの場合は first_name に、last_name は空）
-    $parent_sei = $parent_data['parent_name_sei'] ?? '';
-    $parent_mei = $parent_data['parent_name_mei'] ?? '';
-    wp_update_user([
-        'ID' => $parent_user_id,
-        'display_name' => $parent_data['parent_name'],
-        'first_name' => $parent_mei !== '' ? $parent_mei : $parent_data['parent_name'],
-        'last_name' => $parent_sei,
-        'nickname' => $parent_data['parent_name']
-    ]);
-
-    // 保護者メタデータ保存
-    $parent_meta_fields = [
-        'parent_name' => $parent_data['parent_name'],
-        'parent_name_kana' => $parent_data['parent_name_kana'] ?? '',
-        'parent_phone' => $parent_data['parent_phone'] ?? '',
-        'parent_email' => $parent_data['parent_email'],
-        'parent_relationship' => $parent_data['parent_relationship'] ?? '',
-        'parent_emergency_contact' => $parent_data['parent_emergency_contact'] ?? '',
-        'registration_date' => current_time('mysql')
-    ];
-
-    foreach ($parent_meta_fields as $key => $value) {
-        if (!empty($value)) {
-            update_user_meta($parent_user_id, $key, $value);
-        }
-    }
-
-    // 保護者設定
-    aidunite_set_user_type($parent_user_id, 'parent');
-    aidunite_set_user_team($parent_user_id, $team_id);
-    update_user_meta($parent_user_id, 'family_id', (string) $parent_user_id);
-
-    return [
-        'success' => true,
-        'parent_id' => $parent_user_id,
-        'password' => $password
-    ];
 }
 
 /*--------------------------------------------------------------
@@ -1304,39 +573,22 @@ AidUnite運営チーム
 /*--------------------------------------------------------------
   AidUnite統一仕様：複数チーム所属機能
 --------------------------------------------------------------*/
-function aidunite_add_user_to_multiple_teams($user_id, $team_id, $role_in_team = 'player') {
+function aidunite_add_user_to_multiple_teams($user_id, $team_id, $role_in_team = 'player', $membership_status = 'active') {
     if (!$user_id || !$team_id) {
         return false;
     }
 
-    // 既存のチーム所属情報を取得
-    $team_memberships = get_user_meta($user_id, 'team_memberships', true) ?: [];
-
-    // 新しいチーム情報を追加
-    $team_memberships[$team_id] = [
-        'team_id' => $team_id,
-        'role' => $role_in_team,
-        'joined_date' => current_time('mysql'),
-        'status' => 'active'
-    ];
-
-    update_user_meta($user_id, 'team_memberships', $team_memberships);
-
-    // メタデータの更新を確実にするため、キャッシュをクリア
-    clean_user_cache($user_id);
-    wp_cache_flush();
-
-    // プライマリチーム設定（初回のみ）
-    if (!get_user_meta($user_id, 'primary_team_id', true)) {
-        update_user_meta($user_id, 'primary_team_id', $team_id);
+    $ok = aidunite_user_persist_add_team_membership(
+        (int) $user_id,
+        (int) $team_id,
+        (string) $role_in_team,
+        (string) $membership_status
+    );
+    if ($ok) {
+        wp_cache_flush();
     }
 
-    // 後方互換性のため既存のteam_idも更新
-    if (!get_user_meta($user_id, 'team_id', true)) {
-        update_user_meta($user_id, 'team_id', $team_id);
-    }
-
-    return true;
+    return $ok;
 }
 
 function aidunite_get_user_teams($user_id) {
@@ -1344,11 +596,9 @@ function aidunite_get_user_teams($user_id) {
         return [];
     }
 
-    // キャッシュをクリアして最新の値を取得
     clean_user_cache($user_id);
 
-    $teams = get_user_meta($user_id, 'team_memberships', true) ?: [];
-    return $teams;
+    return aidunite_user_read_team_memberships((int) $user_id);
 }
 
 function aidunite_set_primary_team($user_id, $team_id) {
@@ -1356,15 +606,7 @@ function aidunite_set_primary_team($user_id, $team_id) {
         return false;
     }
 
-    $teams = aidunite_get_user_teams($user_id);
-    if (!isset($teams[$team_id])) {
-        return false; // 所属していないチームはプライマリに設定できない
-    }
-
-    update_user_meta($user_id, 'primary_team_id', $team_id);
-    update_user_meta($user_id, 'team_id', $team_id); // 後方互換性
-
-    return true;
+    return aidunite_user_persist_set_primary_team((int) $user_id, (int) $team_id);
 }
 
 function aidunite_get_primary_team($user_id) {
@@ -1372,41 +614,59 @@ function aidunite_get_primary_team($user_id) {
         return null;
     }
 
-    return get_user_meta($user_id, 'primary_team_id', true) ?: get_user_meta($user_id, 'team_id', true);
+    $primary = (int) get_user_meta($user_id, 'primary_team_id', true);
+    if ($primary > 0) {
+        return $primary;
+    }
+
+    return function_exists('aidunite_user_read_primary_team_id')
+        ? aidunite_user_read_primary_team_id((int) $user_id)
+        : (int) get_user_meta($user_id, 'team_id', true);
 }
 
 /*--------------------------------------------------------------
   AidUnite統一仕様：学年計算機能
 --------------------------------------------------------------*/
 function aidunite_calculate_grade_from_birthdate($birth_date) {
-    if (empty($birth_date)) {
+    $birth_date = trim((string) $birth_date);
+    if ($birth_date === '') {
         return '';
     }
 
-    $birth = new DateTime($birth_date);
-    $today = new DateTime();
-    $current_year = (int)$today->format('Y');
-    $current_month = (int)$today->format('n');
+    try {
+        $birth = new DateTime($birth_date);
+        $today = new DateTime();
+    } catch (Exception $e) {
+        return '';
+    }
 
-    // 4月基準での学年計算
+    $current_year = (int) $today->format('Y');
+    $current_month = (int) $today->format('n');
+
+    // 現在の学年年度（4月1日始まり）
     $school_year = $current_year;
     if ($current_month < 4) {
         $school_year--;
     }
 
-    $birth_year = (int)$birth->format('Y');
-    $age_at_april = $school_year - $birth_year;
+    // 当該年度の4月1日時点の満年齢
+    $april1 = new DateTime($school_year . '-04-01');
+    $age_at_april = (int) $april1->diff($birth)->y;
 
-    // 学年判定（小学生想定）
+    if ($age_at_april < 6) {
+        return '未就学';
+    }
     if ($age_at_april >= 6 && $age_at_april <= 11) {
         return '小学' . ($age_at_april - 5) . '年生';
-    } elseif ($age_at_april >= 12 && $age_at_april <= 14) {
+    }
+    if ($age_at_april >= 12 && $age_at_april <= 14) {
         return '中学' . ($age_at_april - 11) . '年生';
-    } elseif ($age_at_april >= 15 && $age_at_april <= 17) {
+    }
+    if ($age_at_april >= 15 && $age_at_april <= 17) {
         return '高校' . ($age_at_april - 14) . '年生';
     }
 
-    return $age_at_april . '歳';
+    return '卒業';
 }
 
 /*--------------------------------------------------------------
@@ -1452,50 +712,6 @@ function aidunite_simple_romanize($japanese_name) {
 }
 
 /*--------------------------------------------------------------
-  AidUnite統一仕様：チーム代表者出欠通知
---------------------------------------------------------------*/
-function aidunite_notify_team_leader_attendance($user_id, $attendance_id) {
-    $user = get_userdata($user_id);
-    if (!$user) {
-        return false;
-    }
-
-    $schedule_id = get_post_meta($attendance_id, 'schedule_id', true);
-    $child_id = get_post_meta($attendance_id, 'child_id', true);
-    $status = get_post_meta($attendance_id, 'attendance_status', true);
-    $note = get_post_meta($attendance_id, 'attendance_note', true);
-
-    $child = get_userdata($child_id);
-    $schedule = get_post($schedule_id);
-
-    if (!$child || !$schedule) {
-        return false;
-    }
-
-    $status_labels = [
-        'attending' => '参加',
-        'not_attending' => '不参加',
-        'maybe' => '未定'
-    ];
-
-    $subject = '【AidUnite】出欠回答がありました';
-    $message = "
-{$user->display_name} 様
-
-出欠回答がありました。
-
-選手：{$child->display_name}
-スケジュール：{$schedule->post_title}
-回答：" . (isset($status_labels[$status]) ? $status_labels[$status] : $status) . "
-メッセージ：{$note}
-
-AidUnite運営チーム
-";
-
-    return wp_mail($user->user_email, $subject, $message);
-}
-
-/*--------------------------------------------------------------
   AidUnite統一仕様：保護者ダッシュボード情報取得（統一命名）
 --------------------------------------------------------------*/
 function aidunite_get_parent_dashboard_data($parent_id) {
@@ -1526,30 +742,9 @@ function aidunite_get_parent_dashboard_data($parent_id) {
         }
     }
 
-    // 最近の出欠回答を取得
-    $recent_attendance = get_posts([
-        'post_type' => 'attendance',
-        'post_status' => 'publish',
-        'posts_per_page' => 5,
-        'author' => $parent_id,
-        'orderby' => 'date',
-        'order' => 'DESC'
-    ]);
-
-    foreach ($recent_attendance as $attendance) {
-        $schedule_id = get_post_meta($attendance->ID, 'schedule_id', true);
-        $child_id = get_post_meta($attendance->ID, 'child_id', true);
-
-        $schedule = get_post($schedule_id);
-        $child = get_userdata($child_id);
-
-        $dashboard_data['recent_attendance'][] = [
-            'attendance_id' => $attendance->ID,
-            'schedule_title' => $schedule ? $schedule->post_title : '',
-            'child_name' => $child ? $child->display_name : '',
-            'status' => get_post_meta($attendance->ID, 'attendance_status', true),
-            'submitted_date' => get_post_meta($attendance->ID, 'attendance_date', true)
-        ];
+    // 最近の出欠回答を取得（子ども分を集約）
+    if (function_exists('aidunite_get_parent_recent_attendance')) {
+        $dashboard_data['recent_attendance'] = aidunite_get_parent_recent_attendance((int) $parent_id);
     }
 
     // チーム情報を取得
@@ -1561,12 +756,4 @@ function aidunite_get_parent_dashboard_data($parent_id) {
     }
 
     return $dashboard_data;
-}
-
-/**
- * 後方互換性のためのラッパー関数（段階的削除予定）
- * @deprecated 代わりに aidunite_get_parent_dashboard_data() を使用してください
- */
-function tunageru_get_parent_dashboard_data($parent_id) {
-    return aidunite_get_parent_dashboard_data($parent_id);
 }

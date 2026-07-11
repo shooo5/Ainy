@@ -124,7 +124,6 @@ class AidUniteFormUtils {
         const errorFields = form.querySelectorAll('.error');
         errorFields.forEach(field => {
             field.classList.remove('error');
-            field.style.borderColor = '';
         });
     }
 
@@ -142,9 +141,6 @@ class AidUniteFormUtils {
             const errorDiv = document.createElement('div');
             errorDiv.className = 'error-message';
             errorDiv.textContent = error;
-            errorDiv.style.color = 'red';
-            errorDiv.style.fontSize = '14px';
-            errorDiv.style.marginTop = '5px';
 
             // フォームの先頭に追加
             form.insertBefore(errorDiv, form.firstChild);
@@ -166,15 +162,11 @@ class AidUniteFormUtils {
 
         // エラークラスを追加
         field.classList.add('error');
-        field.style.borderColor = 'red';
 
         // エラーメッセージを表示
         const errorDiv = document.createElement('div');
-        errorDiv.className = 'field-error';
+        errorDiv.className = 'field-error error-message';
         errorDiv.textContent = message;
-        errorDiv.style.color = 'red';
-        errorDiv.style.fontSize = '12px';
-        errorDiv.style.marginTop = '2px';
 
         field.parentNode.insertBefore(errorDiv, field.nextSibling);
     }
@@ -187,7 +179,6 @@ class AidUniteFormUtils {
     static clearFieldError(field) {
         // エラークラスを削除
         field.classList.remove('error');
-        field.style.borderColor = '';
 
         // エラーメッセージを削除
         const errorDiv = field.parentNode.querySelector('.field-error');

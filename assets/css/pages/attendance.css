@@ -1,0 +1,650 @@
+/**
+ * 出欠 UI
+ * 配色: gender-theme-tokens 準拠
+ *   男子 = ダークネイビー（--theme-primary / --theme-secondary）
+ *   女子 = 紫ネイビー（--theme-primary / --theme-secondary）
+ *   アクセント = --theme-accent（リンク・フォーカス・未定など）
+ */
+
+.attendance-page {
+    --att-brand: var(--theme-primary, var(--primary-color));
+    --att-brand-secondary: var(--theme-secondary, var(--secondary-color));
+    --att-accent: var(--theme-accent, var(--primary-color));
+    --att-accent-dark: var(--theme-accent-dark, var(--primary-dark));
+    --att-surface: var(--bg-primary);
+    --att-text: var(--text-primary);
+    --att-text-secondary: var(--text-secondary);
+    --att-text-muted: var(--text-muted);
+    --att-border-neutral: var(--border-color);
+    --att-border-subtle: var(--border-light);
+    --att-soft: color-mix(in srgb, var(--att-brand) 10%, var(--bg-primary));
+    --att-border: color-mix(in srgb, var(--att-brand) 22%, var(--border-color));
+}
+
+.page-attendance-report,
+.page-attendance-management {
+    font-family: "Noto Sans JP", system-ui, sans-serif;
+}
+
+.attendance-board {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-top: 0.5rem;
+}
+
+.attendance-card {
+    background: var(--att-surface);
+    border: 1px solid var(--att-border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.attendance-card--highlight {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--att-brand) 35%, transparent), 0 4px 16px rgba(15, 23, 42, 0.08);
+}
+
+/* イベントヘッダー */
+.attendance-card__event {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 1.15rem 1.25rem;
+    background: linear-gradient(135deg, var(--att-soft) 0%, var(--att-surface) 100%);
+    border-bottom: 1px solid var(--att-border);
+}
+
+.attendance-card__event-main {
+    display: flex;
+    gap: 0.85rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.attendance-card__event-icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: var(--att-surface);
+    color: var(--att-brand);
+    border: 1px solid var(--att-border);
+}
+
+.attendance-card__title {
+    margin: 0 0 0.35rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--att-text);
+}
+
+.attendance-card__datetime,
+.attendance-card__place {
+    margin: 0.15rem 0 0;
+    font-size: 0.875rem;
+    color: var(--att-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.attendance-card__deadline {
+    flex-shrink: 0;
+    min-width: 120px;
+    padding: 0.65rem 0.85rem;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--att-brand), var(--att-brand-secondary));
+    color: var(--text-on-dark, #fff);
+    text-align: center;
+}
+
+.attendance-card__deadline--urgent {
+    background: linear-gradient(135deg, var(--danger-color, #ef4444), color-mix(in srgb, var(--danger-color, #ef4444) 80%, #000));
+}
+
+.attendance-card__deadline-label {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    opacity: 0.9;
+    margin-bottom: 0.15rem;
+}
+
+.attendance-card__deadline-value {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+/* カード本体（縦積み） */
+.attendance-card__body {
+    display: flex;
+    flex-direction: column;
+}
+
+.attendance-card__your,
+.attendance-card__summary,
+.attendance-card__members-full {
+    padding: 1.15rem 1.25rem;
+}
+
+.attendance-card__your {
+    border-bottom: 1px solid var(--att-border-subtle);
+}
+
+.attendance-card__your-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.attendance-card__section-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--att-text);
+}
+
+.attendance-card__status-badge {
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.attendance-card__status-badge--unanswered {
+    background: var(--att-soft);
+    color: var(--att-brand);
+}
+
+.attendance-card__status-badge--attending {
+    background: color-mix(in srgb, var(--success-color, #22c55e) 12%, transparent);
+    color: var(--success-color, #22c55e);
+}
+
+.attendance-card__status-badge--not_attending {
+    background: color-mix(in srgb, var(--danger-color, #ef4444) 10%, transparent);
+    color: var(--danger-color, #ef4444);
+}
+
+.attendance-card__status-badge--maybe {
+    background: color-mix(in srgb, var(--att-accent) 14%, #fff);
+    color: var(--att-accent-dark);
+}
+
+/* 3択タイル */
+.attendance-choice-group--triple {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+}
+
+.attendance-choice {
+    position: relative;
+    min-height: 92px;
+}
+
+.attendance-choice__input {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.attendance-choice__tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 92px;
+    padding: 0.75rem 0.5rem;
+    border: 2px solid var(--att-border);
+    border-radius: 12px;
+    background: var(--att-surface);
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    pointer-events: none;
+}
+
+.attendance-choice__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+    color: inherit;
+}
+
+.attendance-choice__icon .aidunite-icon,
+.attendance-choice__icon svg {
+    display: block;
+}
+
+.attendance-choice__label {
+    font-size: 0.875rem;
+    font-weight: 700;
+}
+
+.attendance-choice--present .attendance-choice__icon { color: var(--success-color, #22c55e); }
+.attendance-choice--absent .attendance-choice__icon { color: var(--danger-color, #ef4444); }
+.attendance-choice--maybe .attendance-choice__icon { color: var(--att-accent); }
+
+.attendance-choice--present input:checked + .attendance-choice__tile,
+.attendance-choice--present.is-selected .attendance-choice__tile {
+    border-color: var(--success-color, #22c55e);
+    background: color-mix(in srgb, var(--success-color, #22c55e) 12%, transparent);
+}
+
+.attendance-choice--absent input:checked + .attendance-choice__tile,
+.attendance-choice--absent.is-selected .attendance-choice__tile {
+    border-color: var(--danger-color, #ef4444);
+    background: color-mix(in srgb, var(--danger-color, #ef4444) 10%, transparent);
+}
+
+.attendance-choice--maybe input:checked + .attendance-choice__tile,
+.attendance-choice--maybe.is-selected .attendance-choice__tile {
+    border-color: var(--att-accent);
+    background: color-mix(in srgb, var(--att-accent) 14%, #fff);
+}
+
+.attendance-choice--maybe input:checked + .attendance-choice__tile .attendance-choice__icon,
+.attendance-choice--maybe.is-selected .attendance-choice__tile .attendance-choice__icon {
+    color: var(--att-accent-dark);
+}
+
+.attendance-choice__input:focus-visible + .attendance-choice__tile {
+    outline: 2px solid var(--att-accent);
+    outline-offset: 2px;
+}
+
+/* コメント */
+.attendance-card__comment {
+    margin-top: 1rem;
+}
+
+.attendance-card__comment-label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.attendance-card__comment-input {
+    width: 100%;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid var(--att-border-neutral);
+    border-radius: 10px;
+    font-size: 0.9375rem;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 80px;
+    box-sizing: border-box;
+}
+
+.attendance-card__comment-input:focus {
+    outline: none;
+    border-color: var(--att-brand);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--att-brand) 20%, transparent);
+}
+
+.attendance-card__comment-counter {
+    margin-top: 0.35rem;
+    text-align: right;
+    font-size: 0.75rem;
+    color: var(--att-text-muted);
+}
+
+/* 送信ボタン（中央・btn-primary 標準グラデーション） */
+.attendance-card__submit-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.page-attendance-report .attendance-card__submit.btn,
+.page-attendance-management .attendance-card__submit.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    width: auto;
+    max-width: none;
+    margin-top: 0;
+    padding-inline: 1.75rem;
+    min-height: 48px;
+    border-radius: 999px;
+    font-size: 1rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--att-brand), var(--att-brand-secondary));
+    border-color: transparent;
+    color: var(--text-on-dark, #fff);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--att-brand) 35%, transparent);
+}
+
+.page-attendance-report .attendance-card__submit.btn:hover,
+.page-attendance-management .attendance-card__submit.btn:hover {
+    filter: brightness(1.06);
+}
+
+/* 回答状況バー */
+.attendance-card__summary-head {
+    margin-bottom: 0.75rem;
+}
+
+.attendance-card__bar {
+    display: flex;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--att-brand) 12%, #e5e7eb);
+}
+
+.attendance-card__bar-seg { display: block; height: 100%; min-width: 2px; }
+.attendance-card__bar-seg--present { background: var(--success-color, #22c55e); }
+.attendance-card__bar-seg--absent { background: var(--danger-color, #ef4444); }
+.attendance-card__bar-seg--maybe { background: var(--att-accent); }
+.attendance-card__bar-seg--pending { background: color-mix(in srgb, var(--att-brand) 12%, #e5e7eb); }
+
+.attendance-card__stats {
+    list-style: none;
+    margin: 0.75rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    font-size: 0.8125rem;
+    color: var(--att-text-secondary);
+}
+
+.attendance-card__stats li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.attendance-card__stats-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.attendance-card__stats-dot--present { background: var(--success-color, #22c55e); }
+.attendance-card__stats-dot--absent { background: var(--danger-color, #ef4444); }
+.attendance-card__stats-dot--maybe { background: var(--att-accent); }
+
+/* メンバー一覧 */
+.attendance-card__members {
+    list-style: none;
+    margin: 1rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.attendance-card__member {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--att-soft);
+    border-radius: 10px;
+}
+
+.attendance-card__member-avatar {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--att-surface);
+    border: 1px solid var(--att-border);
+    color: var(--att-brand);
+    font-weight: 700;
+    font-size: 0.9375rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.attendance-card__member-photo {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.attendance-card__member-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.attendance-card__member-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    flex-wrap: nowrap;
+    min-height: 36px;
+}
+
+.attendance-card__member-name {
+    display: inline-flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    line-height: 1.25;
+    color: var(--att-text);
+    border-radius: 0;
+}
+
+.attendance-card__member-you {
+    font-weight: 500;
+    color: var(--att-text-secondary);
+    font-size: 0.8125rem;
+    border-radius: 0;
+}
+
+.attendance-card__member-badge {
+    flex-shrink: 0;
+    align-self: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.attendance-card__member-badge--attending {
+    background: var(--att-surface);
+    color: var(--success-color, #16a34a);
+    border: 1px solid color-mix(in srgb, var(--success-color, #22c55e) 35%, transparent);
+}
+.attendance-card__member-badge--not_attending {
+    background: color-mix(in srgb, var(--danger-color, #ef4444) 10%, transparent);
+    color: var(--danger-color, #ef4444);
+}
+.attendance-card__member-badge--maybe {
+    background: color-mix(in srgb, var(--att-accent) 14%, #fff);
+    color: var(--att-accent-dark);
+}
+.attendance-card__member-badge--unanswered {
+    background: color-mix(in srgb, var(--att-brand) 12%, #e5e7eb);
+    color: var(--att-brand);
+}
+
+.attendance-card__member-note {
+    margin: 0.35rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--att-text-secondary);
+}
+
+.attendance-card__member-time {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--att-text-muted);
+}
+
+.attendance-card__members-more {
+    margin: 0.65rem 0 0;
+    text-align: center;
+    font-size: 0.8125rem;
+    color: var(--att-brand);
+    font-weight: 600;
+}
+
+/* 空状態 */
+.attendance-empty {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    background: var(--att-surface);
+    border-radius: 16px;
+    border: 1px dashed var(--att-border);
+}
+
+.attendance-empty__icon { margin-bottom: 0.75rem; opacity: 0.85; }
+.attendance-empty h3 { margin: 0 0 0.5rem; font-size: 1.125rem; }
+.attendance-empty p { margin: 0 0 0.75rem; color: var(--att-text-secondary); font-size: 0.9375rem; }
+
+/* 代表者: フィルター（デフォルト閉じ・summary で開閉） */
+.attendance-page .filter-section {
+    margin-top: 0.5rem;
+    padding: 0;
+    background: var(--att-surface);
+    border: 1px solid var(--att-border);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.attendance-filter {
+    display: block;
+}
+
+.attendance-filter__summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+
+.attendance-filter__summary::-webkit-details-marker {
+    display: none;
+}
+
+.attendance-filter__summary-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--att-text);
+    line-height: 1.25;
+}
+
+.attendance-filter__chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--att-brand);
+    transition: transform 0.2s ease;
+}
+
+.attendance-filter[open] .attendance-filter__chevron {
+    transform: rotate(180deg);
+}
+
+.attendance-filter__body {
+    padding: 0 1.25rem 1.15rem;
+    border-top: 1px solid var(--att-border-subtle);
+}
+
+.attendance-page .filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+.attendance-page .filter-item { flex: 1; min-width: 140px; }
+.attendance-page .filter-label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.attendance-page .filter-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.attendance-card__closed-notice {
+    margin: 0;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--att-brand) 8%, #f8fafc);
+    border: 1px solid var(--att-border);
+    color: var(--att-brand);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.attendance-card__members-full {
+    border-top: 1px solid var(--att-border-subtle);
+}
+
+@media (min-width: 900px) {
+    /* 1出欠 = 1カード。PC は A出欠 | B出欠 の2列 */
+    .attendance-board {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.25rem;
+        align-items: start;
+    }
+
+    .attendance-card {
+        height: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    .attendance-card__event {
+        flex-direction: column;
+    }
+
+    .attendance-card__deadline {
+        width: 100%;
+    }
+}

@@ -67,10 +67,24 @@ if ( function_exists('aidunite_get_effective_user_role') && function_exists('aid
         <!-- 右側のボタン群 -->
         <div class="ainy-header-right">
             <?php if (!is_user_logged_in()): ?>
-                <a href="<?php echo home_url('/login'); ?>" class="ainy-header-icon-link" aria-label="ログイン">
-                    <svg width="24" height="24" viewBox="0 -960 960 960" fill="#000000" aria-hidden="true"><path d="M480-120v-80h280v-560H480v-80h280q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H480Zm-80-160-55-58 102-102H120v-80h327L345-622l55-58 200 200-200 200Z"/></svg>
-                </a>
-                <a href="<?php echo home_url('/member-registration'); ?>" class="ainy-auth-button primary">新規登録</a>
+                <div class="ainy-header-auth-actions">
+                    <a href="<?php echo esc_url(home_url('/login')); ?>" class="ainy-auth-button primary">
+                        <?php
+                        if (function_exists('aidunite_render_theme_icon')) {
+                            echo aidunite_render_theme_icon('lock_open', ['width' => '18', 'height' => '18'], 'ainy-auth-button__icon'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                        }
+                        ?>
+                        <span class="ainy-auth-button__label">ログイン</span>
+                    </a>
+                    <a href="<?php echo esc_url(home_url('/member-registration')); ?>" class="ainy-auth-button secondary">
+                        <?php
+                        if (function_exists('aidunite_render_theme_icon')) {
+                            echo aidunite_render_theme_icon('person_add', ['width' => '18', 'height' => '18'], 'ainy-auth-button__icon'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                        }
+                        ?>
+                        <span class="ainy-auth-button__label">新規登録</span>
+                    </a>
+                </div>
             <?php else:
                 $notification_count = function_exists('aidunite_get_notification_count') ? aidunite_get_notification_count() : 0;
                 ?>
@@ -103,205 +117,6 @@ if ( function_exists('aidunite_get_effective_user_role') && function_exists('aid
 
 <!-- サイドメニュー -->
 <?php get_template_part('template-parts/ainy', 'side-menu'); ?>
-
-<script>
-/**
- * Ainy ヘッダー機能
- * サイドメニューとハンバーガーメニューの制御
- */
-
-
-
-// サイドメニューのトグル機能
-function toggleSideMenu() {
-    const sideMenu = document.getElementById('sideMenu');
-    const overlay = document.querySelector('.ainy-side-menu-overlay');
-
-    if (sideMenu && overlay) {
-        const isOpen = sideMenu.classList.contains('open');
-
-        if (isOpen) {
-            closeSideMenu();
-        } else {
-            openSideMenu();
-        }
-    }
-}
-
-// サイドメニューを開く
-function openSideMenu() {
-    const sideMenu = document.getElementById('sideMenu');
-    const overlay = document.querySelector('.ainy-side-menu-overlay');
-    const hamburgers = document.querySelectorAll('.ainy-hamburger');
-
-    if (sideMenu && overlay) {
-        sideMenu.classList.add('open');
-        overlay.classList.add('show');
-        hamburgers.forEach(function(hamburger) {
-            hamburger.classList.add('active');
-        });
-
-        // スクロールを無効化
-        document.body.style.overflow = 'hidden';
-    }
-}
-
-// サイドメニューを閉じる
-function closeSideMenu() {
-    const sideMenu = document.getElementById('sideMenu');
-    const overlay = document.querySelector('.ainy-side-menu-overlay');
-    const hamburgers = document.querySelectorAll('.ainy-hamburger');
-
-    if (sideMenu && overlay) {
-        sideMenu.classList.remove('open');
-        overlay.classList.remove('show');
-        hamburgers.forEach(function(hamburger) {
-            hamburger.classList.remove('active');
-        });
-
-        // スクロールを有効化
-        document.body.style.overflow = '';
-    }
-}
-
-// ページ読み込み完了時の初期化
-document.addEventListener('DOMContentLoaded', function() {
-    // 前ページでサイドメニューが開いたままだと body が overflow:hidden のままになるため解除
-    if (typeof closeSideMenu === 'function') {
-        closeSideMenu();
-    }
-
-    // 要素の存在確認
-    const sideMenu = document.getElementById('sideMenu');
-    const overlay = document.querySelector('.ainy-side-menu-overlay');
-    const hamburgers = document.querySelectorAll('.ainy-hamburger');
-
-    hamburgers.forEach(function(hamburger) {
-        hamburger.addEventListener('click', function(e) {
-            e.preventDefault();
-            toggleSideMenu();
-        });
-    });
-
-    document.querySelectorAll('.ainy-bottom-nav-menu-trigger').forEach(function(trigger) {
-        trigger.addEventListener('click', function(e) {
-            e.preventDefault();
-            openSideMenu();
-        });
-    });
-
-    // オーバーレイのクリックイベントを追加
-    if (overlay) {
-        overlay.addEventListener('click', function(e) {
-            closeSideMenu();
-        });
-    }
-
-    // サイドメニューの閉じるボタンのイベントを追加
-    const closeButton = document.querySelector('.ainy-side-menu-close');
-    if (closeButton) {
-        closeButton.addEventListener('click', function(e) {
-            closeSideMenu();
-        });
-    }
-
-    // ESCキーでサイドメニューを閉じる
-    document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape') {
-            closeSideMenu();
-        }
-    });
-
-    // ウィンドウリサイズ時の処理
-    window.addEventListener('resize', function() {
-        // デスクトップサイズになったらサイドメニューを閉じる
-        if (window.innerWidth > 768) {
-            closeSideMenu();
-        }
-    });
-
-    // ヘッダーのアニメーション効果
-    const header = document.querySelector('.ainy-header');
-    if (header) {
-        header.style.opacity = '0';
-        header.style.transform = 'translateY(-10px)';
-
-        setTimeout(function() {
-            header.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-            header.style.opacity = '1';
-            header.style.transform = 'translateY(0)';
-        }, 100);
-    }
-
-    // ロゴのホバー効果
-    const logo = document.querySelector('.ainy-logo');
-    if (logo) {
-        logo.addEventListener('mouseenter', function() {
-            const logoIcon = this.querySelector('.ainy-logo-icon');
-            if (logoIcon) {
-                logoIcon.style.transform = 'scale(1.05)';
-                logoIcon.style.transition = 'transform 0.2s ease';
-            }
-        });
-
-        logo.addEventListener('mouseleave', function() {
-            const logoIcon = this.querySelector('.ainy-logo-icon');
-            if (logoIcon) {
-                logoIcon.style.transform = 'scale(1)';
-            }
-        });
-    }
-
-    // ボタンのホバー効果
-    const authButtons = document.querySelectorAll('.ainy-auth-button');
-    authButtons.forEach(function(button) {
-        button.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-1px)';
-            this.style.transition = 'transform 0.2s ease';
-        });
-
-        button.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0)';
-        });
-    });
-
-    // ハンバーガーメニューのホバー効果
-    if (hamburger) {
-        hamburger.addEventListener('mouseenter', function() {
-            const icon = this.querySelector('.ainy-hamburger-icon');
-            if (icon) {
-                icon.style.transform = 'scale(1.1)';
-                icon.style.transition = 'transform 0.2s ease';
-            }
-        });
-
-        hamburger.addEventListener('mouseleave', function() {
-            const icon = this.querySelector('.ainy-hamburger-icon');
-            if (icon) {
-                icon.style.transform = 'scale(1)';
-            }
-        });
-    }
-
-    // サイドメニューリンクのクリック時にメニューを閉じる
-    const sideMenuLinks = document.querySelectorAll('.ainy-side-nav-link');
-    sideMenuLinks.forEach(function(link) {
-        link.addEventListener('click', function() {
-            // 少し遅延させてからメニューを閉じる（クリックの視覚的フィードバックのため）
-            setTimeout(function() {
-                closeSideMenu();
-            }, 100);
-        });
-    });
-
-
-});
-
-// グローバル関数として公開（HTMLのonclick属性から呼び出せるように）
-window.toggleSideMenu = toggleSideMenu;
-window.openSideMenu = openSideMenu;
-window.closeSideMenu = closeSideMenu;
-</script>
 
 <div id="page-wrapper">
 

@@ -341,8 +341,12 @@ function aidunite_user_attach_approved_team_membership($user_id, $team_id) {
         update_user_meta($user_id, 'team_id', $team_id);
     }
 
-    update_user_meta($user_id, 'user_type', 'team_leader');
-    update_user_meta($user_id, 'aidunite_role', 'team_leader');
+    if (function_exists('aidunite_set_user_type')) {
+        aidunite_set_user_type($user_id, 'team_leader');
+    } else {
+        update_user_meta($user_id, 'user_type', 'team_leader');
+        update_user_meta($user_id, 'aidunite_role', 'team_leader');
+    }
 
     $publish_ids = aidunite_filter_team_ids_to_publish_for_operations(
         aidunite_read_user_managed_team_ids_meta($user_id)
@@ -399,8 +403,12 @@ function aidunite_user_remove_team_membership($user_id, $team_id) {
             ? aidunite_get_managed_team_ids($user_id)
             : $ids;
         if ($remaining === []) {
-            update_user_meta($user_id, 'user_type', 'general');
-            delete_user_meta($user_id, 'aidunite_role');
+            if (function_exists('aidunite_set_user_type')) {
+                aidunite_set_user_type($user_id, 'general');
+            } else {
+                update_user_meta($user_id, 'user_type', 'general');
+                delete_user_meta($user_id, 'aidunite_role');
+            }
             if (defined('AIDUNITE_USER_META_CURRENT_OPERATING_TEAM_ID')) {
                 delete_user_meta($user_id, AIDUNITE_USER_META_CURRENT_OPERATING_TEAM_ID);
             }
@@ -408,7 +416,11 @@ function aidunite_user_remove_team_membership($user_id, $team_id) {
         return;
     }
 
-    update_user_meta($user_id, 'aidunite_role', 'general');
+    if (function_exists('aidunite_set_user_type')) {
+        aidunite_set_user_type($user_id, 'general');
+    } else {
+        update_user_meta($user_id, 'aidunite_role', 'general');
+    }
 }
 
 /**
@@ -453,8 +465,12 @@ function aidunite_user_detach_rejected_pending_team($user_id, $team_id) {
     }
 
     if (empty(aidunite_get_managed_team_ids($user_id))) {
-        update_user_meta($user_id, 'user_type', 'general');
-        delete_user_meta($user_id, 'aidunite_role');
+        if (function_exists('aidunite_set_user_type')) {
+            aidunite_set_user_type($user_id, 'general');
+        } else {
+            update_user_meta($user_id, 'user_type', 'general');
+            delete_user_meta($user_id, 'aidunite_role');
+        }
         delete_user_meta($user_id, AIDUNITE_USER_META_CURRENT_OPERATING_TEAM_ID);
     }
 }
@@ -531,11 +547,16 @@ function aidunite_get_managed_team_ids($user_id) {
     $memberships = get_user_meta($user_id, 'team_memberships', true);
     if (is_array($memberships) && !empty($memberships)) {
         $ids = [];
-        foreach (array_keys($memberships) as $k) {
+        foreach ($memberships as $k => $membership) {
             $tid = (int) $k;
-            if ($tid > 0) {
-                $ids[] = $tid;
+            if ($tid <= 0) {
+                continue;
             }
+            if (function_exists('aidunite_parent_membership_excludes_operations')
+                && aidunite_parent_membership_excludes_operations($user_id, $tid, $membership)) {
+                continue;
+            }
+            $ids[] = $tid;
         }
         $ids = array_values(array_unique($ids));
         sort($ids);
@@ -546,6 +567,12 @@ function aidunite_get_managed_team_ids($user_id) {
 
     $legacy = (int) get_user_meta($user_id, 'team_id', true);
     unset($loading[$user_id]);
+    if ($legacy > 0
+        && function_exists('aidunite_parent_membership_excludes_operations')
+        && aidunite_parent_membership_excludes_operations($user_id, $legacy, null)) {
+        $cache[$user_id] = [];
+        return $cache[$user_id];
+    }
     $cache[$user_id] = $legacy > 0 ? aidunite_filter_team_ids_to_publish_for_operations([$legacy]) : [];
     return $cache[$user_id];
 }
@@ -610,6 +637,76 @@ function aidunite_normalize_team_id_list($raw) {
 }
 
 /**
+ * 保護者・選手がスケジュール閲覧できる team ID 一覧（active 所属のみ）。
+ * 代表者・管理者は managed_team_ids をそのまま利用。
+ *
+ * @param int $user_id
+ * @return int[]
+ */
+function aidunite_get_member_team_ids_for_schedule_view($user_id) {
+    $user_id = (int) $user_id;
+    if ($user_id <= 0) {
+        return [];
+    }
+
+    $role = function_exists('aidunite_get_user_role') ? aidunite_get_user_role($user_id) : '';
+    if ($role === 'team_leader' || user_can($user_id, 'manage_options')) {
+        return function_exists('aidunite_get_managed_team_ids')
+            ? aidunite_get_managed_team_ids($user_id)
+            : [];
+    }
+
+    $user_type = function_exists('aidunite_get_user_type') ? aidunite_get_user_type($user_id) : '';
+    if (!in_array($user_type, ['parent', 'player'], true)) {
+        return function_exists('aidunite_get_managed_team_ids')
+            ? aidunite_get_managed_team_ids($user_id)
+            : [];
+    }
+
+    $ids = [];
+    if (function_exists('aidunite_user_read_team_memberships')) {
+        foreach (aidunite_user_read_team_memberships($user_id) as $tid => $membership) {
+            $tid = (int) $tid;
+            if ($tid <= 0 || !is_array($membership)) {
+                continue;
+            }
+            $status = strtolower(trim((string) ($membership['status'] ?? 'active')));
+            if ($status === 'pending') {
+                continue;
+            }
+            if ($user_type === 'parent'
+                && function_exists('aidunite_parent_membership_excludes_operations')
+                && aidunite_parent_membership_excludes_operations($user_id, $tid, $membership)) {
+                continue;
+            }
+            $ids[] = $tid;
+        }
+    }
+
+    if ($ids === []) {
+        $legacy = (int) get_user_meta($user_id, 'team_id', true);
+        if ($legacy > 0 && function_exists('aidunite_get_team_affiliated_user_ids')) {
+            $affiliated = array_map('intval', aidunite_get_team_affiliated_user_ids($legacy));
+            if (in_array($user_id, $affiliated, true)) {
+                $skip = $user_type === 'parent'
+                    && function_exists('aidunite_parent_membership_excludes_operations')
+                    && aidunite_parent_membership_excludes_operations($user_id, $legacy, null);
+                if (!$skip) {
+                    $ids[] = $legacy;
+                }
+            }
+        }
+    }
+
+    $ids = array_values(array_unique(array_map('intval', $ids)));
+    sort($ids);
+
+    return function_exists('aidunite_filter_team_ids_to_publish_for_operations')
+        ? aidunite_filter_team_ids_to_publish_for_operations($ids)
+        : $ids;
+}
+
+/**
  * 指定 team への操作・閲覧の土台として「所属・管理がある」か（単一 team_id 互換込み）。
  *
  * @param int $user_id
@@ -620,12 +717,32 @@ function aidunite_user_has_managed_team_access($user_id, $team_id) {
     if ($team_id <= 0 || !aidunite_team_cpt_is_publish_for_operation_context($team_id)) {
         return false;
     }
+
+    $role = function_exists('aidunite_get_user_role') ? aidunite_get_user_role($user_id) : '';
+    $user_type = function_exists('aidunite_get_user_type') ? aidunite_get_user_type($user_id) : '';
+    if (in_array($user_type, ['parent', 'player'], true)
+        && !in_array($role, ['team_leader', 'administrator'], true)
+        && !user_can((int) $user_id, 'manage_options')) {
+        $member_ids = function_exists('aidunite_get_member_team_ids_for_schedule_view')
+            ? aidunite_get_member_team_ids_for_schedule_view((int) $user_id)
+            : [];
+        return in_array($team_id, $member_ids, true);
+    }
+
     $managed = aidunite_get_managed_team_ids($user_id);
     if (in_array($team_id, $managed, true)) {
         return true;
     }
     $legacy = (int) get_user_meta($user_id, 'team_id', true);
-    return $legacy > 0 && $legacy === $team_id;
+    if ($legacy <= 0 || $legacy !== $team_id) {
+        return false;
+    }
+    if (function_exists('aidunite_parent_membership_excludes_operations')
+        && aidunite_parent_membership_excludes_operations($user_id, $team_id, null)) {
+        return false;
+    }
+
+    return true;
 }
 
 /**

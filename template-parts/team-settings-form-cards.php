@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
             </div>
             <div class="team-form-panel__body">
               <?php
-              $team_name_kana = isset($team_name_kana) ? (string) $team_name_kana : (string) get_post_meta((int) $team_id, 'team_name_kana', true);
+              $team_name_kana = (string) ($team_name_kana ?? '');
               $team_logo_crop = function_exists('aidunite_get_team_logo_crop')
                   ? aidunite_get_team_logo_crop((int) $team_id)
                   : ['x' => 0, 'y' => 0, 'zoom' => 100];

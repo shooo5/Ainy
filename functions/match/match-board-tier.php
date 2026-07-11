@@ -12,6 +12,34 @@ if (function_exists('aidunite_match_board_ensure_dependencies')) {
     aidunite_match_board_ensure_dependencies();
 }
 
+if (!function_exists('aidunite_match_board_tier_badge_icon_html')) {
+    /**
+     * 募集中タブの tier バッジ先頭アイコン（Material Symbols → SVG）
+     *
+     * @param string $state_class best|green|yellow|no_preference
+     * @return string HTML（空文字可）
+     */
+    function aidunite_match_board_tier_badge_icon_html($state_class) {
+        $state_class = (string) $state_class;
+        // basename は assets/images/icons/*.svg に存在するもののみ（tune / event_available は未同梱）
+        $icon_map = [
+            'best'           => 'star',
+            'green'          => 'check_circle',
+            'yellow'         => 'sliders',
+            'no_preference'  => 'calendar_month',
+        ];
+        if (!isset($icon_map[$state_class]) || !function_exists('aidunite_render_theme_icon')) {
+            return '';
+        }
+
+        return aidunite_render_theme_icon(
+            $icon_map[$state_class],
+            ['width' => '14', 'height' => '14'],
+            'aidunite-icon--inline aidunite-icon--tier-badge'
+        );
+    }
+}
+
 if (!function_exists('aidunite_match_board_tier_labels')) {
     /**
      * @return array<string,array{label:string,class:string}>
@@ -354,13 +382,17 @@ if (!function_exists('aidunite_market_row_state_from_schedules')) {
             return $empty;
         }
 
-        $other_date = get_post_meta($recruit_schedule_id, 'schedule_date', true);
+        $other_date = function_exists('aidunite_schedule_read_normalized_date')
+            ? aidunite_schedule_read_normalized_date((int) $recruit_schedule_id)
+            : '';
         $tier_priority = ['best' => 0, 'green' => 1, 'yellow' => 2, 'no_preference' => 3, 'hidden' => 9];
         $best = null;
 
         if (empty($my_schedule_ids)) {
             $a = function_exists('aidunite_match_board_score_activity')
-                ? aidunite_match_board_score_activity($viewer_team_id, (int) get_post_meta($recruit_schedule_id, 'team_id', true))
+                ? aidunite_match_board_score_activity($viewer_team_id, function_exists('aidunite_schedule_read_team_id')
+                    ? aidunite_schedule_read_team_id((int) $recruit_schedule_id)
+                    : 0)
                 : 25;
             $tier = aidunite_resolve_match_board_tier([
                 'has_own_schedule'  => false,
@@ -383,7 +415,9 @@ if (!function_exists('aidunite_market_row_state_from_schedules')) {
             if ($my_id <= 0) {
                 continue;
             }
-            $my_date = get_post_meta($my_id, 'schedule_date', true);
+            $my_date = function_exists('aidunite_schedule_read_normalized_date')
+                ? aidunite_schedule_read_normalized_date($my_id)
+                : '';
             if ($other_date && $my_date && $other_date !== $my_date) {
                 continue;
             }

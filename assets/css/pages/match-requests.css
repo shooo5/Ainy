@@ -1,0 +1,17 @@
+/**
+ * マッチ申請一覧（page-match-requests.php）
+ */
+.page-match-requests-wrap .status-pending {
+  background: rgba(255, 193, 7, 0.15);
+  color: var(--warning-color);
+}
+
+.page-match-requests-wrap .status-accepted {
+  background: rgba(40, 167, 69, 0.15);
+  color: var(--success-color);
+}
+
+.page-match-requests-wrap .status-rejected {
+  background: rgba(220, 53, 69, 0.15);
+  color: var(--danger-color);
+}

@@ -1,0 +1,336 @@
+/**
+ * page-plan-info.php — 料金プラン LP
+ */
+
+body.web-app-integrated-ui .page-plan-info.plan-info-page .ainy-webapp-content,
+body.web-app-integrated-ui .page-plan-info.plan-info-page.team-dashboard-container {
+    padding-top: 0;
+}
+
+.plan-info-content {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding-bottom: var(--spacing-xl, 2rem);
+}
+
+.plan-info-content--shell {
+    max-width: 1120px;
+    margin: 0 auto;
+}
+
+.plan-info-pricing__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-lg, 1.5rem);
+    align-items: stretch;
+}
+
+.plan-info-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-base, 1rem);
+    padding: var(--spacing-xl, 2rem);
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-large, 16px);
+    background: var(--bg-primary, #fff);
+    box-shadow: var(--shadow-sm);
+}
+
+.plan-info-card--club.is-recommended {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-md);
+}
+
+.plan-info-card__badge {
+    position: absolute;
+    top: calc(var(--spacing-base, 1rem) * -0.75);
+    right: var(--spacing-lg, 1.5rem);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs, 0.35rem);
+    padding: var(--spacing-xs, 0.35rem) var(--spacing-sm, 0.75rem);
+    border-radius: var(--radius-large, 999px);
+    font-size: var(--font-size-xs, 0.75rem);
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color, #ec4899));
+}
+
+.plan-info-card__tagline {
+    margin: 0;
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.plan-info-card__name {
+    margin: 0;
+    font-size: var(--font-size-2xl, 1.75rem);
+    color: var(--text-primary);
+}
+
+.plan-info-card__description {
+    margin: 0;
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.plan-info-card__price-block {
+    padding: var(--spacing-base, 1rem);
+    border-radius: var(--radius-base, 10px);
+    background: var(--bg-secondary, #f8f9fa);
+    border: 1px solid var(--border-light);
+}
+
+.plan-info-card__price {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--spacing-xs, 0.35rem);
+}
+
+.plan-info-card__price strong {
+    font-size: var(--font-size-2xl, 1.75rem);
+    color: var(--primary-color);
+}
+
+.plan-info-card__price-label,
+.plan-info-card__price-tax {
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--text-secondary);
+}
+
+.plan-info-card__trial {
+    margin: var(--spacing-sm, 0.75rem) 0 0;
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 600;
+    color: var(--info-color, #17a2b8);
+}
+
+.plan-info-card__price-block--club {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm, 0.75rem);
+}
+
+.plan-info-card__price-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--spacing-xs, 0.35rem);
+    font-size: var(--font-size-sm, 0.875rem);
+}
+
+.plan-info-card__price-row strong {
+    font-size: var(--font-size-xl, 1.35rem);
+    color: var(--primary-color);
+}
+
+.plan-info-card__price-plus {
+    align-self: center;
+    width: var(--spacing-xl, 2rem);
+    height: var(--spacing-xl, 2rem);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(var(--primary-rgb, 102, 126, 234), 0.12);
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.plan-info-card__example {
+    padding: var(--spacing-sm, 0.75rem);
+    border-radius: var(--radius-base, 10px);
+    background: rgba(var(--primary-rgb, 102, 126, 234), 0.06);
+    border: 1px solid rgba(var(--primary-rgb, 102, 126, 234), 0.15);
+}
+
+.plan-info-card__example-label,
+.plan-info-card__example-breakdown {
+    margin: 0;
+    font-size: var(--font-size-xs, 0.75rem);
+    color: var(--text-secondary);
+}
+
+.plan-info-card__example-price {
+    margin: var(--spacing-xs, 0.35rem) 0;
+    font-size: var(--font-size-sm, 0.875rem);
+}
+
+.plan-info-card__example-price strong {
+    font-size: var(--font-size-xl, 1.35rem);
+    color: var(--primary-color);
+}
+
+.plan-info-card__minimum {
+    margin: 0;
+    font-size: var(--font-size-xs, 0.75rem);
+    color: var(--text-secondary);
+}
+
+.plan-info-card__features {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm, 0.75rem);
+}
+
+.plan-info-card__features--grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-sm, 0.75rem);
+}
+
+.plan-info-card__feature {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm, 0.75rem);
+}
+
+.plan-info-card__feature-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs, 0.2rem);
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.plan-info-card__feature-body strong {
+    color: var(--text-primary);
+    font-size: var(--font-size-sm, 0.875rem);
+}
+
+.plan-info-card__feature-icon {
+    flex-shrink: 0;
+    color: var(--primary-color);
+}
+
+.plan-info-card__cta {
+    margin-top: auto;
+    width: 100%;
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs, 0.5rem);
+}
+
+.plan-info-card__cta--primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color, #ec4899));
+    border: none;
+}
+
+.plan-info-upgrade {
+    margin-top: var(--spacing-xl, 2rem);
+    padding: var(--spacing-lg, 1.5rem);
+    border-radius: var(--radius-medium, 12px);
+    background: var(--bg-secondary, #f8f9fa);
+    border: 1px solid var(--border-light);
+}
+
+.plan-info-upgrade__content {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: var(--spacing-lg, 1.5rem);
+    align-items: center;
+}
+
+.plan-info-upgrade__title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm, 0.75rem);
+    margin: 0 0 var(--spacing-sm, 0.75rem);
+    font-size: var(--font-size-lg, 1.125rem);
+}
+
+.plan-info-upgrade__copy p {
+    margin: 0;
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.plan-info-upgrade__flow {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm, 0.75rem);
+}
+
+.plan-info-upgrade__step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs, 0.25rem);
+    padding: var(--spacing-base, 1rem);
+    border-radius: var(--radius-base, 10px);
+    background: var(--bg-primary, #fff);
+    border: 1px solid var(--border-light);
+    text-align: center;
+}
+
+.plan-info-upgrade__step--club {
+    border-color: var(--primary-color);
+    background: rgba(var(--primary-rgb, 102, 126, 234), 0.04);
+}
+
+.plan-info-upgrade__step-name {
+    font-weight: 700;
+    font-size: var(--font-size-sm, 0.875rem);
+}
+
+.plan-info-upgrade__step-price {
+    font-size: var(--font-size-xs, 0.75rem);
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.plan-info-upgrade__step-note {
+    font-size: var(--font-size-xs, 0.75rem);
+    color: var(--text-secondary);
+}
+
+.plan-info-upgrade__arrow {
+    flex-shrink: 0;
+    color: var(--primary-color);
+}
+
+.plan-info-security {
+    margin-top: var(--spacing-lg, 1.5rem);
+    text-align: center;
+}
+
+.plan-info-security p {
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs, 0.5rem);
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .plan-info-pricing__grid,
+    .plan-info-card__features--grid,
+    .plan-info-upgrade__content {
+        grid-template-columns: 1fr;
+    }
+
+    .plan-info-upgrade__flow {
+        flex-direction: column;
+    }
+
+    .plan-info-upgrade__arrow {
+        transform: rotate(90deg);
+    }
+
+    .plan-info-card {
+        padding: var(--spacing-lg, 1.5rem);
+    }
+}

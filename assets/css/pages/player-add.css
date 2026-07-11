@@ -1,264 +1,384 @@
-/* ========================================
-   選手追加ページ - 個人情報保護対応
-   ======================================== */
+/**
+ * 選手登録・編集フォーム — 男女別テーマ × 公開/限定ブロック
+ */
 
-/* ページ固有のスタイル */
-.page-player-add {
-  background: var(--bg-light);
+.player-form-flow {
+  --player-block-radius: 16px;
+  --player-block-pad: 1.25rem 1.5rem;
+  --player-block-gap: 1.25rem;
+  --player-public-accent: var(--theme-accent, var(--primary-color));
+  --player-public-border: var(--team-reg-glass-border, var(--border-color));
+  --player-public-bg: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--primary-color) 6%, #ffffff) 0%,
+    color-mix(in srgb, var(--team-reg-accent-soft) 80%, var(--bg-secondary, #f8fafc)) 100%
+  );
+  --player-public-badge-bg: var(--team-reg-accent-soft);
+  --player-public-badge-text: var(--theme-accent-dark, var(--primary-dark));
+  --player-private-accent: var(--theme-primary, var(--secondary-color));
+  --player-private-border: var(--team-reg-glass-border, var(--border-color));
+  --player-private-bg: var(--bg-secondary, #f1f5f9);
+  --player-private-badge-bg: var(--team-reg-accent-soft);
+  --player-private-badge-text: var(--theme-accent-dark, var(--primary-dark));
 }
 
-/* フォームセクションのスタイル */
-.form-section {
-  margin-bottom: var(--spacing-lg);
-  padding: var(--spacing-md);
-  border-radius: var(--radius-base);
-  background: var(--bg-secondary);
-  border-left: 4px solid var(--primary-color);
+.player-form-block {
+  margin-bottom: var(--player-block-gap);
+  padding: var(--player-block-pad);
+  border-radius: var(--player-block-radius);
+  border: 1px solid var(--player-public-border);
+  background: var(--player-public-bg);
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
 }
 
-.form-section h4 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-primary);
+.player-form-block--public {
+  border-left: 5px solid var(--player-public-accent);
 }
 
-/* 公開プロフィールセクション */
-.form-section:has(h4:contains("公開プロフィール")) {
-  border-left-color: var(--success-color);
-  background: linear-gradient(135deg, rgba(40, 167, 69, 0.05) 0%, rgba(40, 167, 69, 0.02) 100%);
+.player-form-block--private {
+  border-color: var(--player-private-border);
+  border-left: 5px solid var(--player-private-accent);
+  background: var(--player-private-bg);
 }
 
-/* 管理者・保護者専用セクション */
-.form-section:has(h4:contains("管理者・保護者専用")) {
-  border-left-color: var(--warning-color);
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.05) 0%, rgba(255, 193, 7, 0.02) 100%);
-  position: relative;
-}
-
-
-
-/* プライバシー同意セクション */
-.form-section:has(.checkbox-group) {
-  border-left-color: var(--info-color);
-  background: linear-gradient(135deg, rgba(23, 162, 184, 0.05) 0%, rgba(23, 162, 184, 0.02) 100%);
-  margin-top: var(--spacing-lg);
-}
-
-/* 学年自動計算フィールド */
-#player_grade_display {
-  background-color: var(--bg-secondary);
-  color: var(--text-secondary);
-  cursor: not-allowed;
-}
-
-#player_grade_display:focus {
-  box-shadow: none;
-  border-color: var(--border-light);
-}
-
-#player_grade_display:focus-visible {
-  outline: 2px solid var(--text-muted);
-  outline-offset: 2px;
-}
-
-/* 必須フィールドの強調 */
-.form-group label .required {
-  color: var(--danger-color);
-  font-weight: bold;
-}
-
-/* プライバシー同意チェックボックス */
-.checkbox-group {
-  margin: 1rem 0;
-}
-
-.checkbox-label {
+.player-form-block__head {
   display: flex;
-  align-items: flex-start;
-  cursor: pointer;
-  font-size: 0.95rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.player-form-block__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+}
+
+.player-form-block__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   line-height: 1.4;
 }
 
-.checkbox-custom {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--primary-color);
-  border-radius: var(--radius-small);
-  margin-right: var(--spacing-base);
-  margin-top: 2px;
-  position: relative;
-  background: var(--bg-primary);
-  flex-shrink: 0;
+.player-form-block--public .player-form-block__badge {
+  background: var(--player-public-badge-bg);
+  color: var(--player-public-badge-text);
 }
 
-input[type="checkbox"]:focus-visible + .checkbox-label .checkbox-custom {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
+.player-form-block--private .player-form-block__badge {
+  background: var(--player-private-badge-bg);
+  color: var(--player-private-badge-text);
 }
 
-.checkbox-custom::after {
-  content: '✓';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: white;
-  font-size: 12px;
-  font-weight: bold;
-  opacity: 0;
-  transition: opacity 0.2s ease;
+.player-form-block__lead {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #64748b);
+  line-height: 1.5;
 }
 
-input[type="checkbox"]:checked + .checkbox-label .checkbox-custom {
-  background: var(--primary-color);
-  border-color: var(--primary-color);
+.player-form-block__subheading {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
 }
 
-input[type="checkbox"]:checked + .checkbox-label .checkbox-custom::after {
-  opacity: 1;
-}
-
-.checkbox-text {
-  flex: 1;
-}
-
-.terms-link {
-  color: var(--primary-color);
-  text-decoration: underline;
-  font-weight: 500;
-}
-
-.terms-link:hover {
-  color: var(--primary-dark);
-  text-decoration: none;
-}
-
-/* 送信ボタンのスタイル */
-#player-submit-btn {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+.player-form-block__divider {
+  margin: 1.25rem 0;
   border: none;
-  padding: var(--spacing-base) calc(var(--spacing-lg) + var(--spacing-sm));
-  font-size: 1.1rem;
-  font-weight: 600;
-  border-radius: var(--radius-base);
-  box-shadow: var(--shadow-md);
-  transition: all 0.3s ease;
-  margin-top: var(--spacing-base);
+  border-top: 1px solid color-mix(in srgb, var(--player-private-accent) 28%, var(--border-color, #cbd5e1));
+  opacity: 0.9;
 }
 
-#player-submit-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-}
-
-#player-submit-btn:focus-visible {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
-}
-
-#player-submit-btn:disabled {
-  background: var(--text-muted);
-  transform: none;
-  box-shadow: none;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-/* 情報アイコンとテキスト */
-.text-muted {
-  color: var(--text-muted);
-  font-size: 0.9rem;
+/* 公開ブロック（従来レイアウト） */
+.player-form-block .form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
   margin-bottom: 1rem;
 }
 
-/* レスポンシブ対応 */
+.player-form-block .form-group {
+  margin-bottom: 0.75rem;
+}
+
+.player-form-block .form-group label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+}
+
+.player-form-block .form-control:focus {
+  border-color: var(--player-public-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--player-public-accent) 22%, transparent);
+}
+
+.player-form-block select.form-control,
+.player-form-block select.form-control:focus {
+  background-color: var(--bg-primary, #ffffff);
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+.player-form-block select.form-control:focus {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236a5af9' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+.player-form-block--private .form-control:focus {
+  border-color: var(--player-private-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--player-private-accent) 20%, transparent);
+}
+
+/* 限定ブロック — 会員登録フォームと同系のフィールド UI */
+.player-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md, 1rem);
+}
+
+.player-form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-base, 1rem);
+}
+
+.player-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs, 0.35rem);
+}
+
+.player-form-label {
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+}
+
+.player-form-required {
+  margin-left: var(--spacing-xs, 0.25rem);
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: 500;
+  color: var(--danger-color, #dc3545);
+}
+
+.player-form-optional {
+  margin-left: var(--spacing-xs, 0.25rem);
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--player-private-accent) 12%, #ffffff);
+  color: var(--player-private-accent);
+}
+
+.player-form-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.player-form-input-wrap--plain .player-form-input {
+  padding-left: var(--spacing-base, 1rem);
+}
+
+.player-form-input-icon {
+  position: absolute;
+  left: var(--spacing-base, 1rem);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--text-muted, #94a3b8);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.player-form-input-icon svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  color: inherit;
+}
+
+.player-form-input {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 var(--spacing-base, 1rem) 0 calc(var(--spacing-xl, 1.5rem) + var(--spacing-sm, 0.5rem));
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: var(--radius-medium, 10px);
+  font-size: var(--font-size-base, 1rem);
+  color: var(--text-primary, #0f172a);
+  background: var(--bg-primary, #ffffff);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.player-form-input::placeholder {
+  color: var(--text-muted, #94a3b8);
+  opacity: 0.85;
+}
+
+.player-form-input:hover {
+  border-color: color-mix(in srgb, var(--player-private-accent) 35%, var(--border-color, #cbd5e1));
+}
+
+.player-form-input:focus {
+  outline: none;
+  border-color: var(--player-private-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--player-private-accent) 20%, transparent);
+}
+
+.player-form-input[readonly] {
+  background: var(--bg-secondary, #f8fafc);
+  color: var(--text-secondary, #64748b);
+  cursor: default;
+}
+
+.player-form-input[type="date"] {
+  padding-right: var(--spacing-base, 1rem);
+}
+
+.player-form-input[type="date"]::-webkit-calendar-picker-indicator {
+  margin-left: 0.25rem;
+  cursor: pointer;
+  opacity: 0.65;
+}
+
+.player-form-hint {
+  margin: 0;
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--text-secondary, #64748b);
+  line-height: 1.5;
+}
+
+/* 選手写真 */
+.player-photo-upload {
+  margin-bottom: 1.25rem;
+}
+
+.player-photo-upload__label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.player-photo-upload__body {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.player-photo-upload__file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.player-photo-upload__circle {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 2px dashed color-mix(in srgb, var(--player-public-accent) 45%, #cbd5e1);
+  background: #fff;
+  overflow: hidden;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.player-photo-upload__circle.has-image {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--player-public-accent) 35%, #e2e8f0);
+}
+
+.player-photo-upload__preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.player-photo-upload__trigger {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--player-public-accent);
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.player-photo-upload__trigger-text {
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.player-photo-upload__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.player-photo-upload__change,
+.player-photo-upload__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color, #cbd5e1);
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+
+.player-photo-upload__remove {
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.player-photo-upload__hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #64748b);
+}
+
 @media (max-width: 768px) {
-  .form-section {
+  .player-form-block .form-row-2,
+  .player-form-row-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .player-form-block {
     padding: 1rem;
-    margin-bottom: 1.5rem;
   }
-
-  .form-section h4 {
-    font-size: 1rem;
-  }
-
-  .checkbox-label {
-    font-size: 0.9rem;
-  }
-
-  #player-submit-btn {
-    width: 100%;
-    padding: 15px;
-  }
-}
-
-@media (max-width: 480px) {
-  .form-section {
-    padding: 0.8rem;
-  }
-
-  .checkbox-custom {
-    width: 18px;
-    height: 18px;
-    margin-right: 8px;
-  }
-
-  .checkbox-text {
-    font-size: 0.85rem;
-  }
-}
-
-/* アニメーション効果 */
-.form-section {
-  animation: fadeInUp 0.6s ease-out;
-}
-
-.form-section:nth-child(1) { animation-delay: 0.1s; }
-.form-section:nth-child(2) { animation-delay: 0.2s; }
-.form-section:nth-child(3) { animation-delay: 0.3s; }
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* フォーカス時のエフェクト */
-.form-control:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 0.2rem rgba(106, 90, 249, 0.25);
-}
-
-.form-control:focus-visible {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
-}
-
-/* エラー状態 */
-.form-control.error {
-  border-color: var(--danger-color);
-  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
-}
-
-.form-control.error:focus-visible {
-  outline: 2px solid var(--danger-color);
-  outline-offset: 2px;
-}
-
-/* 成功状態 */
-.form-control.success {
-  border-color: var(--success-color);
-  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
-}
-
-.form-control.success:focus-visible {
-  outline: 2px solid var(--success-color);
-  outline-offset: 2px;
 }

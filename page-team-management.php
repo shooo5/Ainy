@@ -121,10 +121,12 @@ if (isset($_POST['move_members'], $_POST['source_team_id'], $_POST['target_team_
 
         foreach ($member_ids as $member_id) {
             // 代表者は team_id が primary の別チームのことがあるため、当該 team_id のユーザーのみ移動
-            if ((int) get_user_meta($member_id, 'team_id', true) !== $source_team_id) {
+            if (aidunite_user_read_legacy_team_id((int) $member_id) !== $source_team_id) {
                 continue;
             }
-            update_user_meta($member_id, 'team_id', $target_team_id);
+            if (function_exists('aidunite_user_persist_primary_team_ids')) {
+                aidunite_user_persist_primary_team_ids((int) $member_id, $target_team_id, false);
+            }
             $success_count++;
         }
 
@@ -188,7 +190,7 @@ if (isset($_POST['update_team_status'], $_POST['team_id'], $_POST['team_status_n
     if ($team_id && in_array($team_status_new, $allowed, true)) {
         $team_post = get_post($team_id);
         if ($team_post && $team_post->post_type === 'team') {
-            update_post_meta($team_id, 'team_status', $team_status_new);
+            aidunite_team_write_status_meta($team_id, $team_status_new);
             $redirect = add_query_arg(['team_status_updated' => 1, 'team_id' => $team_id], wp_get_referer() ?: home_url('/team-management'));
             wp_safe_redirect($redirect);
             exit;
@@ -347,7 +349,10 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
         $tid = (int) $_GET['team_id'];
         $t = $tid ? get_post($tid) : null;
         if ($t && $t->post_type === 'team') {
-            $new_status = get_post_meta($tid, 'team_status', true);
+            $status_canonical = function_exists('aidunite_team_get_canonical_meta')
+                ? aidunite_team_get_canonical_meta($tid)
+                : [];
+            $new_status = (string) ($status_canonical['team_status'] ?? $status_canonical['team_status_raw'] ?? '');
             $new_status_label = function_exists('aidunite_team_management_get_team_status_label')
                 ? aidunite_team_management_get_team_status_label($new_status)
                 : $new_status;
@@ -435,7 +440,7 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
     <!-- メンバー移動機能 -->
     <div class="member-move-section" style="background:rgba(255, 193, 7, 0.1); padding:var(--spacing-base); margin:var(--spacing-lg) 0; border-radius:var(--radius-base); border:1px solid var(--warning-color);">
         <h3>🔄 メンバー一括移動</h3>
-        <form method="post" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px; align-items:end;">
+        <form method="post" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px; align-items:end;" data-aidunite-confirm="選択されたチームの全メンバーを移動しますか？" data-aidunite-confirm-label="移動する">
             <div>
                 <label for="source_team_id">移動元チーム:</label>
                 <select id="source_team_id" name="source_team_id" style="width:100%; padding:8px;" required>
@@ -455,7 +460,7 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
                 </select>
             </div>
             <div>
-                <button type="submit" name="move_members" value="1" class="button button-warning" onclick="return confirm('選択されたチームの全メンバーを移動しますか？')">メンバー移動</button>
+                <button type="submit" name="move_members" value="1" class="button button-warning">メンバー移動</button>
             </div>
             <?php wp_nonce_field('move_members'); ?>
         </form>
@@ -483,7 +488,7 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
                     <span class="aidunite-admin-checkbox__label-text">このページのチームをすべて選択</span>
                 </label>
                 <span id="team-bulk-selected-count" style="color:var(--text-secondary); font-size:var(--font-size-sm, 0.875rem);" aria-live="polite">0件選択</span>
-                <button type="submit" name="bulk_delete_teams" value="1" class="button button-danger" id="team-bulk-delete-btn" disabled onclick="return confirmTeamBulkDelete();">選択したチームを一括削除</button>
+                <button type="submit" name="bulk_delete_teams" value="1" class="button button-danger" id="team-bulk-delete-btn" disabled>選択したチームを一括削除</button>
             </div>
             <?php wp_nonce_field('bulk_delete_teams'); ?>
         </form>
@@ -553,7 +558,7 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
             $display_labels = function_exists('aidunite_team_management_get_display_labels')
                 ? aidunite_team_management_get_display_labels($team_id)
                 : [];
-            $team_status = $display_labels['team_status'] ?? get_post_meta($team_id, 'team_status', true);
+            $team_status = (string) ($display_labels['team_status'] ?? '');
             if ($team_status === '') {
                 $team_status = 'active';
             }
@@ -669,7 +674,7 @@ if (function_exists('aidunite_web_app_page_shell_open')) {
                 ?>
                 <a href="<?php echo esc_url($edit_url); ?>" class="button button-primary" style="flex:1; text-align:center;">編集</a>
                 <a href="<?php echo home_url('/team-members?team_id=' . $team_id); ?>" class="button button-secondary" style="flex:1; text-align:center;">メンバー</a>
-                <form method="post" style="flex:1;" onsubmit="return confirm('チーム「<?php echo esc_js($team_name); ?>」を削除しますか？\nメンバー全員と関連データも削除されます。');">
+                <form method="post" style="flex:1;" data-aidunite-confirm="チーム「<?php echo esc_attr($team_name); ?>」を削除しますか？&#10;メンバー全員と関連データも削除されます。" data-aidunite-confirm-label="削除する">
                     <?php wp_nonce_field('delete_team_' . $team_id); ?>
                     <input type="hidden" name="delete_team_id" value="<?php echo esc_attr($team_id); ?>">
                     <button type="submit" class="button button-danger" style="width:100%;">削除</button>
@@ -715,196 +720,5 @@ if ($team_mgmt_shell_opened && function_exists('aidunite_web_app_page_shell_clos
 }
 ?>
 
-<script>
-(function() {
-    const selectAll = document.getElementById('select-all-teams');
-    const bulkBtn = document.getElementById('team-bulk-delete-btn');
-    const countEl = document.getElementById('team-bulk-selected-count');
-
-    function parseTeamIds(raw) {
-        if (!raw) {
-            return [];
-        }
-        return String(raw).split(',').map(function(id) {
-            return id.trim();
-        }).filter(Boolean);
-    }
-
-    function getTeamCheckboxes() {
-        return document.querySelectorAll('.team-bulk-checkbox');
-    }
-
-    function getGroupCheckboxes() {
-        return document.querySelectorAll('.team-bulk-group-checkbox');
-    }
-
-    function getLeaderBlockFromNode(node) {
-        return node ? node.closest('.team-leader-block') : null;
-    }
-
-    function getCheckboxesInLeaderSection(sectionOrGroupCb) {
-        const block = getLeaderBlockFromNode(sectionOrGroupCb);
-        return block ? Array.from(block.querySelectorAll('.team-bulk-checkbox')) : [];
-    }
-
-    function getSelectedTeamIdSet() {
-        const ids = new Set();
-        getGroupCheckboxes().forEach(function(groupCb) {
-            if (!groupCb.checked) {
-                return;
-            }
-            parseTeamIds(groupCb.getAttribute('data-team-ids')).forEach(function(id) {
-                ids.add(id);
-            });
-        });
-        getTeamCheckboxes().forEach(function(box) {
-            if (!box.checked) {
-                return;
-            }
-            const block = getLeaderBlockFromNode(box);
-            const groupCb = block ? block.querySelector('.team-bulk-group-checkbox') : null;
-            if (groupCb && groupCb.checked) {
-                return;
-            }
-            ids.add(box.value || box.getAttribute('data-team-id'));
-        });
-        return ids;
-    }
-
-    function syncLeaderGroupCheckboxState(groupCb) {
-        const section = groupCb.closest('.team-management-leader-group');
-        const allIds = parseTeamIds(groupCb.getAttribute('data-team-ids'));
-        const visible = getCheckboxesInLeaderSection(section);
-        let checkedVisible = 0;
-        visible.forEach(function(box) {
-            if (box.checked) {
-                checkedVisible++;
-            }
-        });
-        const total = allIds.length;
-        const selectedViaGroup = groupCb.checked;
-        if (selectedViaGroup) {
-            groupCb.checked = true;
-            groupCb.indeterminate = false;
-        } else if (checkedVisible === 0) {
-            groupCb.checked = false;
-            groupCb.indeterminate = false;
-        } else if (checkedVisible === visible.length && visible.length === total) {
-            groupCb.checked = true;
-            groupCb.indeterminate = false;
-        } else {
-            groupCb.checked = false;
-            groupCb.indeterminate = checkedVisible > 0;
-        }
-        if (section) {
-            section.classList.toggle('is-group-selected', groupCb.checked || groupCb.indeterminate);
-        }
-    }
-
-    function updateTeamBulkUi() {
-        const boxes = getTeamCheckboxes();
-        const selectedIds = getSelectedTeamIdSet();
-        if (countEl) {
-            countEl.textContent = selectedIds.size + '件選択';
-        }
-        if (bulkBtn) {
-            bulkBtn.disabled = selectedIds.size === 0;
-        }
-        if (selectAll && boxes.length > 0) {
-            const visibleChecked = document.querySelectorAll('.team-bulk-checkbox:checked').length;
-            const anyGroupChecked = Array.from(getGroupCheckboxes()).some(function(gcb) {
-                return gcb.checked;
-            });
-            selectAll.checked = !anyGroupChecked && visibleChecked === boxes.length;
-            selectAll.indeterminate = !selectAll.checked && (visibleChecked > 0 || selectedIds.size > visibleChecked);
-        }
-        boxes.forEach(function(box) {
-            const card = box.closest('.team-card');
-            if (card) {
-                const id = box.value || box.getAttribute('data-team-id');
-                card.classList.toggle('is-selected', selectedIds.has(id));
-            }
-        });
-        getGroupCheckboxes().forEach(syncLeaderGroupCheckboxState);
-    }
-
-    if (selectAll) {
-        selectAll.addEventListener('change', function() {
-            getGroupCheckboxes().forEach(function(groupCb) {
-                groupCb.checked = false;
-                groupCb.indeterminate = false;
-            });
-            getTeamCheckboxes().forEach(function(box) {
-                box.checked = selectAll.checked;
-            });
-            updateTeamBulkUi();
-        });
-    }
-
-    getGroupCheckboxes().forEach(function(groupCb) {
-        groupCb.addEventListener('change', function() {
-            const section = groupCb.closest('.team-management-leader-group');
-            const checked = groupCb.checked;
-            getCheckboxesInLeaderSection(section).forEach(function(box) {
-                box.checked = checked;
-            });
-            updateTeamBulkUi();
-        });
-    });
-
-    getTeamCheckboxes().forEach(function(box) {
-        box.addEventListener('change', function() {
-            const block = getLeaderBlockFromNode(box);
-            const groupCb = block ? block.querySelector('.team-bulk-group-checkbox') : null;
-            if (groupCb && !box.checked) {
-                groupCb.checked = false;
-            }
-            updateTeamBulkUi();
-        });
-    });
-
-    updateTeamBulkUi();
-
-    window.confirmTeamBulkDelete = function() {
-        const selectedIds = getSelectedTeamIdSet();
-        if (selectedIds.size === 0) {
-            alert('削除するチームを選択してください。');
-            return false;
-        }
-        return confirm(
-            '選択した ' + selectedIds.size + ' 件のチームを削除しますか？\n' +
-            '各チームのメンバー所属・スケジュール・通知・試合ログも削除されます。\n' +
-            'この操作は取り消せません。'
-        );
-    };
-
-    const bulkForm = document.getElementById('team-bulk-delete-form');
-    if (bulkForm) {
-        bulkForm.addEventListener('submit', function(e) {
-            bulkForm.querySelectorAll('input.js-team-bulk-hidden-id').forEach(function(el) {
-                el.remove();
-            });
-            const selectedIds = getSelectedTeamIdSet();
-            if (selectedIds.size === 0) {
-                e.preventDefault();
-                alert('削除するチームを選択してください。');
-                return;
-            }
-            selectedIds.forEach(function(id) {
-                const hidden = document.createElement('input');
-                hidden.type = 'hidden';
-                hidden.name = 'team_ids[]';
-                hidden.value = id;
-                hidden.className = 'js-team-bulk-hidden-id';
-                bulkForm.appendChild(hidden);
-            });
-        });
-    }
-
-    if (typeof window.loadingSpinnerManager !== 'undefined' && typeof window.loadingSpinnerManager.hideAllSpinners === 'function') {
-        window.loadingSpinnerManager.hideAllSpinners();
-    }
-})();
-</script>
 
 <?php get_footer(); ?>

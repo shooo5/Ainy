@@ -20,6 +20,8 @@ function ainy_notification_match_types() {
         'match_accepted', // legacy DB 読取互換（新規送信は match_established）
         'match_rejected',
         'match_cancelled',
+        'match_canceled',
+        'match_request_received',
         'match_updated',
         'match_established',
         'match_game_dissolved',
@@ -168,10 +170,17 @@ function ainy_notification_prepare_item($post, array $match_types) {
             $link_url = home_url('/match-board-own');
         } elseif ($type === 'match_feedback_survey' && function_exists('aidunite_get_match_feedback_survey_url')) {
             $link_url = aidunite_get_match_feedback_survey_url($related_id);
-        } elseif (in_array($type, $match_types, true) || stripos($type, 'match') !== false) {
+        } elseif (
+            (function_exists('aidunite_notification_should_link_to_match_detail')
+                ? aidunite_notification_should_link_to_match_detail($type)
+                : (in_array($type, $match_types, true) || stripos($type, 'match') !== false))
+            && (in_array($type, $match_types, true) || stripos($type, 'match') !== false)
+        ) {
             $link_url = home_url('/match-detail/?id=' . $related_id);
         } elseif (stripos($type, 'schedule') !== false) {
-            $link_url = home_url('/schedule-edit/?id=' . $related_id);
+            $link_url = function_exists('aidunite_get_schedule_edit_url')
+                ? aidunite_get_schedule_edit_url((int) $related_id)
+                : home_url('/schedule-management/?edit_schedule=' . (int) $related_id);
         } elseif ($type === 'team_application_approved' || $type === 'team_application_rejected') {
             $link_url = home_url('/mypage/');
         } elseif ($type === 'team_approval' || stripos($type, 'team') !== false) {
@@ -194,6 +203,7 @@ function ainy_notification_prepare_item($post, array $match_types) {
         'id'           => $post_id,
         'is_read'      => $is_read,
         'type'         => $type,
+        'related_id'   => $related_id,
         'title'        => $title,
         'message'      => $message,
         'excerpt'      => $excerpt,

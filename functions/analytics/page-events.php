@@ -15,23 +15,23 @@ require_once __DIR__ . '/page-analytics-aggregate.php';
  * @param array<string, mixed> $data
  */
 function aidunite_analytics_insert_page_event(array $data) {
+    if (function_exists('aidunite_analytics_persist_insert_page_event')) {
+        return aidunite_analytics_persist_insert_page_event($data);
+    }
+
     global $wpdb;
     $table = aidunite_analytics_page_events_table();
-
     if (function_exists('aidunite_normalize_analytics_payload')) {
         $data = aidunite_normalize_analytics_payload($data);
     }
-
     $event_type = sanitize_key((string) ($data['event_type'] ?? 'view'));
     if (!in_array($event_type, ['view', 'click', 'submit', 'complete', 'leave'], true)) {
         $event_type = 'view';
     }
-
-    $metric_date = current_time('Y-m-d');
     $wpdb->insert(
         $table,
         [
-            'metric_date' => $metric_date,
+            'metric_date' => current_time('Y-m-d'),
             'created_at' => current_time('mysql'),
             'event_type' => $event_type,
             'team_id' => max(0, (int) ($data['team_id'] ?? 0)),

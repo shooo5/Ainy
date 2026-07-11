@@ -298,7 +298,9 @@ function aidunite_compute_match_board_status_from_game($recruit_schedule_id) {
 
     foreach (aidunite_get_game_match_requests($recruit_schedule_id) as $p) {
         $meta = (string) get_post_meta($p->ID, 'status', true);
-        $st   = aidunite_normalize_match_request_status($meta, isset($p->post_status) ? (string) $p->post_status : '');
+        $st = function_exists('aidunite_normalize_match_request_status')
+            ? aidunite_normalize_match_request_status($meta, isset($p->post_status) ? (string) $p->post_status : '')
+            : strtolower(trim($meta));
         if ($st === 'established') {
             $has_established = true;
         } elseif ($st === 'accepted') {
@@ -331,8 +333,16 @@ function aidunite_sync_match_board_status_from_game($recruit_schedule_id) {
         return '';
     }
 
+    if (function_exists('aidunite_match_board_sync_status_from_game')) {
+        return (string) aidunite_match_board_sync_status_from_game($recruit_schedule_id);
+    }
+
     $board_status = aidunite_compute_match_board_status_from_game($recruit_schedule_id);
+    if (function_exists('aidunite_match_board_write_status_meta')) {
+        return (string) aidunite_match_board_write_status_meta($board_id, $board_status);
+    }
     update_post_meta($board_id, 'match_board_status', $board_status);
+
     return $board_status;
 }
 
@@ -524,14 +534,25 @@ function aidunite_get_schedule_update_changed_sensitive_params($post_id, $params
     $sensitive  = array_diff(array_unique($sensitive), ['post_id']);
     $post_id   = (int) $post_id;
     $changed   = [];
-    $cur_date  = (string) get_post_meta($post_id, 'schedule_date', true);
-    $cur_start = (string) get_post_meta($post_id, 'schedule_start_time', true);
-    $cur_end   = (string) get_post_meta($post_id, 'schedule_end_time', true);
-    $cur_type  = (string) get_post_meta($post_id, 'schedule_type', true);
-    $cur_place = (string) (get_post_meta($post_id, 'schedule_place', true) ?: get_post_meta($post_id, 'schedule_place_option', true) ?: get_post_meta($post_id, 'venue_condition', true));
-    $cur_gender = (string) (get_post_meta($post_id, 'schedule_gender', true) ?: get_post_meta($post_id, 'matching_gender_condition', true));
-    $cur_intent = (string) get_post_meta($post_id, 'intent', true);
-    $cur_match  = (int) get_post_meta($post_id, 'matching', true);
+    $bundle = function_exists('aidunite_schedule_get_display_bundle')
+        ? aidunite_schedule_get_display_bundle($post_id)
+        : [];
+    $cur_date = (string) ($bundle['date'] ?? (function_exists('aidunite_schedule_read_normalized_date')
+        ? aidunite_schedule_read_normalized_date($post_id)
+        : ''));
+    $cur_start = (string) ($bundle['start_time'] ?? '');
+    $cur_end = (string) ($bundle['end_time'] ?? '');
+    $cur_type = (string) ($bundle['schedule_type'] ?? '');
+    $cur_place = function_exists('aidunite_schedule_read_place_raw')
+        ? (string) aidunite_schedule_read_place_raw($post_id)
+        : (string) ($bundle['place'] ?? '');
+    $cur_gender = function_exists('aidunite_schedule_read_gender_raw')
+        ? (string) aidunite_schedule_read_gender_raw($post_id)
+        : (string) ($bundle['gender'] ?? '');
+    $cur_intent = function_exists('aidunite_schedule_read_intent')
+        ? (string) aidunite_schedule_read_intent($post_id)
+        : (string) ($bundle['intent'] ?? '');
+    $cur_match = (int) ($bundle['matching'] ?? 0);
     if (array_key_exists('date', $params) && (string) $params['date'] !== $cur_date) {
         $changed[] = 'date';
     }

@@ -1,0 +1,309 @@
+/* 月間リスト */
+.schedule-month-list-wrap {
+    margin-bottom: var(--spacing-base, 1rem);
+}
+
+.schedule-month-list__cards-wrap {
+    display: none;
+}
+
+.schedule-month-list__table-wrap {
+    display: block;
+    overflow-x: auto;
+}
+
+.schedule-month-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.875rem;
+    background: var(--bg-primary, #fff);
+    border: 1px solid var(--border-light, #e9ecef);
+    border-radius: var(--radius-base, 8px);
+    overflow: hidden;
+}
+
+.schedule-month-table thead th {
+    padding: 0.65rem 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary, #6c757d);
+    background: var(--bg-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-light, #e9ecef);
+    white-space: nowrap;
+}
+
+.schedule-month-table tbody td,
+.schedule-month-table tbody th {
+    padding: 0.7rem 0.75rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-light, #eef1f4);
+    color: var(--text-primary);
+}
+
+.schedule-month-table__date {
+    width: 6.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    background: var(--bg-primary, #fff);
+    border-right: 1px solid var(--border-light, #eef1f4);
+    vertical-align: top;
+}
+
+.schedule-month-table__date-text {
+    display: inline-block;
+    padding-left: 0.35rem;
+    border-left: 3px solid var(--primary-color, #5b4bdb);
+}
+
+.schedule-month-table__team {
+    font-weight: 600;
+    min-width: 7rem;
+}
+
+.schedule-month-table__time,
+.schedule-month-table__venue,
+.schedule-month-table__opponent,
+.schedule-month-table__memo {
+    color: var(--text-secondary, #495057);
+    max-width: 12rem;
+    word-break: break-word;
+}
+
+.schedule-month-table__actions {
+    width: 7.5rem;
+    white-space: nowrap;
+}
+
+.schedule-month-list__day {
+    margin-bottom: var(--spacing-base, 1rem);
+}
+
+.schedule-month-list__day-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.65rem;
+}
+
+.schedule-month-list__date {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.schedule-month-list__day-count {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+/* 種別バッジ（リスト共通） */
+.schedule-list-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.schedule-list-badge--practice {
+    background: rgba(3, 169, 244, 0.14);
+    color: #0277bd;
+}
+
+.schedule-list-badge--match-confirmed {
+    background: rgba(76, 175, 80, 0.16);
+    color: #2e7d32;
+}
+
+.schedule-list-badge--match-recruit {
+    background: rgba(255, 152, 0, 0.18);
+    color: #e65100;
+}
+
+.schedule-list-badge--meeting {
+    background: rgba(156, 136, 255, 0.16);
+    color: #5e35b1;
+}
+
+.schedule-list-badge--event {
+    background: rgba(255, 193, 7, 0.2);
+    color: #8a6d00;
+}
+
+.schedule-list-badge--off {
+    background: rgba(158, 158, 158, 0.18);
+    color: #616161;
+}
+
+.schedule-list-badge--tentative {
+    background: rgba(255, 193, 7, 0.22);
+    color: #7a6200;
+}
+
+.schedule-list-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.schedule-list-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 1px solid var(--border-light, #dee2e6);
+    border-radius: 8px;
+    background: var(--bg-primary, #fff);
+    color: var(--text-secondary, #495057);
+    cursor: pointer;
+}
+
+.schedule-list-action:hover {
+    background: var(--bg-secondary, #f8f9fa);
+    color: var(--primary-color, #5b4bdb);
+}
+
+.schedule-list-action--danger:hover {
+    color: #c62828;
+    border-color: rgba(198, 40, 40, 0.35);
+}
+
+.schedule-list-action .aidunite-icon {
+    display: block;
+}
+
+/* モバイルリストカード */
+.schedule-month-card {
+    position: relative;
+    padding: 0.85rem 0.9rem;
+    margin-bottom: 0.65rem;
+    border: 1px solid var(--border-light, #e9ecef);
+    border-left-width: 4px;
+    border-radius: var(--radius-base, 8px);
+    background: var(--bg-primary, #fff);
+}
+
+.schedule-month-card--practice { border-color: var(--schedule-card-border-practice); }
+.schedule-month-card--match-confirmed { border-color: var(--schedule-card-border-match-confirmed); }
+.schedule-month-card--match-recruit { border-color: var(--schedule-card-border-match-recruit); }
+.schedule-month-card--event { border-color: var(--schedule-card-border-event); }
+.schedule-month-card--meeting { border-color: var(--schedule-card-border-meeting); }
+.schedule-month-card--off {
+    border-color: var(--schedule-card-border-off);
+    background: var(--schedule-card-bg-off);
+}
+.schedule-month-card--tentative {
+    border-color: var(--schedule-card-border-tentative);
+    border-style: dashed;
+    border-left-style: solid;
+}
+
+.schedule-month-card.team-gender-male { border-left-color: var(--schedule-calendar-team-male-border, var(--ainy-navy-deep)); }
+.schedule-month-card.team-gender-female { border-left-color: var(--schedule-calendar-team-female-border, var(--theme-accent-dark, #7c3aed)); }
+.schedule-month-card.team-gender-unknown { border-left-color: var(--border-light); }
+
+.schedule-month-card__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.45rem;
+}
+
+.schedule-month-card__time {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.schedule-month-card__team {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.schedule-month-card__meta {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+.schedule-month-card .schedule-list-actions--inline {
+    margin-top: 0.55rem;
+    justify-content: flex-end;
+}
+
+/* スマホ：カレンダー下の日別パネル */
+.schedule-day-panel {
+    margin-top: 0.5rem;
+}
+
+.schedule-day-panel__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.65rem;
+    padding-top: 0.25rem;
+}
+
+.schedule-day-panel__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.schedule-day-panel__count {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.schedule-day-panel__empty {
+    margin: 0;
+    padding: 1rem 0;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+/* スマホカレンダー：セル内ドット表示 */
+.schedule-day-dot {
+    display: block;
+    width: 6px;
+    height: 6px;
+    margin: 0.2rem auto 0;
+    border-radius: 50%;
+    background: var(--primary-color, #5b4bdb);
+}
+
+.schedule-month-list-empty {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: var(--spacing-lg, 1.5rem);
+}
+
+@media (max-width: 768px) {
+    .schedule-month-list__table-wrap {
+        display: none;
+    }
+
+    .schedule-month-list__cards-wrap {
+        display: block;
+    }
+
+    .schedule-calendar-panel .schedule-list {
+        min-height: 0;
+    }
+}

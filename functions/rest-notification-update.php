@@ -52,23 +52,21 @@ function aidunite_mark_notification_as_read($request) {
     }
 
     // 権限チェック: 通知の対象ユーザーが現在のユーザーと一致するか確認
-    $target_user_id = get_post_meta($notification_id, 'target_user_id', true);
+    $target_user_id = function_exists('aidunite_notification_read_recipient_user_id')
+        ? aidunite_notification_read_recipient_user_id($notification_id)
+        : 0;
 
-    // target_user_idが設定されていない場合は、post_authorを確認
-    if (empty($target_user_id)) {
-      $post = get_post($notification_id);
-      if ($post) {
-        $target_user_id = $post->post_author;
-      }
-    }
-
-    if ($target_user_id != $current_user_id) {
+    if ($target_user_id <= 0 || $target_user_id !== $current_user_id) {
       $failed_ids[] = $notification_id;
       continue;
     }
 
-    // 既読状態を更新
-    $result = update_post_meta($notification_id, 'is_read', true);
+    if (!function_exists('aidunite_notification_write_is_read')) {
+      $failed_ids[] = $notification_id;
+      continue;
+    }
+
+    $result = aidunite_notification_write_is_read($notification_id, true);
 
     if ($result !== false) {
       $success_count++;

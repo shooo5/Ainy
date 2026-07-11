@@ -20,8 +20,11 @@ if (!is_user_logged_in() && php_sapi_name() !== 'cli') {
 
 $team_id     = isset($_GET['team_id']) ? (int) $_GET['team_id'] : 5661;
 $schedule_id = isset($_GET['schedule_id']) ? (int) $_GET['schedule_id'] : 5702;
-$date_from   = isset($_GET['date_from']) ? sanitize_text_field(wp_unslash($_GET['date_from'])) : date('Y-m-d', strtotime('-60 days'));
-$date_to     = isset($_GET['date_to']) ? sanitize_text_field(wp_unslash($_GET['date_to'])) : date('Y-m-d', strtotime('+120 days'));
+$default_range = function_exists('aidunite_market_board_default_date_range')
+    ? aidunite_market_board_default_date_range()
+    : ['from' => date('Y-m-d', strtotime('+1 day')), 'to' => date('Y-m-d', strtotime('+120 days'))];
+$date_from   = isset($_GET['date_from']) ? sanitize_text_field(wp_unslash($_GET['date_from'])) : $default_range['from'];
+$date_to     = isset($_GET['date_to']) ? sanitize_text_field(wp_unslash($_GET['date_to'])) : $default_range['to'];
 
 if (function_exists('aidunite_match_board_ensure_dependencies')) {
     aidunite_match_board_ensure_dependencies();
@@ -41,11 +44,17 @@ if ($schedule_id > 0) {
     $lines[] = '--- schedule ' . $schedule_id . ' ---';
     $lines[] = 'post_status=' . get_post_status($schedule_id);
     $lines[] = 'team_id_meta=' . get_post_meta($schedule_id, 'team_id', true);
-    $lines[] = 'schedule_date=' . get_post_meta($schedule_id, 'schedule_date', true);
-    $lines[] = 'intent=' . get_post_meta($schedule_id, 'intent', true);
+    $lines[] = 'schedule_date=' . (function_exists('aidunite_schedule_read_normalized_date')
+        ? aidunite_schedule_read_normalized_date($schedule_id)
+        : get_post_meta($schedule_id, 'schedule_date', true));
+    $lines[] = 'intent=' . (function_exists('aidunite_schedule_read_intent')
+        ? aidunite_schedule_read_intent($schedule_id)
+        : get_post_meta($schedule_id, 'intent', true));
     $lines[] = 'matching=' . get_post_meta($schedule_id, 'matching', true);
     $lines[] = 'is_match_requested=' . get_post_meta($schedule_id, 'is_match_requested', true);
-    $lines[] = 'schedule_gender=' . get_post_meta($schedule_id, 'schedule_gender', true);
+    $lines[] = 'schedule_gender=' . (function_exists('aidunite_schedule_read_gender_raw')
+        ? aidunite_schedule_read_gender_raw($schedule_id)
+        : get_post_meta($schedule_id, 'schedule_gender', true));
     $lines[] = 'male_slots=' . get_post_meta($schedule_id, 'male_slots', true);
     if (function_exists('aidunite_market_recruitment_gender_canonical')) {
         $lines[] = 'gender_canon=' . aidunite_market_recruitment_gender_canonical($schedule_id);

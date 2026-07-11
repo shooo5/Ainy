@@ -1,0 +1,25 @@
+.aidunite-schedule-quick-modal {
+    --sqm-view-accent: #0d47a1;
+    --sqm-view-label-bg: #e3f2fd;
+    --sqm-view-label-color: #0d47a1;
+}
+
+.aidunite-schedule-quick-modal--actions {
+    --sqm-view-info-bg: #fff8e6;
+    --sqm-view-info-color: #8a6100;
+    --sqm-view-info-border: #ffe082;
+}
+
+.aidunite-schedule-quick-modal--actions.sqm--theme-male,
+.aidunite-schedule-quick-modal.sqm--theme-male {
+    --sqm-view-accent: #0d47a1;
+    --sqm-view-label-bg: #e3f2fd;
+    --sqm-view-label-color: #0d47a1;
+}
+
+.aidunite-schedule-quick-modal--actions.sqm--theme-female,
+.aidunite-schedule-quick-modal.sqm--theme-female {
+    --sqm-view-accent: #4a148c;
+    --sqm-view-label-bg: #f3e5f5;
+    --sqm-view-label-color: #4a148c;
+}

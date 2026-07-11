@@ -188,7 +188,7 @@ if (function_exists('aidunite_web_app_page_shell_close')) {
 <div id="messageModal" class="message-modal" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">
-            <h3><?php echo aidunite_render_theme_icon('chat', ['width' => '22', 'height' => '22']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> お知らせを投稿</h3>
+            <h3><?php echo aidunite_render_theme_icon('chat', ['width' => '22', 'height' => '22'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> お知らせを投稿</h3>
             <button class="modal-close" id="modalClose" aria-label="閉じる">&times;</button>
         </div>
 
@@ -242,13 +242,4 @@ if (function_exists('aidunite_web_app_page_shell_close')) {
     </div>
 </div>
 
-<?php
-// FAB を body 直下に移動（親の transform で fixed が効かなくなるのを防ぐ）
-?>
-<script>
-(function() {
-    var wrap = document.querySelector('.new-message-btn-fixed-wrap');
-    if (wrap && document.body) document.body.appendChild(wrap);
-})();
-</script>
 <?php get_footer(); ?>

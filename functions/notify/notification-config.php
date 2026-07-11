@@ -94,35 +94,20 @@ class AidUniteNotificationConfig {
 
             // 出席関連通知
             'attendance_registered' => [
-                'title' => '📅 出欠登録が完了しました',
+                'title' => '出欠登録が完了しました',
                 'message' => '出欠の登録が完了しました。\n対象イベント: {event_name}\n日時: {event_date}',
                 'priority' => 'low',
                 'channels' => ['email'],
                 'delay' => 60 // 1分後送信
             ],
             'attendance_reminder' => [
-                'title' => '📅 【リマインド】出欠登録のご案内',
+                'title' => '【リマインド】出欠登録のご案内',
                 'message' => '出欠登録のご案内です。\n対象イベント: {event_name}\n日時: {event_date}\n期限: {reminder_deadline}',
                 'priority' => 'medium',
                 'channels' => ['email', 'line'],
                 'delay' => 0
             ],
 
-            // チャット関連通知
-            'multi_match_chat' => [
-                'title' => '📢 複数チームマッチチャット: {match_title}',
-                'message' => 'チーム「{sender_team_name}」から新しいメッセージがあります。\n\nメッセージ: {message_content}\n\nチャット画面で詳細を確認してください。',
-                'priority' => 'low',
-                'channels' => ['push'], // チャットは軽量なプッシュ通知のみ
-                'delay' => 0
-            ],
-            'multi_match_confirmed' => [
-                'title' => '🎉 複数チームマッチ成立: {match_title}',
-                'message' => '複数チームマッチが成立しました！\n\n参加チーム数: {team_count}チーム\nチャット機能が利用可能になりました。\n\n詳細は複数チームマッチ管理画面で確認してください。',
-                'priority' => 'high',
-                'channels' => ['email', 'line', 'push'],
-                'delay' => 0
-            ]
         ];
     }
 
@@ -218,7 +203,6 @@ class AidUniteNotificationConfig {
                 'payment_reminder' => true,
                 'team_approval_request' => true,
                 'attendance_reminder' => true,
-                'multi_match_chat' => false, // デフォルトはオフ
                 'receipt_issued' => false // デフォルトはオフ
             ],
             'quiet_hours' => [

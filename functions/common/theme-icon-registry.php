@@ -126,10 +126,10 @@ function aidunite_get_theme_icon_js_basenames() {
         'stylus', 'contact_mail', 'vs', 'hand_gesture', 'weight', 'currency_yen', 'redeem',
         'trending_up', 'trending_down', 'payments', 'save', 'start', 'mode_heat', 'robot_2', 'palette',
         'campaign', 'build', 'basketball', 'chat', 'notification_add', 'forward_to_inbox', 'mail',
-        'bar_chart_4_bars', 'send', 'home', 'group', 'handshake', 'trophy', 'calendar_month', 'celebration',
+        'bar_chart_4_bars', 'send', 'home', 'group', 'handshake', 'trophy', 'calendar_month', 'today', 'celebration',
         'list_alt_add', 'exercise', 'camping', 'flight_takeoff', 'airline_seat_recline_extra',
         'question_mark', 'stadium', 'directions_run', 'schedule', 'family_group', 'guardian-invite',
-        'attach_file', 'sms', 'photo_camera', 'id_card', 'replay', 'sliders',
+        'attach_file', 'sms', 'photo_camera', 'id_card', 'replay', 'sliders', 'lightbulb',
     ]);
     return array_values(array_unique(array_filter($names)));
 }

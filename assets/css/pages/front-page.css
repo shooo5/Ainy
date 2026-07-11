@@ -1439,6 +1439,81 @@
 }
 
 /* ログイン時統一ボトムナビでフッター最下部が隠れないよう余白 */
-body.ainy-bottom-nav-unified .ainy-footer {
-  padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+body.ainy-has-bottom-nav .ainy-footer {
+  padding-bottom: var(--ainy-bottom-nav-offset);
+}
+
+/* 料金プラン（デザイン調整用プレースホルダー） */
+.ainy-pricing-placeholder {
+  padding: var(--spacing-xl) var(--spacing-base);
+  background: var(--bg-secondary, #f4f7fb);
+}
+
+.ainy-pricing-placeholder__lead {
+  max-width: 40em;
+  margin: 0 auto var(--spacing-lg);
+  font-size: var(--font-size-sm);
+  line-height: 1.7;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.ainy-pricing-placeholder__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-base);
+  max-width: 720px;
+  margin: 0 auto var(--spacing-md);
+}
+
+.ainy-pricing-placeholder__slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  min-height: 140px;
+  padding: var(--spacing-lg) var(--spacing-base);
+  background: var(--bg-primary);
+  border: 2px dashed var(--border-light);
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-sm);
+}
+
+.ainy-pricing-placeholder__slot-label {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ainy-pricing-placeholder__slot-note {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.ainy-pricing-placeholder__link-wrap {
+  margin: 0;
+  text-align: center;
+}
+
+.ainy-pricing-placeholder__link {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.ainy-pricing-placeholder__link:hover {
+  text-decoration: underline;
+}
+
+.ainy-pricing-placeholder__link:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .ainy-pricing-placeholder__grid {
+    grid-template-columns: 1fr;
+  }
 }

@@ -10,6 +10,41 @@ require_once get_template_directory() . '/functions/common/error-handler.php';
 require_once get_template_directory() . '/functions/common/auth-middleware.php';
 
 /**
+ * Stripe Connect API エラーを利用者向けメッセージへ変換
+ *
+ * @param \Stripe\Exception\ApiErrorException $e
+ * @param string                              $fallback
+ * @return string
+ */
+function aidunite_stripe_connect_user_facing_error_from_exception($e, $fallback) {
+    $message = trim((string) $e->getMessage());
+    $lower = strtolower($message);
+
+    if (
+        strpos($lower, 'signed up for connect') !== false
+        || (strpos($lower, 'connect') !== false && strpos($lower, 'not enabled') !== false)
+        || strpos($lower, 'platform profile') !== false
+        || strpos($lower, 'review the responsibilities') !== false
+    ) {
+        return 'Stripe Connect がプラットフォーム側で未有効、または設定が未完了です。Stripeダッシュボード（テストモード）で Connect を有効化し、プラットフォームプロフィールを完了してください。';
+    }
+
+    if (strpos($lower, 'invalid api key') !== false || strpos($lower, 'no api key') !== false) {
+        return 'Stripe Secret Key が無効です。管理者の決済設定で sk_test_ / sk_live_ のキーを確認してください。';
+    }
+
+    if (strpos($lower, 'permission') !== false && strpos($lower, 'connect') !== false) {
+        return 'この Stripe キーでは Connect を利用できません。Connect 対応のプラットフォームアカウントの Secret Key を設定してください。';
+    }
+
+    if (defined('WP_DEBUG') && WP_DEBUG && $message !== '') {
+        return $fallback . '（詳細: ' . $message . '）';
+    }
+
+    return $fallback;
+}
+
+/**
  * チーム用Stripe ConnectアカウントIDを取得（なければ作成）
  *
  * @param int $team_id
@@ -22,7 +57,9 @@ function aidunite_get_or_create_connect_account($team_id) {
     }
 
     // 既存IDがあればそれを返す
-    $existing = get_post_meta($team_id, 'stripe_connect_account_id', true);
+    $existing = function_exists('aidunite_payment_read_stripe_connect_account_id')
+        ? aidunite_payment_read_stripe_connect_account_id($team_id)
+        : '';
     if (!empty($existing)) {
         return $existing;
     }
@@ -34,7 +71,18 @@ function aidunite_get_or_create_connect_account($team_id) {
 
     if (!aidunite_init_stripe()) {
         AidUniteErrorHandler::error('[TUITION][CONNECT] Stripe初期化に失敗しました', ['team_id' => $team_id]);
-        return new WP_Error('stripe_init_failed', 'Stripeの初期化に失敗しました');
+        $keys = function_exists('aidunite_get_stripe_keys') ? aidunite_get_stripe_keys() : [];
+        $secret_check = function_exists('aidunite_validate_stripe_secret_key')
+            ? aidunite_validate_stripe_secret_key((string) ($keys['secret_key'] ?? ''))
+            : true;
+        if (is_wp_error($secret_check)) {
+            return $secret_check;
+        }
+
+        return new WP_Error(
+            'stripe_init_failed',
+            'Stripeの初期化に失敗しました。管理者の決済設定で Secret Key が保存されているか確認してください。'
+        );
     }
 
     try {
@@ -45,6 +93,10 @@ function aidunite_get_or_create_connect_account($team_id) {
         $account = \Stripe\Account::create([
             'type'    => 'express',
             'country' => 'JP',
+            'capabilities' => [
+                'card_payments' => ['requested' => true],
+                'transfers' => ['requested' => true],
+            ],
             'business_profile' => [
                 'name' => $team_name,
             ],
@@ -55,7 +107,9 @@ function aidunite_get_or_create_connect_account($team_id) {
         ]);
 
         $acct_id = $account->id;
-        update_post_meta($team_id, 'stripe_connect_account_id', $acct_id);
+        if (function_exists('aidunite_team_write_stripe_connect_account_id_meta')) {
+            aidunite_team_write_stripe_connect_account_id_meta($team_id, $acct_id);
+        }
 
         AidUniteErrorHandler::info('[TUITION][CONNECT] Connectアカウント作成成功', ['team_id' => $team_id, 'account' => $acct_id]);
 
@@ -67,7 +121,13 @@ function aidunite_get_or_create_connect_account($team_id) {
             'exception' => get_class($e)
         ]);
         // 汎用的なエラーメッセージを返す（技術的詳細はログに記録済み）
-        return new WP_Error('connect_account_create_failed', '決済設定の初期化に失敗しました。しばらく時間をおいて再度お試しください。問題が続く場合は、お問い合わせください。');
+        return new WP_Error(
+            'connect_account_create_failed',
+            aidunite_stripe_connect_user_facing_error_from_exception(
+                $e,
+                '決済設定の初期化に失敗しました。しばらく時間をおいて再度お試しください。問題が続く場合は、お問い合わせください。'
+            )
+        );
     }
 }
 
@@ -116,7 +176,13 @@ function aidunite_get_connect_onboarding_link($team_id) {
             'exception' => get_class($e)
         ]);
         // 汎用的なエラーメッセージを返す（技術的詳細はログに記録済み）
-        return new WP_Error('connect_onboarding_failed', '決済設定ページの準備に失敗しました。しばらく時間をおいて再度お試しください。問題が続く場合は、お問い合わせください。');
+        return new WP_Error(
+            'connect_onboarding_failed',
+            aidunite_stripe_connect_user_facing_error_from_exception(
+                $e,
+                '決済設定ページの準備に失敗しました。しばらく時間をおいて再度お試しください。問題が続く場合は、お問い合わせください。'
+            )
+        );
     }
 }
 
@@ -137,15 +203,20 @@ function aidunite_ajax_create_connect_onboarding_link() {
     }
 
     $user_id = $auth_result->user_id;
-    $user_team_id = $auth_result->team_id;
 
-    // チームIDはPOST優先、なければユーザーのteam_idを使用
+    // チームIDはPOST優先、なければ操作中チームを解決
     $team_id = AidUniteAuthMiddleware::sanitize($_POST['team_id'] ?? 0, 'int');
-    if (!$team_id) {
-        $team_id = $user_team_id;
+    if ($team_id <= 0 && function_exists('aidunite_team_settings_resolve_context')) {
+        $ctx = aidunite_team_settings_resolve_context((int) $user_id);
+        if (is_array($ctx) && !empty($ctx['team_id'])) {
+            $team_id = (int) $ctx['team_id'];
+        }
+    }
+    if ($team_id <= 0 && function_exists('aidunite_user_read_primary_team_id')) {
+        $team_id = (int) aidunite_user_read_primary_team_id((int) $user_id);
     }
 
-    if (!$team_id) {
+    if ($team_id <= 0) {
         // チームが見つからないエラーはnormal
         AidUniteApiResponse::send_error(
             'チームが見つかりません',

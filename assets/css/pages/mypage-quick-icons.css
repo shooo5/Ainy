@@ -1,5 +1,6 @@
 /**
  * 旧マイページ用 .mypage-quick-icons（v2 は mypage-redesign.css の .mypage-v2-quick-* を使用）
+ * @deprecated enqueue なし。参照用に残置。削除前に git 履歴を確認すること。
  * デザインリファレンスのバッジ見本用。本番マイページでは enqueue しない。
  */
 .mypage-quick-icons {

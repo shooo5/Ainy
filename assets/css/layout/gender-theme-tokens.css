@@ -3,7 +3,7 @@
  * boys / male = 男子（ネイビー・青）
  * girls / female = 女子（紫）
  *
- * 利用: body[data-team-theme] / data-gender-theme / .team-registration-page
+ * 利用: [data-team-theme] / [data-gender-theme] / .team-registration-page（body 以外のコンテナにも適用可）
  */
 
 :root {
@@ -30,29 +30,32 @@
   );
   --gender-boys-border: var(--gender-boys-navy-deep);
 
-  /* 女子（girls / female） */
-  --gender-girls-navy-deep: #4c1d95;
-  --gender-girls-navy-900: #5b21b6;
-  --gender-girls-navy-800: #6d28d9;
-  --gender-girls-navy-700: #7c3aed;
-  --gender-girls-accent: #a78bfa;
-  --gender-girls-accent-dark: #7c3aed;
-  --gender-girls-accent-light: #c084fc;
-  --gender-girls-accent-soft: rgba(124, 58, 237, 0.14);
-  --gender-girls-glow: rgba(192, 132, 252, 0.4);
-  --gender-girls-glow-strong: rgba(124, 58, 237, 0.35);
+  /* 女子（girls / female）— 薄めラベンダー（用途別） */
+  /* 深め: ヒーロー・ナビ背景 */
+  --gender-girls-navy-deep: #6d28d9;
+  --gender-girls-navy-900: #7c3aed;
+  --gender-girls-navy-800: #8b5cf6;
+  --gender-girls-navy-700: #a78bfa;
+  /* CTA・プライマリ操作 */
+  --gender-girls-accent: #8b5cf6;
+  --gender-girls-accent-dark: #a78bfa;
+  --gender-girls-accent-light: #c4b5fd;
+  --gender-girls-accent-soft: color-mix(in srgb, var(--gender-girls-accent-light) 22%, transparent);
+  --gender-girls-glow: color-mix(in srgb, var(--gender-girls-accent-light) 42%, transparent);
+  --gender-girls-glow-strong: color-mix(in srgb, var(--gender-girls-accent) 28%, transparent);
   --gender-girls-hero-gradient: linear-gradient(
     180deg,
     var(--gender-girls-navy-900) 0%,
     var(--gender-girls-navy-700) 55%,
-    #9333ea 100%
+    var(--gender-girls-accent-dark) 100%
   );
   --gender-girls-nav-gradient: linear-gradient(
     180deg,
-    var(--gender-girls-navy-700) 0%,
+    var(--gender-girls-navy-800) 0%,
     var(--gender-girls-navy-900) 100%
   );
-  --gender-girls-border: var(--gender-girls-navy-700);
+  /* 枠線・カード左ボーダー（CTAより一段落ち着いた強調） */
+  --gender-girls-border: var(--gender-girls-accent-dark);
 
   /* 属性名エイリアス（male / female） */
   --gender-male-accent: var(--gender-boys-accent);
@@ -69,7 +72,9 @@
 
 /* ── 男子トーン ── */
 body[data-team-theme="boys"],
+[data-team-theme="boys"],
 body[data-gender-theme="male"],
+[data-gender-theme="male"],
 .team-registration-page[data-gender-theme="male"] {
   --ainy-navy-deep: var(--gender-boys-navy-deep);
   --ainy-navy-900: var(--gender-boys-navy-900);
@@ -96,7 +101,9 @@ body[data-gender-theme="male"],
 
 /* ── 女子トーン ── */
 body[data-team-theme="girls"],
+[data-team-theme="girls"],
 body[data-gender-theme="female"],
+[data-gender-theme="female"],
 .team-registration-page[data-gender-theme="female"] {
   --ainy-navy-deep: var(--gender-girls-navy-deep);
   --ainy-navy-900: var(--gender-girls-navy-900);

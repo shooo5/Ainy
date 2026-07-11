@@ -1,0 +1,110 @@
+/**
+ * お気に入りチーム一覧（page-mypage-favorite-teams.php）
+ */
+.favorite-teams-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+body:not(.web-app-integrated-ui) .page-mypage-favorite-teams {
+  background: var(--bg-light);
+  min-height: 100vh;
+  padding: var(--spacing-lg) var(--spacing-md);
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0) + var(--spacing-lg));
+}
+
+body:not(.web-app-integrated-ui) .favorite-teams-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+body:not(.web-app-integrated-ui) .favorite-teams-title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.favorite-teams-empty {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-base);
+  padding: var(--spacing-xl);
+  text-align: center;
+}
+
+.favorite-teams-empty__text {
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+}
+
+.favorite-teams-empty__sub {
+  margin: 0 0 var(--spacing-md);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.favorite-teams-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.favorite-teams-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-base);
+  margin-bottom: var(--spacing-sm);
+}
+
+.favorite-teams-item__name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.favorite-teams-item__name--link {
+  text-decoration: none;
+}
+
+.favorite-teams-item__name--link:hover {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+.favorite-teams-item__name--link:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-radius: var(--radius-small);
+}
+
+.favorite-teams-item__actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.favorite-teams-item__actions .btn-sm {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-sm);
+}
+
+.favorite-team-btn--remove {
+  color: var(--text-secondary);
+  border-color: var(--border-light);
+}
+
+.favorite-team-btn--remove:hover {
+  color: var(--danger-color);
+  border-color: var(--danger-color);
+}

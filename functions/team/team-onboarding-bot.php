@@ -146,7 +146,11 @@ function aidunite_onboarding_bot_get_or_create_team() {
 
     $team_id = (int) $team_id;
     update_post_meta($team_id, 'team_name', '練習相手チーム');
-    update_post_meta($team_id, 'team_status', 'active');
+    if (function_exists('aidunite_team_write_status_meta')) {
+        aidunite_team_write_status_meta($team_id, 'active');
+    } else {
+        update_post_meta($team_id, 'team_status', 'active');
+    }
     update_post_meta($team_id, AIDUNITE_ONBOARDING_BOT_META, '1');
     update_post_meta($team_id, 'team_gender_option', 'male');
     update_post_meta($team_id, 'team_leader_id', $user_id);
@@ -162,8 +166,12 @@ function aidunite_onboarding_bot_get_or_create_team() {
         aidunite_user_attach_approved_team_membership($user_id, $team_id);
     } else {
         update_user_meta($user_id, 'team_id', $team_id);
-        update_user_meta($user_id, 'aidunite_role', 'team_leader');
-        update_user_meta($user_id, 'user_type', 'team_leader');
+        if (function_exists('aidunite_user_write_role_meta')) {
+            aidunite_user_write_role_meta($user_id, 'team_leader');
+        } else {
+            update_user_meta($user_id, 'aidunite_role', 'team_leader');
+            update_user_meta($user_id, 'user_type', 'team_leader');
+        }
     }
 
     return $team_id;
@@ -202,8 +210,12 @@ function aidunite_onboarding_bot_get_or_create_user() {
         return 0;
     }
 
-    update_user_meta($user_id, 'aidunite_role', 'team_leader');
-    update_user_meta($user_id, 'user_type', 'team_leader');
+    if (function_exists('aidunite_user_write_role_meta')) {
+        aidunite_user_write_role_meta($user_id, 'team_leader');
+    } else {
+        update_user_meta($user_id, 'aidunite_role', 'team_leader');
+        update_user_meta($user_id, 'user_type', 'team_leader');
+    }
     update_option(AIDUNITE_OPTION_ONBOARDING_BOT_USER_ID, (int) $user_id);
 
     return (int) $user_id;
@@ -232,10 +244,18 @@ function aidunite_onboarding_bot_should_spawn($user_team_id, $recruit_schedule_i
     if (!function_exists('aidunite_activation_is_mission_ui') || !aidunite_activation_is_mission_ui($user_team_id)) {
         return false;
     }
-    if ((string) get_post_meta($recruit_schedule_id, 'intent', true) !== 'recruit') {
+    $recruit_bundle = function_exists('aidunite_schedule_get_display_bundle')
+        ? aidunite_schedule_get_display_bundle((int) $recruit_schedule_id)
+        : [];
+    $recruit_intent = function_exists('aidunite_schedule_read_intent')
+        ? aidunite_schedule_read_intent((int) $recruit_schedule_id)
+        : (string) get_post_meta($recruit_schedule_id, 'intent', true);
+    if ($recruit_intent !== 'recruit') {
         return false;
     }
-    $schedule_team = (int) get_post_meta($recruit_schedule_id, 'team_id', true);
+    $schedule_team = (int) ($recruit_bundle['team_id'] ?? (function_exists('aidunite_schedule_read_team_id')
+        ? aidunite_schedule_read_team_id((int) $recruit_schedule_id)
+        : 0));
     if ($schedule_team !== $user_team_id) {
         return false;
     }
@@ -289,62 +309,70 @@ function aidunite_onboarding_bot_create_schedule($bot_team_id, $user_recruit_sch
     $user_recruit_schedule_id = (int) $user_recruit_schedule_id;
     $bot_user_id = aidunite_onboarding_bot_get_or_create_user();
 
-    $date = (string) get_post_meta($user_recruit_schedule_id, 'schedule_date', true);
-    $start = (string) get_post_meta($user_recruit_schedule_id, 'schedule_start_time', true);
-    $end = (string) get_post_meta($user_recruit_schedule_id, 'schedule_end_time', true);
-    $gender = (string) get_post_meta($user_recruit_schedule_id, 'schedule_gender', true);
+    $host_bundle = function_exists('aidunite_schedule_get_display_bundle')
+        ? aidunite_schedule_get_display_bundle($user_recruit_schedule_id)
+        : [];
+    $date = (string) ($host_bundle['date'] ?? (function_exists('aidunite_schedule_read_normalized_date')
+        ? aidunite_schedule_read_normalized_date($user_recruit_schedule_id)
+        : ''));
+    $start = (string) ($host_bundle['start_time'] ?? '');
+    $end = (string) ($host_bundle['end_time'] ?? '');
+    $gender = (string) ($host_bundle['gender'] ?? '');
     if ($gender === '') {
-        $gender = (string) get_post_meta($user_recruit_schedule_id, 'matching_gender_condition', true);
+        $gender = function_exists('aidunite_schedule_read_gender_raw')
+            ? aidunite_schedule_read_gender_raw($user_recruit_schedule_id)
+            : '';
     }
     if (function_exists('aidunite_normalize_gender_canonical')) {
         $gender = aidunite_normalize_gender_canonical($gender);
     }
     if (!in_array($gender, ['male', 'female'], true)) {
         $gender = function_exists('aidunite_activation_recruit_gender_for_team')
-            ? aidunite_activation_recruit_gender_for_team((int) get_post_meta($user_recruit_schedule_id, 'team_id', true))
+            ? aidunite_activation_recruit_gender_for_team((int) ($host_bundle['team_id'] ?? (function_exists('aidunite_schedule_read_team_id')
+                ? aidunite_schedule_read_team_id($user_recruit_schedule_id)
+                : 0)))
             : 'male';
     }
 
-    $host_place = get_post_meta($user_recruit_schedule_id, 'schedule_place', true);
-    if ($host_place === '' || $host_place === null) {
-        $host_place = get_post_meta($user_recruit_schedule_id, 'schedule_place_option', true);
-    }
+    $host_place = function_exists('aidunite_schedule_read_place_raw')
+        ? aidunite_schedule_read_place_raw($user_recruit_schedule_id)
+        : '';
     $bot_place = aidunite_onboarding_bot_complement_place((string) $host_place);
 
-    $schedule_id = wp_insert_post([
-        'post_type'   => 'schedule',
-        'post_status' => 'publish',
-        'post_title'  => $date . ' 練習試合（練習相手）',
-        'post_author' => $bot_user_id,
-    ], true);
+    $male_slots = $gender === 'female' ? 0 : 1;
+    $female_slots = $gender === 'female' ? 1 : 0;
 
+    if (!function_exists('aidunite_schedule_create_published_post')) {
+        require_once get_stylesheet_directory() . '/functions/schedule/schedule-persist.php';
+    }
+
+    $persist = aidunite_schedule_normalize_form_input([
+        'date' => $date,
+        'end_date' => $date,
+        'start_time' => $start,
+        'end_time' => $end,
+        'venue_condition' => $bot_place,
+        'gender_condition' => $gender,
+        'intent' => 'recruit',
+        'certainty' => 'firm',
+        'schedule_type' => 'practice_match',
+        'team_id' => $bot_team_id,
+        'user_id' => $bot_user_id,
+        'male_slots' => $male_slots,
+        'female_slots' => $female_slots,
+    ]);
+
+    $schedule_id = aidunite_schedule_create_published_post($persist);
     if (is_wp_error($schedule_id) || $schedule_id <= 0) {
         return 0;
     }
 
     $schedule_id = (int) $schedule_id;
-    update_post_meta($schedule_id, 'team_id', $bot_team_id);
-    update_post_meta($schedule_id, 'schedule_date', $date);
-    update_post_meta($schedule_id, 'schedule_end_date', $date);
-    update_post_meta($schedule_id, 'schedule_start_time', $start);
-    update_post_meta($schedule_id, 'schedule_end_time', $end);
-    update_post_meta($schedule_id, 'schedule_place', $bot_place);
-    update_post_meta($schedule_id, 'schedule_place_option', $bot_place);
-    update_post_meta($schedule_id, 'schedule_gender', $gender);
-    update_post_meta($schedule_id, 'matching_gender_condition', $gender);
-    update_post_meta($schedule_id, 'intent', 'recruit');
-    update_post_meta($schedule_id, 'schedule_type', 'practice_match');
-    update_post_meta($schedule_id, 'matching', '1');
-    update_post_meta($schedule_id, 'is_match_requested', '1');
+    wp_update_post([
+        'ID' => $schedule_id,
+        'post_title' => $date . ' 練習試合（練習相手）',
+    ]);
     update_post_meta($schedule_id, AIDUNITE_ONBOARDING_BOT_META, '1');
-
-    if ($gender === 'female') {
-        update_post_meta($schedule_id, 'male_slots', 0);
-        update_post_meta($schedule_id, 'female_slots', 1);
-    } else {
-        update_post_meta($schedule_id, 'male_slots', 1);
-        update_post_meta($schedule_id, 'female_slots', 0);
-    }
 
     if (function_exists('aidunite_mark_post_as_test_fixture')) {
         aidunite_mark_post_as_test_fixture($schedule_id, 'onboarding_bot');
@@ -367,10 +395,20 @@ function aidunite_onboarding_bot_create_match_request($user_team_id, $user_recru
     }
 
     $bot_user_id = aidunite_onboarding_bot_get_or_create_user();
-    $start = (string) get_post_meta($user_recruit_schedule_id, 'schedule_start_time', true);
-    $end = (string) get_post_meta($user_recruit_schedule_id, 'schedule_end_time', true);
-    $gender = (string) get_post_meta($user_recruit_schedule_id, 'schedule_gender', true);
-    $place = (string) get_post_meta($bot_schedule_id, 'schedule_place', true);
+    $host_mr_bundle = function_exists('aidunite_schedule_get_display_bundle')
+        ? aidunite_schedule_get_display_bundle((int) $user_recruit_schedule_id)
+        : [];
+    $bot_mr_bundle = function_exists('aidunite_schedule_get_display_bundle')
+        ? aidunite_schedule_get_display_bundle((int) $bot_schedule_id)
+        : [];
+    $start = (string) ($host_mr_bundle['start_time'] ?? '');
+    $end = (string) ($host_mr_bundle['end_time'] ?? '');
+    $gender = (string) ($host_mr_bundle['gender'] ?? (function_exists('aidunite_schedule_read_gender_raw')
+        ? aidunite_schedule_read_gender_raw($user_recruit_schedule_id)
+        : ''));
+    $place = (string) ($bot_mr_bundle['place'] ?? (function_exists('aidunite_schedule_read_place_raw')
+        ? aidunite_schedule_read_place_raw($bot_schedule_id)
+        : ''));
 
     aidunite_onboarding_bot_set_suppress_notifications(true);
     $result = aidunite_save_match_application_core([
@@ -449,6 +487,44 @@ function aidunite_onboarding_bot_resolve_first_recruit_schedule_id($user_team_id
 }
 
 /**
+ * オンボーディングボットのデバッグログ
+ *
+ * @param string              $event
+ * @param array<string,mixed> $context
+ */
+function aidunite_onboarding_bot_log($event, array $context = []) {
+    $event = is_string($event) ? trim($event) : 'unknown';
+    if ($event === '') {
+        $event = 'unknown';
+    }
+    if (function_exists('aidunite_match_flow_debug_log')) {
+        aidunite_match_flow_debug_log('onboarding_bot_' . $event, $context);
+    }
+    if (defined('WP_DEBUG') && WP_DEBUG) {
+        error_log('[aidunite onboarding bot] ' . $event . ': ' . wp_json_encode($context));
+    }
+}
+
+/**
+ * チームに紐づく既存ボット MR を返す（有効な投稿のみ）
+ *
+ * @param int $user_team_id
+ * @return int
+ */
+function aidunite_onboarding_bot_resolve_existing_mr_id($user_team_id) {
+    $user_team_id = (int) $user_team_id;
+    if ($user_team_id <= 0 || !defined('AIDUNITE_TEAM_META_ONBOARDING_BOT_MR')) {
+        return 0;
+    }
+    $mr_id = (int) get_post_meta($user_team_id, AIDUNITE_TEAM_META_ONBOARDING_BOT_MR, true);
+    if ($mr_id > 0 && get_post($mr_id)) {
+        return $mr_id;
+    }
+
+    return 0;
+}
+
+/**
  * 既に公開済みの初回 recruit に対してボット MR が無ければ生成（ページ再表示時の補完）
  *
  * @param int $user_team_id
@@ -460,12 +536,34 @@ function aidunite_onboarding_bot_ensure_for_team($user_team_id) {
         return 0;
     }
 
+    $existing_mr = aidunite_onboarding_bot_resolve_existing_mr_id($user_team_id);
+    if ($existing_mr > 0) {
+        return $existing_mr;
+    }
+
     $schedule_id = aidunite_onboarding_bot_resolve_first_recruit_schedule_id($user_team_id);
     if ($schedule_id <= 0) {
+        aidunite_onboarding_bot_log('ensure_no_recruit', ['team_id' => $user_team_id]);
+
         return 0;
     }
 
-    return aidunite_onboarding_bot_try_spawn_for_first_recruit($schedule_id, $user_team_id);
+    $mr_id = aidunite_onboarding_bot_try_spawn_for_first_recruit($schedule_id, $user_team_id);
+    if ($mr_id <= 0) {
+        aidunite_onboarding_bot_log('ensure_spawn_retry', [
+            'team_id' => $user_team_id,
+            'recruit_schedule_id' => $schedule_id,
+        ]);
+        $mr_id = aidunite_onboarding_bot_try_spawn_for_first_recruit($schedule_id, $user_team_id);
+        if ($mr_id <= 0) {
+            aidunite_onboarding_bot_log('ensure_spawn_failed', [
+                'team_id' => $user_team_id,
+                'recruit_schedule_id' => $schedule_id,
+            ]);
+        }
+    }
+
+    return $mr_id;
 }
 
 /**
@@ -479,21 +577,59 @@ function aidunite_onboarding_bot_try_spawn_for_first_recruit($recruit_schedule_i
     $recruit_schedule_id = (int) $recruit_schedule_id;
     $user_team_id = (int) $user_team_id;
 
+    $existing_mr = aidunite_onboarding_bot_resolve_existing_mr_id($user_team_id);
+    if ($existing_mr > 0) {
+        return $existing_mr;
+    }
+
     if (!aidunite_onboarding_bot_should_spawn($user_team_id, $recruit_schedule_id)) {
+        aidunite_onboarding_bot_log('spawn_skipped', [
+            'team_id' => $user_team_id,
+            'recruit_schedule_id' => $recruit_schedule_id,
+        ]);
+
         return 0;
     }
 
     $bot_team_id = aidunite_onboarding_bot_get_or_create_team();
     if ($bot_team_id <= 0) {
+        aidunite_onboarding_bot_log('spawn_fail_bot_team', [
+            'team_id' => $user_team_id,
+            'recruit_schedule_id' => $recruit_schedule_id,
+        ]);
+
         return 0;
     }
 
     $bot_schedule_id = aidunite_onboarding_bot_create_schedule($bot_team_id, $recruit_schedule_id);
     if ($bot_schedule_id <= 0) {
+        aidunite_onboarding_bot_log('spawn_fail_bot_schedule', [
+            'team_id' => $user_team_id,
+            'recruit_schedule_id' => $recruit_schedule_id,
+            'bot_team_id' => $bot_team_id,
+        ]);
+
         return 0;
     }
 
-    return aidunite_onboarding_bot_create_match_request($user_team_id, $recruit_schedule_id, $bot_schedule_id);
+    $mr_id = aidunite_onboarding_bot_create_match_request($user_team_id, $recruit_schedule_id, $bot_schedule_id);
+    if ($mr_id <= 0) {
+        aidunite_onboarding_bot_log('spawn_fail_mr', [
+            'team_id' => $user_team_id,
+            'recruit_schedule_id' => $recruit_schedule_id,
+            'bot_schedule_id' => $bot_schedule_id,
+        ]);
+
+        return 0;
+    }
+
+    aidunite_onboarding_bot_log('spawn_ok', [
+        'team_id' => $user_team_id,
+        'recruit_schedule_id' => $recruit_schedule_id,
+        'match_request_id' => $mr_id,
+    ]);
+
+    return $mr_id;
 }
 
 /**
@@ -615,10 +751,13 @@ function aidunite_onboarding_bot_on_match_established($request_id) {
         return;
     }
 
-    $to_schedule_id = (int) get_post_meta($request_id, 'to_schedule_id', true);
+    $mr_est = function_exists('aidunite_match_request_get_canonical_meta')
+        ? aidunite_match_request_get_canonical_meta($request_id)
+        : [];
+    $to_schedule_id = (int) ($mr_est['to_schedule_id'] ?? get_post_meta($request_id, 'to_schedule_id', true));
     $user_team_id = $to_schedule_id > 0 && function_exists('aidunite_resolve_schedule_owner_team_id')
         ? (int) aidunite_resolve_schedule_owner_team_id($to_schedule_id)
-        : (int) get_post_meta($request_id, 'to_team_id', true);
+        : (int) ($mr_est['to_team_id'] ?? get_post_meta($request_id, 'to_team_id', true));
 
     if ($user_team_id <= 0 || aidunite_is_onboarding_bot_team($user_team_id)) {
         return;
@@ -671,16 +810,29 @@ function aidunite_onboarding_bot_should_show_chat_modal_after_approve($request_i
 }
 
 /**
- * モーダル表示済み後は申請状況から練習相手行を非表示
+ * 申請状況一覧からボット行を除外するか
  *
  * @param int $user_team_id
  * @return bool
  */
 function aidunite_onboarding_bot_should_hide_board_rows_for_team($user_team_id) {
     $user_team_id = (int) $user_team_id;
+    if ($user_team_id <= 0) {
+        return false;
+    }
 
-    return $user_team_id > 0
-        && get_post_meta($user_team_id, AIDUNITE_TEAM_META_ONBOARDING_BOT_CHAT_MODAL_SHOWN, true) === '1';
+    if (get_post_meta($user_team_id, AIDUNITE_TEAM_META_ONBOARDING_BOT_CHAT_MODAL_SHOWN, true) === '1') {
+        return true;
+    }
+
+    if (function_exists('aidunite_board_onboarding_mission_active')
+        && aidunite_board_onboarding_mission_active($user_team_id)
+        && function_exists('aidunite_board_onboarding_modal_step_shown')
+        && !aidunite_board_onboarding_modal_step_shown($user_team_id, 'bot_arrived')) {
+        return true;
+    }
+
+    return false;
 }
 
 /**
@@ -695,10 +847,13 @@ function aidunite_onboarding_bot_should_suppress_chat_cta($request_id) {
         return false;
     }
 
-    $to_schedule_id = (int) get_post_meta($request_id, 'to_schedule_id', true);
+    $mr_cta = function_exists('aidunite_match_request_get_canonical_meta')
+        ? aidunite_match_request_get_canonical_meta($request_id)
+        : [];
+    $to_schedule_id = (int) ($mr_cta['to_schedule_id'] ?? get_post_meta($request_id, 'to_schedule_id', true));
     $user_team_id = $to_schedule_id > 0 && function_exists('aidunite_resolve_schedule_owner_team_id')
         ? (int) aidunite_resolve_schedule_owner_team_id($to_schedule_id)
-        : (int) get_post_meta($request_id, 'to_team_id', true);
+        : (int) ($mr_cta['to_team_id'] ?? get_post_meta($request_id, 'to_team_id', true));
 
     if ($user_team_id <= 0) {
         return false;
@@ -787,6 +942,164 @@ function aidunite_onboarding_bot_filter_established_rows($rows, $schedule_id, $t
 add_filter('aidunite_established_requests_for_schedule', 'aidunite_onboarding_bot_filter_established_rows', 10, 3);
 
 /**
+ * オンボーディング用ボット schedule を物理削除（MR 削除後に呼ぶ）
+ *
+ * @param int $schedule_id
+ * @return bool
+ */
+function aidunite_onboarding_bot_delete_schedule_post($schedule_id) {
+    $schedule_id = (int) $schedule_id;
+    if ($schedule_id <= 0) {
+        return true;
+    }
+
+    if (!aidunite_is_onboarding_bot_schedule($schedule_id)) {
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('[aidunite onboarding bot] skip schedule delete (not bot schedule): ' . $schedule_id);
+        }
+
+        return false;
+    }
+
+    if (function_exists('aidunite_perform_safe_schedule_deletion')) {
+        $result = aidunite_perform_safe_schedule_deletion($schedule_id);
+        if (is_wp_error($result)) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('[aidunite onboarding bot] schedule delete failed: ' . $schedule_id . ' ' . $result->get_error_message());
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
+    if (function_exists('aidunite_can_delete_schedule')) {
+        $may = aidunite_can_delete_schedule($schedule_id);
+        if (is_wp_error($may)) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('[aidunite onboarding bot] schedule delete blocked: ' . $schedule_id . ' ' . $may->get_error_message());
+            }
+
+            return false;
+        }
+    }
+
+    return (bool) wp_delete_post($schedule_id, true);
+}
+
+/**
+ * 成立お祝いモーダル閉じた後: ボット MR とボット schedule を削除（ユーザー recruit は残す）
+ *
+ * @param int $user_team_id 代表者チーム
+ * @return array{success:bool,deleted:bool,schedule_deleted?:bool,request_id?:int,bot_schedule_id?:int,reason?:string}
+ */
+function aidunite_onboarding_bot_remove_match_on_modal_close($user_team_id) {
+    $user_team_id = (int) $user_team_id;
+    if ($user_team_id <= 0 || !defined('AIDUNITE_TEAM_META_ONBOARDING_BOT_MR')) {
+        return ['success' => false, 'deleted' => false, 'reason' => 'invalid_team'];
+    }
+
+    $request_id = (int) get_post_meta($user_team_id, AIDUNITE_TEAM_META_ONBOARDING_BOT_MR, true);
+    $bot_schedule_id = defined('AIDUNITE_TEAM_META_ONBOARDING_BOT_SCHEDULE')
+        ? (int) get_post_meta($user_team_id, AIDUNITE_TEAM_META_ONBOARDING_BOT_SCHEDULE, true)
+        : 0;
+
+    if ($request_id <= 0) {
+        if ($bot_schedule_id > 0) {
+            $schedule_deleted = aidunite_onboarding_bot_delete_schedule_post($bot_schedule_id);
+            delete_post_meta($user_team_id, AIDUNITE_TEAM_META_ONBOARDING_BOT_SCHEDULE);
+
+            return [
+                'success'          => $schedule_deleted,
+                'deleted'          => false,
+                'schedule_deleted' => $schedule_deleted,
+                'bot_schedule_id'  => $bot_schedule_id,
+                'reason'           => $schedule_deleted ? 'no_mr' : 'schedule_delete_failed',
+            ];
+        }
+
+        return ['success' => true, 'deleted' => false, 'reason' => 'no_mr'];
+    }
+
+    if (!aidunite_match_request_is_onboarding_bot($request_id)) {
+        return ['success' => false, 'deleted' => false, 'reason' => 'not_bot_mr'];
+    }
+
+    $mr = function_exists('aidunite_match_request_get_canonical_meta')
+        ? aidunite_match_request_get_canonical_meta($request_id)
+        : [];
+    $to_team_id = (int) ($mr['to_team_id'] ?? get_post_meta($request_id, 'to_team_id', true));
+    $from_team_id = (int) ($mr['from_team_id'] ?? get_post_meta($request_id, 'from_team_id', true));
+    if ($to_team_id !== $user_team_id && $from_team_id !== $user_team_id) {
+        return ['success' => false, 'deleted' => false, 'reason' => 'forbidden'];
+    }
+
+    $to_schedule_id = (int) ($mr['to_schedule_id'] ?? get_post_meta($request_id, 'to_schedule_id', true));
+    if ($bot_schedule_id <= 0) {
+        $bot_schedule_id = (int) ($mr['from_schedule_id'] ?? get_post_meta($request_id, 'from_schedule_id', true));
+        if ($bot_schedule_id <= 0) {
+            $bot_schedule_id = (int) ($mr['my_schedule_id'] ?? get_post_meta($request_id, 'my_schedule_id', true));
+        }
+    }
+    if ($bot_schedule_id > 0 && $bot_schedule_id === $to_schedule_id) {
+        $bot_schedule_id = 0;
+    }
+
+    $was_established = (string) ($mr['established_at'] ?? get_post_meta($request_id, 'established_at', true)) !== '';
+
+    aidunite_onboarding_bot_set_suppress_notifications(true);
+
+    if ($was_established && function_exists('aidunite_rollback_established_from_schedules')) {
+        aidunite_rollback_established_from_schedules($request_id);
+    }
+
+    if (function_exists('aidunite_update_match_request_status_meta')) {
+        aidunite_update_match_request_status_meta($request_id, 'canceled', 'trash');
+    }
+
+    if (function_exists('aidunite_mark_match_chat_completed')) {
+        aidunite_mark_match_chat_completed($request_id, 'onboarding_bot_modal_closed');
+    }
+
+    $deleted = function_exists('aidunite_match_request_persist_admin_delete')
+        ? aidunite_match_request_persist_admin_delete($request_id)
+        : (bool) wp_delete_post($request_id, true);
+
+    delete_post_meta($user_team_id, AIDUNITE_TEAM_META_ONBOARDING_BOT_MR);
+    if (defined('AIDUNITE_TEAM_META_ONBOARDING_BOT_SCHEDULE')) {
+        delete_post_meta($user_team_id, AIDUNITE_TEAM_META_ONBOARDING_BOT_SCHEDULE);
+    }
+
+    $schedule_deleted = true;
+    if ($deleted && $bot_schedule_id > 0) {
+        $schedule_deleted = aidunite_onboarding_bot_delete_schedule_post($bot_schedule_id);
+    }
+
+    if ($to_schedule_id > 0 && function_exists('aidunite_sync_match_board_status_from_game')) {
+        aidunite_sync_match_board_status_from_game($to_schedule_id);
+    }
+
+    aidunite_onboarding_bot_set_suppress_notifications(false);
+
+    $reason = '';
+    if (!$deleted) {
+        $reason = 'mr_delete_failed';
+    } elseif (!$schedule_deleted) {
+        $reason = 'schedule_delete_failed';
+    }
+
+    return [
+        'success'          => (bool) $deleted && $schedule_deleted,
+        'deleted'          => (bool) $deleted,
+        'schedule_deleted' => $schedule_deleted,
+        'request_id'       => $request_id,
+        'bot_schedule_id'  => $bot_schedule_id,
+        'reason'           => $reason,
+    ];
+}
+
+/**
  * REST: モーダル表示済み
  *
  * @param WP_REST_Request $request
@@ -806,10 +1119,27 @@ function aidunite_rest_onboarding_bot_chat_modal_shown(WP_REST_Request $request)
         return new WP_REST_Response(['success' => false, 'message' => 'team_not_found'], 400);
     }
 
+    $cleanup = aidunite_onboarding_bot_remove_match_on_modal_close($team_id);
+    if (($cleanup['reason'] ?? '') === 'forbidden') {
+        return new WP_REST_Response(['success' => false, 'message' => 'forbidden'], 403);
+    }
+    if (($cleanup['reason'] ?? '') === 'not_bot_mr') {
+        return new WP_REST_Response(['success' => false, 'message' => 'not_bot_mr'], 400);
+    }
+    if (empty($cleanup['success']) && ($cleanup['reason'] ?? '') !== 'no_mr') {
+        return new WP_REST_Response(['success' => false, 'message' => 'cleanup_failed'], 500);
+    }
+
     update_post_meta($team_id, AIDUNITE_TEAM_META_ONBOARDING_BOT_CHAT_MODAL_SHOWN, '1');
     delete_post_meta($team_id, AIDUNITE_TEAM_META_ONBOARDING_BOT_CHAT_MODAL_PENDING);
 
-    return new WP_REST_Response(['success' => true], 200);
+    return new WP_REST_Response([
+        'success'              => true,
+        'bot_mr_deleted'       => !empty($cleanup['deleted']),
+        'bot_schedule_deleted' => !empty($cleanup['schedule_deleted']),
+        'request_id'           => (int) ($cleanup['request_id'] ?? 0),
+        'bot_schedule_id'      => (int) ($cleanup['bot_schedule_id'] ?? 0),
+    ], 200);
 }
 
 add_action('rest_api_init', static function () {
@@ -828,13 +1158,15 @@ add_action('rest_api_init', static function () {
  * @param array $args show_modal (bool), chat_url (string)
  */
 function aidunite_enqueue_onboarding_bot_chat_modal_assets(array $args = []) {
-    $mypage_redesign_css = get_stylesheet_directory() . '/assets/css/pages/mypage-redesign.css';
-    wp_enqueue_style(
-        'mypage-redesign',
-        get_stylesheet_directory_uri() . '/assets/css/pages/mypage-redesign.css',
-        array('aidunite-style', 'card-style', 'button-style'),
-        is_readable($mypage_redesign_css) ? (string) filemtime($mypage_redesign_css) : '1.3.9'
-    );
+    $bot_modal_css = get_stylesheet_directory() . '/assets/css/components/onboarding-bot-chat-modal.css';
+    if (is_readable($bot_modal_css)) {
+        wp_enqueue_style(
+            'aidunite-onboarding-bot-chat-modal',
+            get_stylesheet_directory_uri() . '/assets/css/components/onboarding-bot-chat-modal.css',
+            array('aidunite-style', 'card-style', 'button-style', 'aidunite-theme-icons'),
+            (string) filemtime($bot_modal_css)
+        );
+    }
 
     $modal_js = get_stylesheet_directory() . '/assets/js/common/onboarding-bot-chat-modal.js';
     wp_enqueue_script(
@@ -845,9 +1177,14 @@ function aidunite_enqueue_onboarding_bot_chat_modal_assets(array $args = []) {
         true
     );
 
+    $recruit_url = function_exists('aidunite_get_activation_recruit_edit_url')
+        ? aidunite_get_activation_recruit_edit_url()
+        : home_url('/mypage/?open_recruit=1');
+
     wp_localize_script('aidunite-onboarding-bot-chat-modal', 'aiduniteOnboardingBotModal', [
         'restNonce'                  => wp_create_nonce('wp_rest'),
         'mypageUrl'                  => esc_url(home_url('/mypage/')),
+        'recruitUrl'                 => esc_url($recruit_url),
         'showOnboardingBotChatModal' => !empty($args['show_modal']) ? '1' : '0',
         'chatUrl'                    => isset($args['chat_url']) ? esc_url((string) $args['chat_url']) : '',
     ]);

@@ -104,7 +104,7 @@ get_header();
                 <span class="ainy-dashboard-kpi-value"><?php echo esc_html(number_format($kpi['users'])); ?></span>
                 <?php if ($kpi['users_diff']['dir'] !== null) : ?>
                 <span class="ainy-dashboard-kpi-diff ainy-dashboard-kpi-diff--<?php echo esc_attr($kpi['users_diff']['dir']); ?>">
-                    <?php echo $kpi['users_diff']['dir'] === 'up' ? aidunite_render_theme_icon('arrow_upward', ['width' => '14', 'height' => '14']) : aidunite_render_theme_icon('arrow_downward', ['width' => '14', 'height' => '14']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php echo $kpi['users_diff']['raw'] >= 0 ? '+' . $kpi['users_diff']['raw'] : $kpi['users_diff']['raw']; ?> 前日比
+                    <?php echo $kpi['users_diff']['dir'] === 'up' ? aidunite_render_theme_icon('arrow_upward', ['width' => '14', 'height' => '14'], 'aidunite-icon--inline') : aidunite_render_theme_icon('arrow_downward', ['width' => '14', 'height' => '14'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php echo $kpi['users_diff']['raw'] >= 0 ? '+' . $kpi['users_diff']['raw'] : $kpi['users_diff']['raw']; ?> 前日比
                 </span>
                 <?php endif; ?>
                 <span class="ainy-dashboard-kpi-meta">累計 · クリックで推移</span>
@@ -114,7 +114,7 @@ get_header();
                 <span class="ainy-dashboard-kpi-value"><?php echo esc_html(number_format($kpi['teams'])); ?></span>
                 <?php if ($kpi['teams_diff']['dir'] !== null) : ?>
                 <span class="ainy-dashboard-kpi-diff ainy-dashboard-kpi-diff--<?php echo esc_attr($kpi['teams_diff']['dir']); ?>">
-                    <?php echo $kpi['teams_diff']['dir'] === 'up' ? aidunite_render_theme_icon('arrow_upward', ['width' => '14', 'height' => '14']) : aidunite_render_theme_icon('arrow_downward', ['width' => '14', 'height' => '14']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php echo $kpi['teams_diff']['raw'] >= 0 ? '+' . $kpi['teams_diff']['raw'] : $kpi['teams_diff']['raw']; ?> 前日比
+                    <?php echo $kpi['teams_diff']['dir'] === 'up' ? aidunite_render_theme_icon('arrow_upward', ['width' => '14', 'height' => '14'], 'aidunite-icon--inline') : aidunite_render_theme_icon('arrow_downward', ['width' => '14', 'height' => '14'], 'aidunite-icon--inline'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> <?php echo $kpi['teams_diff']['raw'] >= 0 ? '+' . $kpi['teams_diff']['raw'] : $kpi['teams_diff']['raw']; ?> 前日比
                 </span>
                 <?php endif; ?>
                 <span class="ainy-dashboard-kpi-meta">累計 · クリックで推移</span>

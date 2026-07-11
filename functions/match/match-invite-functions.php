@@ -34,10 +34,9 @@ function aidunite_generate_match_invite_token($schedule_id, $hours_valid = 72) {
     }
 
     // 会場条件を取得（自分の条件がホームのときだけ会場名必須＝相手にはアウェイ@会場名になる）
-    $schedule_place = get_post_meta($schedule_id, 'schedule_place', true);
-    if (empty($schedule_place)) {
-        $schedule_place = get_post_meta($schedule_id, 'schedule_place_option', true);
-    }
+    $schedule_place = function_exists('aidunite_schedule_read_place_raw')
+        ? aidunite_schedule_read_place_raw((int) $schedule_id)
+        : '';
     $venue_name = get_post_meta($schedule_id, 'venue_name', true);
     if (in_array($schedule_place, ['home', 'ホーム'], true) && empty(trim((string) $venue_name))) {
         error_log("❌ 試合招待トークン生成失敗：ホームの場合は会場名必須 schedule_id={$schedule_id}");
@@ -254,31 +253,30 @@ function aidunite_process_match_invite_approval($token, $school_name, $approver_
         ];
     }
 
-    // match_requestを作成
-    $request_id = wp_insert_post([
-        'post_type' => 'match_request',
-        'post_status' => 'publish',
-        'post_title' => '試合招待承認 ' . current_time('mysql'),
-        'post_author' => $user_id
-    ]);
-
-    if (is_wp_error($request_id)) {
-        error_log("❌ match_request作成失敗：" . $request_id->get_error_message());
+    if (!function_exists('aidunite_match_request_create_guest_invite_post')) {
         return [
             'success' => false,
-            'message' => '試合申請の作成に失敗しました'
+            'message' => 'サーバー設定エラーです',
         ];
     }
 
-    // メタデータを保存
-    update_post_meta($request_id, 'from_team_id', $from_team_id);
-    update_post_meta($request_id, 'to_team_id', $to_team_id);
-    update_post_meta($request_id, 'my_schedule_id', $schedule_id);
-    update_post_meta($request_id, 'to_schedule_id', 9999); // 固定値
-    update_post_meta($request_id, 'approver_school_name', sanitize_text_field($school_name));
-    update_post_meta($request_id, 'approver_name', sanitize_text_field($approver_name));
-    update_post_meta($request_id, 'approver_type', 'guest_invite');
-    update_post_meta($request_id, 'approved_at', current_time('mysql'));
+    $request_id = aidunite_match_request_create_guest_invite_post([
+        'post_author' => $user_id,
+        'from_team_id' => $from_team_id,
+        'to_team_id' => $to_team_id,
+        'my_schedule_id' => $schedule_id,
+        'to_schedule_id' => 9999,
+        'approver_school_name' => $school_name,
+        'approver_name' => $approver_name,
+    ]);
+
+    if (is_wp_error($request_id)) {
+        error_log('❌ match_request作成失敗：' . $request_id->get_error_message());
+        return [
+            'success' => false,
+            'message' => '試合申請の作成に失敗しました',
+        ];
+    }
 
     // トークンを無効化
     aidunite_invalidate_match_invite_token($token);
@@ -290,7 +288,11 @@ function aidunite_process_match_invite_approval($token, $school_name, $approver_
         $participant_ids[] = (string) $to_team_id;
         update_post_meta($schedule_id, 'participants', implode(',', $participant_ids));
     }
-    update_post_meta($schedule_id, 'intent', 'confirmed');
+    if (function_exists('aidunite_schedule_persist_intent_flags')) {
+        aidunite_schedule_persist_intent_flags((int) $schedule_id, 'confirmed', false);
+    } else {
+        update_post_meta($schedule_id, 'intent', 'confirmed');
+    }
 
     if (!function_exists('aidunite_apply_established_to_schedules')) {
         error_log('❌ match-invite: aidunite_apply_established_to_schedules が未読込です');
@@ -349,10 +351,9 @@ function aidunite_process_match_invite_rejection($token) {
 --------------------------------------------------------------*/
 function aidunite_send_match_invite_approval_notification($request_id, $user_id, $school_name, $approver_name, $schedule_id) {
     // スケジュール情報を取得（自分の会場条件の逆が相手の見え方）
-    $schedule_place = get_post_meta($schedule_id, 'schedule_place', true);
-    if (empty($schedule_place)) {
-        $schedule_place = get_post_meta($schedule_id, 'schedule_place_option', true);
-    }
+    $schedule_place = function_exists('aidunite_schedule_read_place_raw')
+        ? aidunite_schedule_read_place_raw((int) $schedule_id)
+        : '';
     $venue_name = get_post_meta($schedule_id, 'venue_name', true);
     $venue_display = aidunite_match_invite_opponent_venue_label($schedule_place, $venue_name);
 

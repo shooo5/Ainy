@@ -14,6 +14,7 @@
  *    - $tab_contents: タブコンテンツ配列
  *    - $required_role: 必要な権限（オプション）
  *    - $preview_mode: プレビューモード（オプション）
+ *    - $dashboard_direct_content: true のとき dashboard-section を省略し main_content を直下出力（一体型 UI かつタブなしでも自動適用）
  */
 
 // ページスラッグを自動取得
@@ -107,11 +108,23 @@ if ($use_integrated_ui) {
     <?php endforeach; ?>
   <?php else: ?>
     <!-- タブなしの場合は直接コンテンツを表示 -->
+    <?php
+    $empty_state = '<div class="empty-state"><div class="empty-icon">' . aidunite_render_theme_icon('list_alt_add', ['width' => '40', 'height' => '40']) . '</div><h3>コンテンツが設定されていません</h3><p>ページコンテンツを設定してください。</p></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    $render_content = $main_content ?? $empty_state;
+    $direct_content = !empty($dashboard_direct_content)
+        || ($use_integrated_ui && empty($tabs));
+    if ($direct_content) :
+      echo $render_content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    else :
+      ?>
     <section class="dashboard-section">
       <div class="main-content-area">
-        <?php echo $main_content ?? '<div class="empty-state"><div class="empty-icon">' . aidunite_render_theme_icon('list_alt_add', ['width' => '40', 'height' => '40']) . '</div><h3>コンテンツが設定されていません</h3><p>ページコンテンツを設定してください。</p></div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        <?php echo $render_content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
       </div>
     </section>
+      <?php
+    endif;
+    ?>
   <?php endif; ?>
 
   <?php if (isset($dashboard_footer)): ?>
@@ -128,31 +141,5 @@ if ($use_integrated_ui && function_exists('aidunite_web_app_page_shell_close')) 
     echo '</div>';
 }
 ?>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  // タブ切り替え機能
-  const tabBtns = document.querySelectorAll('.tab-btn');
-  const tabContents = document.querySelectorAll('.tab-content');
-
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', function() {
-      const targetTab = this.getAttribute('data-tab');
-
-      // タブボタンのアクティブ状態を切り替え
-      tabBtns.forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-
-      // タブコンテンツの表示を切り替え
-      tabContents.forEach(content => {
-        content.classList.remove('active');
-        if (content.id === targetTab) {
-          content.classList.add('active');
-        }
-      });
-    });
-  });
-});
-</script>
 
 <?php get_footer(); ?>

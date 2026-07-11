@@ -45,45 +45,31 @@ if (isset($_POST['update_team_settings'])) {
     }
 }
 
-$team_display_name = (string) (get_post_meta($team_id, 'team_name', true) ?: $team_post->post_title);
-$team_name_kana = (string) get_post_meta($team_id, 'team_name_kana', true);
+$team_settings = function_exists('aidunite_team_get_settings_display')
+    ? aidunite_team_get_settings_display($team_id)
+    : [];
+$team_display_name = (string) ($team_settings['team_name'] ?? $team_post->post_title);
+$team_name_kana = (string) ($team_settings['team_name_kana'] ?? '');
 $team_logo_crop = function_exists('aidunite_get_team_logo_crop')
     ? aidunite_get_team_logo_crop($team_id)
     : ['x' => 0, 'y' => 0, 'zoom' => 100];
-$team_description_display = (string) (get_post_meta($team_id, 'team_description', true) ?: $team_post->post_content);
-$sport_type = (string) get_post_meta($team_id, 'sport_type', true);
-$team_category = (string) get_post_meta($team_id, 'team_category', true);
-$team_type = (string) get_post_meta($team_id, 'team_type', true);
+$team_description_display = (string) ($team_settings['team_description'] ?? $team_post->post_content);
+$sport_type = (string) ($team_settings['sport_type'] ?? '');
+$team_category = (string) ($team_settings['team_category'] ?? '');
+$team_type = (string) ($team_settings['team_type'] ?? '');
 if (function_exists('aidunite_team_type_to_canonical')) {
     $team_type = aidunite_team_type_to_canonical($team_type);
 }
-$team_gender_option = (string) get_post_meta($team_id, 'team_gender_option', true);
-if (function_exists('aidunite_normalize_team_gender_option')) {
-    $team_gender_option = aidunite_normalize_team_gender_option($team_gender_option);
-}
+$team_gender_option = (string) ($team_settings['team_gender_option'] ?? '');
 $gender_is_both_legacy = in_array($team_gender_option, ['both', 'mixed'], true);
-$region = function_exists('aidunite_team_activity_display_label')
-    ? aidunite_team_activity_display_label((int) $team_id)
-    : (string) get_post_meta($team_id, 'region', true);
-if ($region === '' || $region === '地域未設定') {
-    $legacy = (string) get_post_meta($team_id, 'team_location', true);
-    if ($legacy !== '') {
-        $region = $legacy;
-    }
-}
-$team_place = (string) get_post_meta($team_id, 'team_place', true);
-if ($team_place === '') {
-    $team_place = (string) get_post_meta($team_id, 'team_location', true);
-}
-$team_logo = (string) get_post_meta($team_id, 'team_logo', true);
-$registrant_name = (string) get_post_meta($team_id, 'registrant_name', true);
-$contact_mail = (string) get_post_meta($team_id, 'contact_mail', true);
-if ($contact_mail === '') {
-    $contact_mail = (string) get_post_meta($team_id, 'team_contact', true);
-}
-$contact_phone = (string) get_post_meta($team_id, 'contact_phone', true);
+$region = (string) ($team_settings['region'] ?? '');
+$team_place = (string) ($team_settings['team_place'] ?? '');
+$team_logo = (string) ($team_settings['team_logo'] ?? '');
+$registrant_name = (string) ($team_settings['registrant_name'] ?? '');
+$contact_mail = (string) ($team_settings['contact_mail'] ?? '');
+$contact_phone = (string) ($team_settings['contact_phone'] ?? '');
 
-$team_status_raw = (string) get_post_meta($team_id, 'team_status', true);
+$team_status_raw = (string) ($team_settings['team_status'] ?? '');
 $team_status_raw = function_exists('aidunite_team_management_normalize_team_status')
     ? aidunite_team_management_normalize_team_status($team_status_raw)
     : ($team_status_raw === '' ? 'active' : $team_status_raw);
@@ -205,10 +191,15 @@ ob_start();
             if (!empty($item['attention'])) {
                 $menu_card_class .= ' team-settings-dash__menu-card--attention';
             }
+            $menu_url = (string) ($item['url'] ?? '');
+            if ($menu_url === '' && (string) ($item['slug'] ?? '') === 'invite-guardian'
+                && function_exists('aidunite_get_invite_guardian_page_url')) {
+                $menu_url = aidunite_get_invite_guardian_page_url();
+            }
             ?>
-          <a class="<?php echo esc_attr($menu_card_class); ?>" href="<?php echo esc_url($item['url']); ?>">
+          <a class="<?php echo esc_attr($menu_card_class); ?>" href="<?php echo esc_url($menu_url !== '' ? $menu_url : '#'); ?>">
             <span class="team-settings-dash__menu-icon" aria-hidden="true"><?php echo aidunite_render_theme_icon($item['icon'], ['width' => '24', 'height' => '24']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-            <span class="team-settings-dash__menu-title"><?php echo esc_html($item['title']); ?></span>
+            <span class="team-settings-dash__menu-title"><?php echo esc_html((string) ($item['title'] ?? '')); ?></span>
             <span class="team-settings-dash__menu-desc"><?php echo esc_html($item['description']); ?></span>
             <span class="team-settings-dash__menu-meta">
               <?php if (!empty($item['badge'])) : ?>
@@ -221,22 +212,18 @@ ob_start();
       </div>
     </section>
 
+    <?php if (!$team_summary_compact) : ?>
     <section
-      class="team-settings-dash__section<?php echo $team_summary_compact ? ' team-settings-dash__section--compact' : ''; ?>"
+      class="team-settings-dash__section"
       id="team-summary"
       aria-labelledby="team-summary-heading"
     >
-      <?php if (!$team_summary_compact) : ?>
       <div class="team-settings-dash__section-head">
         <h1 class="team-settings-dash__section-title team-settings-dash__section-title--in-head" id="team-summary-heading">現在のチーム</h1>
       </div>
-      <?php else : ?>
-      <h2 class="screen-reader-text" id="team-summary-heading">共有リンク</h2>
-      <?php endif; ?>
       <div class="team-settings-dash__summary">
-        <?php if (!$team_summary_compact) : ?>
         <div class="team-settings-dash__summary-hero">
-          <?php if ($team_logo !== '' && filter_var($team_logo, FILTER_VALIDATE_URL)) : ?>
+          <?php if ($team_logo !== '' && function_exists('aidunite_team_logo_is_displayable') && aidunite_team_logo_is_displayable($team_logo)) : ?>
             <img class="team-settings-dash__logo" src="<?php echo esc_url($team_logo); ?>" alt="" width="88" height="88" loading="lazy" />
           <?php else : ?>
             <div class="team-settings-dash__logo team-settings-dash__logo--placeholder" aria-hidden="true"><?php echo aidunite_render_theme_icon('stadium', ['width' => '40', 'height' => '40']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
@@ -278,34 +265,15 @@ ob_start();
             </dd>
           </div>
         </dl>
-        <?php endif; ?>
 
+        <?php if (function_exists('aidunite_render_team_settings_summary_actions')) : ?>
         <div class="team-settings-dash__public-block">
-          <?php if (!$team_summary_compact && function_exists('aidunite_render_team_settings_summary_actions')) : ?>
-            <?php aidunite_render_team_settings_summary_actions($current_user_id, $team_public_profile_url); ?>
-          <?php endif; ?>
-          <div class="team-settings-dash__public-url">
-            <label class="team-settings-dash__public-url-label" for="team-public-profile-url">共有用 URL</label>
-            <div class="team-settings-dash__public-url-row">
-              <input
-                type="url"
-                class="team-settings-dash__public-url-input"
-                id="team-public-profile-url"
-                value="<?php echo esc_attr($team_public_profile_url); ?>"
-                readonly
-                aria-readonly="true"
-              />
-              <button
-                type="button"
-                class="team-settings-dash__btn team-settings-dash__btn--secondary team-settings-dash__public-url-copy"
-                data-copy-target="team-public-profile-url"
-                aria-label="共有用 URL をコピー"
-              >コピー</button>
-            </div>
-          </div>
+          <?php aidunite_render_team_settings_summary_actions($current_user_id, $team_public_profile_url); ?>
         </div>
+        <?php endif; ?>
       </div>
     </section>
+    <?php endif; ?>
 
     <section class="team-settings-dash__section" id="team-form" aria-labelledby="team-form-heading">
       <h2 class="team-settings-dash__section-title" id="team-form-heading">基本情報の編集</h2>
@@ -434,6 +402,60 @@ ob_start();
       </form>
     </section>
 
+    <?php
+    $leader_transfer_candidates = function_exists('aidunite_team_get_leader_transfer_candidates')
+        ? aidunite_team_get_leader_transfer_candidates($team_id, $current_user_id)
+        : [];
+    $leader_transfer_pending = function_exists('aidunite_team_read_leader_transfer_pending')
+        ? aidunite_team_read_leader_transfer_pending($team_id)
+        : null;
+    $leader_transfer_days = function_exists('aidunite_payment_get_leader_transfer_checkout_days')
+        ? aidunite_payment_get_leader_transfer_checkout_days()
+        : 14;
+    if (!empty($leader_transfer_candidates) || !empty($leader_transfer_pending)) :
+    ?>
+    <section class="team-settings-dash__section" id="team-leader-transfer" aria-labelledby="team-leader-transfer-heading">
+      <h2 class="team-settings-dash__section-title" id="team-leader-transfer-heading">代表者の譲渡</h2>
+      <div class="team-settings-dash__help">
+        <p>退会前に代表者を別のメンバーへ譲渡できます。チームに月額契約がある場合、<strong>同時引き継ぎ</strong>（譲渡先が支払い設定済み）か、譲渡先が<strong><?php echo (int) $leader_transfer_days; ?>日以内に Checkout</strong>する必要があります。</p>
+        <?php if (!empty($leader_transfer_pending)) : ?>
+        <p class="team-settings-dash__notice">譲渡手続き中です。新代表の Checkout 期限: <?php echo esc_html((string) ($leader_transfer_pending['checkout_deadline'] ?? '')); ?></p>
+        <?php else : ?>
+        <div class="team-settings-dash__form-grid team-settings-dash__stack">
+          <div class="team-settings-dash__field">
+            <label for="leader-transfer-target">譲渡先メンバー</label>
+            <select class="team-settings-dash__select" id="leader-transfer-target">
+              <option value="">選択してください</option>
+              <?php foreach ($leader_transfer_candidates as $candidate) : ?>
+              <option value="<?php echo esc_attr((string) $candidate['user_id']); ?>">
+                <?php echo esc_html($candidate['display_name']); ?>（<?php echo esc_html($candidate['role']); ?>）
+              </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="team-settings-dash__field">
+            <label><input type="checkbox" id="leader-transfer-simultaneous" value="1"> 同時引き継ぎ（譲渡先が支払い設定済みの場合）</label>
+          </div>
+          <div class="team-settings-dash__field">
+            <button type="button" class="team-settings-dash__btn team-settings-dash__btn--outline" id="leader-transfer-submit">代表者を譲渡する</button>
+            <p id="leader-transfer-message" class="team-settings-dash__form-note" style="display:none;"></p>
+          </div>
+        </div>
+        <?php endif; ?>
+      </div>
+    </section>
+    <?php
+    if (wp_script_is('aidunite-team-leader-transfer', 'enqueued')) {
+        wp_localize_script('aidunite-team-leader-transfer', 'aiduniteTeamLeaderTransfer', [
+            'teamId' => (int) $team_id,
+            'restNonce' => wp_create_nonce('wp_rest'),
+            'checkoutDeadlineDays' => (int) $leader_transfer_days,
+            'restUrl' => rest_url('aidunite/v1/team-leader/transfer'),
+        ]);
+    }
+    ?>
+    <?php endif; ?>
+
     <?php if (!$team_summary_compact) : ?>
     <section class="team-settings-dash__section" id="team-help" aria-labelledby="team-help-heading">
       <h2 class="team-settings-dash__section-title" id="team-help-heading">補助案内</h2>
@@ -447,6 +469,8 @@ ob_start();
 
 <?php
 $main_content = ob_get_clean();
+// 一体型 UI: ainy-webapp-content 直下に配置（dashboard-section ラッパー不要）
+$dashboard_direct_content = true;
 // 認証・代表者チェックは本ファイル先頭で完了。テンプレートの require_role 二重チェックで
 // team_leader_id のみ一致し aidunite_role が未設定の代表者が弾かれるのを防ぐ。
 unset($required_role);

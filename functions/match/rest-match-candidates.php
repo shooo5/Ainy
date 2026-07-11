@@ -51,15 +51,7 @@ add_action('rest_api_init', function() {
 function aidunite_get_match_candidates($request) {
     try {
         $current_user_id = get_current_user_id();
-        $team_scope = function_exists('aidunite_get_managed_team_ids')
-            ? aidunite_get_managed_team_ids($current_user_id)
-            : [];
-        if (empty($team_scope)) {
-            $legacy = (int) get_user_meta($current_user_id, 'team_id', true);
-            if ($legacy > 0) {
-                $team_scope = [$legacy];
-            }
-        }
+        $team_scope = aidunite_match_resolve_user_team_scope($current_user_id);
 
         if (empty($team_scope)) {
             error_log('[MATCH_CANDIDATES_API] Error: Team ID not found for user ' . $current_user_id);
@@ -143,7 +135,11 @@ function aidunite_get_match_candidates($request) {
         $viewer_team_id = count($team_scope) === 1 ? (int) $team_scope[0] : (int) ($team_scope[0] ?? 0);
 
         foreach ($all_my_schedules as $my_schedule) {
-            $schedule_date = get_post_meta($my_schedule->ID, 'schedule_date', true);
+            $schedule_date = function_exists('aidunite_schedule_read_normalized_date')
+                ? aidunite_schedule_read_normalized_date((int) $my_schedule->ID)
+                : (function_exists('aidunite_schedule_read_normalized_date')
+                    ? aidunite_schedule_read_normalized_date((int) $my_schedule->ID)
+                    : '');
 
             // 過去の日付を除外
             if ($filter === 'future_only' && $schedule_date && $schedule_date < $today) {
@@ -154,23 +150,28 @@ function aidunite_get_match_candidates($request) {
             $candidates = aidunite_get_auto_match_candidates($my_schedule->ID);
 
             foreach ($candidates as $candidate) {
-                $candidate_team_id = (int) get_post_meta($candidate->ID, 'team_id', true);
+                $cand_api = function_exists('aidunite_schedule_get_api_display_fields')
+                    ? aidunite_schedule_get_api_display_fields((int) $candidate->ID)
+                    : [];
+                $candidate_team_id = (int) ($cand_api['team_id'] ?? 0);
+                if ($candidate_team_id <= 0 && function_exists('aidunite_schedule_read_team_id')) {
+                    $candidate_team_id = aidunite_schedule_read_team_id((int) $candidate->ID);
+                }
                 if ($candidate_team_id <= 0 && function_exists('aidunite_resolve_schedule_owner_team_id')) {
                     $candidate_team_id = (int) aidunite_resolve_schedule_owner_team_id((int) $candidate->ID);
                 }
                 if ($candidate_team_id <= 0) {
                     $author_id = (int) get_post_field('post_author', $candidate->ID);
-                    $candidate_team_id = (int) get_user_meta($author_id, 'team_id', true);
+                    $candidate_team_id = function_exists('aidunite_user_read_primary_team_id')
+                        ? aidunite_user_read_primary_team_id($author_id)
+                        : 0;
                 }
 
                 $candidate_team_name = $candidate_team_id ? get_the_title($candidate_team_id) : '（不明）';
-                $candidate_date = get_post_meta($candidate->ID, 'schedule_date', true);
-                $candidate_start = get_post_meta($candidate->ID, 'schedule_start_time', true);
-                $candidate_end = get_post_meta($candidate->ID, 'schedule_end_time', true);
-                $candidate_place = get_post_meta($candidate->ID, 'schedule_place', true);
-                if (!$candidate_place) {
-                    $candidate_place = get_post_meta($candidate->ID, 'schedule_place_option', true);
-                }
+                $candidate_date = (string) ($cand_api['date'] ?? '');
+                $candidate_start = (string) ($cand_api['start_time'] ?? '');
+                $candidate_end = (string) ($cand_api['end_time'] ?? '');
+                $candidate_place = (string) ($cand_api['place'] ?? '');
 
                 $board_tier = 'hidden';
                 $scores = ['T' => 0, 'V' => 0, 'A' => 0];

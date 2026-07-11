@@ -36,7 +36,7 @@ body.page-template-page-match-board-own-php .full-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: var(--spacing-lg) var(--spacing-md);
-  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0) + var(--spacing-lg)); /* ボトムナビ + 安全領域 + 余白 */
+  padding-bottom: var(--spacing-lg);
   min-height: 100vh;
   background: var(--bg-light);
   box-sizing: border-box;
@@ -148,6 +148,15 @@ body.page-template-page-match-board-own-php .full-container {
   outline-offset: var(--spacing-xs);
   border-radius: var(--radius-small);
   transition: outline-color 0.3s ease;
+}
+
+.page-match-board-own .market-axis-my-slot-row:not(.market-axis-recruit-row):not(.market-axis-my-application-row).market-axis-debug-highlight {
+  outline: 2px solid var(--primary-color);
+  outline-offset: var(--spacing-xs);
+  border-radius: var(--radius-base);
+  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+  box-shadow: var(--shadow-md);
+  transition: outline-color 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* スケジュール情報のコンパクト表示 - 余白は Design Token で統一 */
@@ -519,29 +528,25 @@ body.page-template-page-match-board-own-php .full-container {
   transition: filter 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* デザインリファレンス ⑦ Info Color ベースのグラデーション。押せる立体感のシャドウ */
+/* デザインリファレンス ⑦ → サイト共通プライマリ（紫グラデ） */
 .page-match-board-own .match-btn--primary {
-  background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%);
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   color: var(--text-light);
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.1),
-    0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-md);
 }
 
 .page-match-board-own .match-btn--primary:hover {
-  box-shadow:
-    0 4px 8px rgba(0, 0, 0, 0.12),
-    0 6px 16px rgba(0, 0, 0, 0.14);
+  box-shadow: var(--shadow-lg);
   filter: brightness(1.05);
 }
 
 .page-match-board-own .match-btn--primary:active {
   transform: translateY(2px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-sm);
 }
 
 .page-match-board-own .match-btn--primary:focus-visible {
-  outline: 2px solid #42a5f5;
+  outline: 2px solid var(--primary-color);
   outline-offset: 2px;
 }
 
@@ -556,16 +561,16 @@ body.page-template-page-match-board-own-php .full-container {
   transform: none;
 }
 
-/* 申請・再申請：デザインリファレンス ②アウトライン ＋ ⑦の色（#42a5f5）。白背景・枠と文字は⑦ */
+/* 申請・再申請：アウトライン（プライマリ） */
 .page-match-board-own .match-btn--secondary {
   background: var(--bg-primary);
-  color: #42a5f5;
-  border: 2px solid #42a5f5;
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
   box-shadow: var(--shadow-sm);
 }
 
 .page-match-board-own .match-btn--secondary:hover {
-  background: #42a5f5;
+  background: var(--primary-color);
   color: var(--text-light);
   box-shadow: var(--shadow-md);
 }
@@ -576,7 +581,7 @@ body.page-template-page-match-board-own-php .full-container {
 }
 
 .page-match-board-own .match-btn--secondary:focus-visible {
-  outline: 2px solid #42a5f5;
+  outline: 2px solid var(--primary-color);
   outline-offset: 2px;
 }
 
@@ -822,8 +827,8 @@ body.page-template-page-match-board-own-php .full-container {
 
 /* ベストマッチカードの特別スタイル */
 .page-match-board-own .team-candidate-card.slim.best-match-card {
-  border: 3px solid #ffd700;
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+  border: 3px solid var(--warning-color);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--warning-color) 30%, transparent);
   transform: scale(1.02);
   position: relative;
 }
@@ -834,14 +839,14 @@ body.page-template-page-match-board-own-php .full-container {
   top: -10px;
   right: -10px;
   font-size: 20px;
-  background: #ffd700;
+  background: var(--warning-color);
   border-radius: 50%;
   width: 30px;
   height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
 }
 
 /* チーム候補カードのヘッダー */
@@ -1219,13 +1224,25 @@ body.page-template-page-match-board-own-php .full-container {
 /* ピルタブ */
 .market-axis-pill-tabs {
   display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
   gap: 0;
+  width: 100%;
   margin-bottom: var(--spacing-lg);
   border-bottom: 2px solid var(--border-light);
 }
 
 .market-axis-pill-tab {
-  padding: var(--spacing-sm) var(--spacing-md);
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: nowrap;
+  padding: var(--spacing-sm) var(--spacing-xs);
   border: none;
   border-bottom: 3px solid transparent;
   margin-bottom: -2px;
@@ -1233,6 +1250,8 @@ body.page-template-page-match-board-own-php .full-container {
   color: var(--text-secondary);
   font-size: var(--font-size-base);
   font-weight: 600;
+  font-family: inherit;
+  line-height: 1.25;
   cursor: pointer;
   border-radius: var(--radius-small) var(--radius-small) 0 0;
 }
@@ -1251,6 +1270,26 @@ body.page-template-page-match-board-own-php .full-container {
   outline-offset: 2px;
 }
 
+.market-axis-pill-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--warning-color, #f59e0b);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.market-axis-pill-tab-badge--hidden {
+  display: none;
+}
+
 .market-axis-tab-panel[hidden] {
   display: none;
 }
@@ -1259,7 +1298,7 @@ body.page-template-page-match-board-own-php .full-container {
   display: block;
 }
 
-/* マッチ管理パネル：カードは使わずコンテナのみ（内側の .market-axis-my-block がカード） */
+/* マッチ管理パネル：カードは使わずコンテナのみ（行カードは .market-axis-recruit-row） */
 .page-match-board-own.match-board-market-axis .market-axis-my-panel,
 .match-board-market-axis .market-axis-my-panel {
   background: transparent;
@@ -1283,17 +1322,29 @@ body.page-template-page-match-board-own-php .full-container {
   color: var(--text-secondary);
 }
 
-/* 自分の対戦希望ブロック（1日程＝1カード。対戦募集の .market-axis-row と同様の区切り・シャドウ） */
+/* 自分の対戦希望ブロック（外枠1カード + 内側に子カード列） */
 .market-axis-my-block {
+  --market-axis-my-app-content-inset: var(--market-axis-row-content-inset-left);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
-  padding: var(--spacing-base) var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
+  box-sizing: border-box;
+  padding: 0;
+  margin-bottom: var(--spacing-sm);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.page-match-board-own .market-axis-my-block {
+  padding: var(--spacing-sm);
   background: var(--bg-primary);
   border: 1px solid var(--border-light);
+  border-left: var(--market-axis-row-accent-border) solid var(--primary-color);
   border-radius: var(--radius-medium);
   box-shadow: var(--shadow-sm);
+  overflow: visible;
 }
 
 .market-axis-my-block:last-child {
@@ -1372,6 +1423,7 @@ body.page-template-page-match-board-own-php .full-container {
   gap: var(--spacing-sm);
   flex-wrap: wrap;
   margin-bottom: 0;
+  padding: 0 var(--market-axis-row-inset-right) 0 var(--market-axis-row-content-inset-left);
 }
 
 .market-axis-my-sep {
@@ -1475,6 +1527,10 @@ body.page-template-page-match-board-own-php .full-container {
   line-height: 1.55;
 }
 
+.market-axis-my-nudge--bot-approve .market-axis-my-nudge__text strong {
+  color: var(--text-primary, inherit);
+}
+
 .market-axis-my-nudge__list {
   margin: 0 0 var(--spacing-base, 1rem);
   padding-left: 1.25rem;
@@ -1514,7 +1570,32 @@ body.page-template-page-match-board-own-php .full-container {
 }
 
 .market-axis-my-no-applications-yet {
-  padding-top: var(--spacing-xs);
+  box-sizing: border-box;
+  margin: var(--spacing-sm) var(--spacing-sm) 0;
+  padding: var(--spacing-sm) var(--spacing-xs) var(--spacing-sm) var(--market-axis-row-inset-left);
+  border: 1px solid var(--border-light);
+  border-left: var(--market-axis-row-accent-border) solid var(--primary-color);
+  border-radius: var(--radius-small);
+  background: var(--bg-primary);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.page-match-board-own .market-axis-my-block .market-axis-my-no-applications-yet {
+  margin: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  padding-left: var(--market-axis-row-inset-left);
+  border: 1px solid var(--border-light);
+  border-left: var(--market-axis-row-accent-border) solid var(--primary-color);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-sm);
+  background: var(--bg-primary);
+}
+
+.page-match-board-own .market-axis-my-block .market-axis-my-line3 {
+  margin: 0;
+  padding: 0;
+  border-top: none;
 }
 
 /* 申請状況タブ：子行を募集中の試合と同じ line1/line2/line3 構成で表示 */
@@ -1839,18 +1920,1272 @@ body.page-template-page-match-board-own-php .full-container {
    .market-axis-no-preference-message / .market-axis-no-preference-note … 希望未登録の説明文
    .market-axis-row-cta … flex: 0 0 auto で CTA を右寄せ
    ======================================== */
-/* 募集中の試合一覧。最後のカードとボトムナビの間に余白を確保 */
+/* 募集中の試合一覧 */
 .market-axis-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0) + var(--spacing-lg)); /* ボトムナビ + 安全領域 + 余白 */
+  padding-bottom: var(--spacing-lg);
   display: flex;
   flex-direction: column;
+  gap: 0;
+}
+
+.market-axis-list--recruit-grid {
   gap: var(--spacing-sm);
 }
 
-.market-axis-row {
+/* 募集中・申請状況で共有する行グリッド寸法（左端＝アクセント線＋inset 後にグリッド開始） */
+.page-match-board-own.match-board-market-axis,
+.match-board-market-axis {
+  --market-axis-row-accent-border: 3px;
+  --market-axis-row-inset-left: var(--spacing-lg);
+  --market-axis-row-inset-right: var(--spacing-md);
+  --market-axis-row-inset-logo-team: var(--spacing-lg);
+  --market-axis-row-inset-team-common: var(--spacing-sm);
+  --market-axis-row-inset-team: var(--spacing-md);
+  --market-axis-row-team-width: 11rem;
+  --market-axis-row-common-width: 20rem;
+  --market-axis-row-content-inset-left: calc(var(--market-axis-row-accent-border) + var(--market-axis-row-inset-left));
+}
+
+/* 募集中グリッド行（カード風） */
+.market-axis-recruit-row {
+  --market-axis-recruit-inset-left: var(--market-axis-row-inset-left);
+  --market-axis-recruit-inset-right: var(--market-axis-row-inset-right);
+  --market-axis-recruit-inset-logo-team: var(--market-axis-row-inset-logo-team);
+  --market-axis-recruit-common-width: var(--market-axis-row-common-width);
+  --market-axis-recruit-inset-team-common: var(--market-axis-row-inset-team-common);
+  --market-axis-recruit-inset-team: var(--market-axis-row-inset-team);
+  --market-axis-recruit-team-width: var(--market-axis-row-team-width);
+  display: grid;
+  /* team / common は固定幅、actions 前の 1fr が余白を吸収 */
+  grid-template-columns: minmax(11rem, auto) var(--market-axis-recruit-inset-logo-team) 2.75rem var(--market-axis-recruit-inset-team) var(--market-axis-recruit-team-width) var(--market-axis-recruit-inset-team-common) var(--market-axis-recruit-common-width) 1fr minmax(6.5rem, auto);
+  grid-template-areas: "datetime divider logo . team team-divider common . actions";
+  column-gap: var(--spacing-sm);
+  row-gap: var(--spacing-sm);
+  align-items: stretch;
+  padding: var(--spacing-sm) 0 var(--spacing-sm) var(--market-axis-recruit-inset-left);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-left: var(--market-axis-row-accent-border) solid var(--primary-color);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+.market-axis-recruit-row__datetime {
+  grid-area: datetime;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  padding: var(--spacing-sm) 0;
+  text-align: left;
+}
+
+.market-axis-recruit-row__datetime-head {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--spacing-xs) var(--spacing-sm);
+  width: 100%;
+}
+
+.market-axis-recruit-row__datetime-head .market-axis-row-new-badge {
+  position: static;
+  top: auto;
+  right: auto;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.market-axis-recruit-row__divider {
+  align-self: stretch;
+  justify-self: center;
+  width: 1px;
+  margin: var(--spacing-xs) 0;
+  background: var(--border-light);
+}
+
+.market-axis-recruit-row__divider--datetime {
+  grid-area: divider;
+}
+
+.market-axis-recruit-row__divider--team-common {
+  grid-area: team-divider;
+}
+
+.market-axis-recruit-row__date {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.market-axis-recruit-row__time {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.market-axis-recruit-row__tier-badge {
+  align-self: center;
+  font-size: var(--font-size-xs, 0.75rem);
+  padding: 0.2em 0.45em;
+  white-space: nowrap;
+}
+
+.market-axis-recruit-row__logo {
+  grid-area: logo;
+  align-self: center;
+  padding: var(--spacing-sm) 0;
+}
+
+.market-axis-recruit-row__logo-link {
+  display: block;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.market-axis-recruit-row__logo-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.market-axis-recruit-row__logo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primary-color) 14%, var(--bg-secondary));
+  color: var(--primary-color);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.market-axis-recruit-row__team {
+  grid-area: team;
+  align-self: center;
+  width: var(--market-axis-recruit-team-width);
+  min-width: var(--market-axis-recruit-team-width);
+  max-width: var(--market-axis-recruit-team-width);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) 0;
+  overflow: hidden;
+}
+
+.market-axis-recruit-row__team-name {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--text-primary);
+  text-decoration: none;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.market-axis-recruit-row__team-name:hover {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+.market-axis-recruit-row__venue {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 0 var(--spacing-xs);
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.market-axis-recruit-row__venue-label {
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.market-axis-recruit-row__venue-sep {
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.market-axis-recruit-row__venue-value {
+  color: var(--text-primary);
+  font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.market-axis-recruit-row__common {
+  grid-area: common;
+  align-self: center;
+  justify-self: start;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+  width: var(--market-axis-recruit-common-width);
+  min-width: var(--market-axis-recruit-common-width);
+  max-width: var(--market-axis-recruit-common-width);
+  overflow: hidden;
+}
+
+.market-axis-recruit-row__common-label {
+  margin: 0;
+  flex-shrink: 0;
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.market-axis-recruit-row__common-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.market-axis-recruit-row__common-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2em 0.55em;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--info-color, #0d6efd) 12%, transparent);
+  color: var(--info-color, #0d6efd);
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.market-axis-recruit-row__common-note {
+  margin: 0;
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.market-axis-recruit-row[data-state="no_preference"] .market-axis-recruit-row__common-note {
+  white-space: nowrap;
+}
+
+.market-axis-recruit-row__actions {
+  grid-area: actions;
+  align-self: stretch;
+  justify-self: end;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  width: 100%;
+  max-width: 7.5rem;
+  margin-right: var(--spacing-lg);
+  padding: var(--spacing-sm) var(--spacing-xs) var(--spacing-sm) var(--spacing-xs);
+  box-sizing: border-box;
+}
+
+.market-axis-recruit-row__cta {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: var(--spacing-xs);
+  width: 100%;
+}
+
+.market-axis-recruit-row__apply-btn {
+  width: 100%;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .market-axis-recruit-row {
+    --market-axis-recruit-mobile-content-inset: 5px;
+    --market-axis-recruit-mobile-logo-inset: 10px;
+    --market-axis-recruit-mobile-team-inset: 10px;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "datetime datetime"
+      "logo team"
+      "common common"
+      "actions actions";
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    align-items: start;
+  }
+
+  .market-axis-recruit-row__divider {
+    display: none;
+  }
+
+  .market-axis-recruit-row__datetime {
+    align-items: stretch;
+    padding: 0 0 var(--spacing-xs);
+    text-align: left;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .market-axis-recruit-row__datetime-head {
+    padding-left: var(--market-axis-recruit-mobile-content-inset);
+    box-sizing: border-box;
+  }
+
+  .market-axis-recruit-row__datetime-head .market-axis-recruit-row__date,
+  .market-axis-recruit-row__datetime-head .market-axis-recruit-row__time,
+  .market-axis-recruit-row__datetime-head .market-axis-recruit-row__tier-badge {
+    flex: 0 1 auto;
+  }
+
+  .market-axis-recruit-row__datetime-head .market-axis-row-new-badge {
+    margin-left: auto;
+  }
+
+  .market-axis-recruit-row__logo {
+    padding: 0;
+    padding-left: var(--market-axis-recruit-mobile-logo-inset);
+    align-self: center;
+  }
+
+  .market-axis-recruit-row__team {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    padding: 0;
+    padding-left: var(--market-axis-recruit-mobile-team-inset);
+    box-sizing: border-box;
+  }
+
+  .market-axis-recruit-row__common {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    padding-top: var(--spacing-xs);
+  }
+
+  .market-axis-recruit-row[data-state="no_preference"] .market-axis-recruit-row__common-note {
+    padding-left: var(--market-axis-recruit-mobile-content-inset);
+    white-space: normal;
+  }
+
+  .market-axis-recruit-row__actions {
+    align-self: stretch;
+    justify-self: stretch;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+    max-width: none;
+    margin-right: 0;
+    padding: var(--spacing-sm) 0 0;
+    border-top: 1px dashed var(--border-light);
+  }
+
+  .market-axis-recruit-row__cta {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    width: auto;
+    max-width: 100%;
+    gap: var(--spacing-xs);
+  }
+
+  .market-axis-recruit-row__apply-btn,
+  .market-axis-recruit-row__cta .match-btn {
+    width: auto;
+    flex: 0 0 auto;
+    max-width: 12rem;
+  }
+}
+
+/* 申請状況タブ：自分の募集ヘッダー（タブレット・スマホ 2行 / PC 1行 + 右ケバブ） */
+.page-match-board-own .market-axis-my-block .market-axis-my-schedule-header {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  margin-bottom: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+.market-axis-my-schedule-header__content--stacked {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.market-axis-my-kebab {
+  position: relative;
+  flex: 0 0 auto;
+  align-self: flex-start;
+  z-index: 2;
+}
+
+.market-axis-my-kebab__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-base);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  line-height: 1;
+  box-shadow: var(--shadow-sm);
+}
+
+.market-axis-my-kebab__trigger:hover {
+  color: var(--text-primary);
+  border-color: var(--border-color, var(--border-light));
+  background: var(--bg-secondary);
+}
+
+.market-axis-my-kebab__trigger:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.market-axis-my-kebab__icon {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.market-axis-my-kebab__menu {
+  position: absolute;
+  top: calc(100% + var(--spacing-xs));
+  right: 0;
+  min-width: 11rem;
+  padding: var(--spacing-xs) 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-md);
+}
+
+.market-axis-my-kebab.is-open .market-axis-my-kebab__menu {
+  display: block;
+}
+
+.market-axis-my-kebab__menu[hidden] {
+  display: none;
+}
+
+.market-axis-my-kebab__item {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.market-axis-my-kebab__item:hover,
+.market-axis-my-kebab__item:focus-visible {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.market-axis-my-kebab__item:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+}
+
+.market-axis-my-kebab__item--disabled,
+.market-axis-my-kebab__item:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.market-axis-my-kebab__item--disabled:hover,
+.market-axis-my-kebab__item:disabled:hover {
+  background: transparent;
+}
+
+.market-axis-my-schedule-header__row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0 var(--spacing-xs);
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.market-axis-my-schedule-header__row--secondary {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.market-axis-my-schedule-header__row--secondary .market-axis-my-schedule-header__venue {
+  color: var(--text-primary);
+}
+
+.market-axis-my-schedule-header__sep {
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.market-axis-my-schedule-header__date {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.market-axis-my-schedule-header__time {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.market-axis-my-schedule-header__venue {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.market-axis-my-schedule-header__slots-text {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--primary-color);
+  white-space: nowrap;
+}
+
+.market-axis-my-schedule-header__slots-text--full {
+  color: var(--text-secondary);
+}
+
+.market-axis-my-schedule-header__slots-text--muted {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* PC（992px+）: 1行 — 日付｜時間｜会場｜枠数（タブレット・スマホは --stacked のまま） */
+@media (min-width: 992px) {
+  .market-axis-my-schedule-header--layout-responsive .market-axis-my-schedule-header__content--stacked {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0 var(--spacing-xs);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .market-axis-my-schedule-header--layout-responsive .market-axis-my-schedule-header__row--primary,
+  .market-axis-my-schedule-header--layout-responsive .market-axis-my-schedule-header__row--secondary {
+    display: contents;
+  }
+
+  .market-axis-my-schedule-header--layout-responsive .market-axis-my-schedule-header__row--secondary .market-axis-my-schedule-header__venue {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+  }
+
+  .page-match-board-own .market-axis-my-block .market-axis-my-schedule-header--layout-responsive {
+    align-items: center;
+  }
+
+  .market-axis-my-schedule-header--layout-responsive .market-axis-my-kebab {
+    align-self: center;
+  }
+}
+
+/* 申請状況タブ：行一覧（ブロック内ネスト） */
+.market-axis-my-slot-list.market-axis-list--recruit-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.page-match-board-own .market-axis-my-block > .market-axis-my-slot-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+}
+
+/* 申請状況：子カード（1行目 ロゴ｜チーム｜ステータス｜新着 / 2行目 CTA） */
+.page-match-board-own .market-axis-my-application-row.market-axis-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--spacing-sm);
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) var(--market-axis-row-inset-left);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-left: var(--market-axis-row-accent-border) solid var(--primary-color);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+.market-axis-my-application-row__main {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.market-axis-my-application-row .market-axis-recruit-row__logo {
+  flex-shrink: 0;
+  align-self: center;
+  padding: 0;
+}
+
+.market-axis-my-application-row__team {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: center;
+  text-align: left;
+}
+
+.market-axis-my-application-row__team .market-axis-recruit-row__team-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.market-axis-my-application-row__status {
+  flex-shrink: 0;
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: 600;
+  padding: 0.2em 0.5em;
+  white-space: nowrap;
+  border-radius: var(--radius-small);
+  border: 1px solid transparent;
+}
+
+.market-axis-my-application-row__new {
+  flex-shrink: 0;
+  align-self: center;
+  line-height: 0;
+}
+
+.market-axis-my-application-row__actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.market-axis-my-application-row .market-axis-recruit-row__cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  width: 100%;
+}
+
+.page-match-board-own .market-axis-my-application-row.market-axis-row.market-axis-my-application-row--empty {
+  padding: var(--spacing-sm) var(--spacing-md);
+  padding-left: var(--market-axis-row-inset-left);
+}
+
+.market-axis-my-application-row__empty {
+  margin: 0;
+  padding: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.page-match-board-own .market-axis-my-application-row.market-axis-debug-highlight {
+  outline: 2px solid var(--primary-color);
+  outline-offset: var(--spacing-xs);
+  box-shadow: var(--shadow-md);
+}
+
+@media (max-width: 900px) {
+  .page-match-board-own .market-axis-my-block {
+    padding: var(--spacing-sm);
+  }
+
+  .page-match-board-own .market-axis-my-block .market-axis-my-schedule-header {
+    padding: 0;
+  }
+
+  .page-match-board-own .market-axis-my-block .market-axis-my-line3 {
+    padding-left: 0;
+  }
+
+  .page-match-board-own .market-axis-my-block .market-axis-my-no-applications-yet {
+    padding: var(--spacing-sm);
+  }
+
+  .page-match-board-own .market-axis-my-application-row.market-axis-row {
+    padding: var(--spacing-sm);
+  }
+
+  .market-axis-my-application-row__main {
+    flex-wrap: wrap;
+    row-gap: var(--spacing-xs);
+  }
+
+  .market-axis-my-application-row__status {
+    order: 3;
+  }
+
+  .market-axis-my-application-row__new {
+    order: 4;
+    margin-left: auto;
+  }
+
+  .market-axis-my-application-row .market-axis-recruit-row__apply-btn,
+  .market-axis-my-application-row .market-axis-recruit-row__cta .match-btn {
+    width: auto;
+    flex: 0 0 auto;
+    max-width: 12rem;
+  }
+}
+
+/* 試合完了タブ：レガシー枠別グリッド */
+.market-axis-my-slot-row:not(.market-axis-recruit-row):not(.market-axis-my-application-row) {
+  --market-axis-my-slot-inset-left: var(--market-axis-row-inset-left);
+  --market-axis-my-slot-inset-right: var(--market-axis-row-inset-right);
+  --market-axis-my-slot-inset-logo-team: var(--market-axis-row-inset-logo-team);
+  --market-axis-my-slot-inset-team: var(--market-axis-row-inset-team);
+  --market-axis-my-slot-team-width: var(--market-axis-row-team-width);
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns:
+    minmax(0, auto)
+    var(--market-axis-my-slot-inset-logo-team)
+    minmax(0, 2.75rem)
+    var(--market-axis-my-slot-inset-team)
+    minmax(0, var(--market-axis-my-slot-team-width))
+    minmax(0, 1fr);
+  grid-template-areas:
+    "datetime divider logo . team ."
+    "footer footer footer footer footer footer"
+    "rule rule rule rule rule rule";
+  column-gap: var(--spacing-sm);
+  row-gap: var(--spacing-sm);
+  align-items: stretch;
+  padding: var(--spacing-sm) var(--spacing-xs) var(--spacing-sm) var(--market-axis-my-slot-inset-left);
+}
+
+.market-axis-my-slot-row:not(.market-axis-recruit-row):not(.market-axis-my-application-row):not(.market-axis-my-slot-row--tail) {
+  border: 1px solid var(--border-light);
+  border-left: var(--market-axis-row-accent-border) solid var(--primary-color);
+  border-radius: var(--radius-small);
+  background: var(--bg-primary);
+  position: relative;
+}
+
+.market-axis-my-slot-row--tail:not(.market-axis-recruit-row):not(.market-axis-my-application-row):not(.market-axis-my-slot-row--empty) {
+  border-left-width: 2px;
+  border-left-color: var(--border-light);
+}
+
+.market-axis-my-slot-row__datetime {
+  grid-area: datetime;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  padding: var(--spacing-sm) 0;
+  text-align: left;
+}
+
+.market-axis-my-slot-row__datetime-head {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--spacing-xs) var(--spacing-sm);
+  width: 100%;
+}
+
+.market-axis-my-slot-row__datetime-head .market-axis-row-new-badge {
+  position: static;
+  top: auto;
+  right: auto;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.market-axis-my-slot-row__time {
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  line-height: 1.35;
+}
+
+.market-axis-my-slot-row__divider {
+  align-self: stretch;
+  justify-self: center;
+  width: 1px;
+  margin: var(--spacing-xs) 0;
+  background: var(--border-light);
+}
+
+.market-axis-my-slot-row__divider--datetime {
+  grid-area: divider;
+}
+
+.market-axis-my-slot-row__logo {
+  grid-area: logo;
+  align-self: center;
+  padding: var(--spacing-sm) 0;
+}
+
+.market-axis-my-slot-row__logo-link {
+  display: block;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.market-axis-my-slot-row__logo-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.market-axis-my-slot-row__logo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primary-color) 14%, var(--bg-secondary));
+  color: var(--primary-color);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+}
+
+.market-axis-my-slot-row__team {
+  grid-area: team;
+  align-self: center;
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) 0;
+  overflow: hidden;
+}
+
+.market-axis-my-slot-row__team-name {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--text-primary);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.35;
+}
+
+.market-axis-my-slot-row__team-name:hover {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+.market-axis-my-slot-row__tier-badge {
+  align-self: center;
+  font-size: var(--font-size-xs, 0.75rem);
+  padding: 0.2em 0.45em;
+  white-space: nowrap;
+}
+
+.market-axis-my-slot-row__venue {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 0 var(--spacing-xs);
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.market-axis-my-slot-row__venue-label {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.market-axis-my-slot-row__venue-sep {
+  color: var(--text-secondary);
+}
+
+.market-axis-my-slot-row__venue-value {
+  color: var(--text-primary);
+  font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.market-axis-badge--my-status-recruit {
+  background: color-mix(in srgb, var(--primary-color) 7%, var(--bg-primary));
+  border-color: color-mix(in srgb, var(--primary-color) 14%, transparent);
+  color: color-mix(in srgb, var(--primary-color) 62%, var(--text-secondary));
+}
+
+.market-axis-badge--my-status-established {
+  background: color-mix(in srgb, var(--success-color, #198754) 8%, var(--bg-primary));
+  border-color: color-mix(in srgb, var(--success-color, #198754) 16%, transparent);
+  color: color-mix(in srgb, var(--success-color, #198754) 58%, var(--text-secondary));
+}
+
+.market-axis-badge--my-status-completed {
+  background: color-mix(in srgb, var(--text-secondary, #64748b) 8%, var(--bg-primary));
+  border-color: color-mix(in srgb, var(--text-secondary, #64748b) 14%, transparent);
+  color: color-mix(in srgb, var(--text-secondary, #64748b) 78%, var(--text-primary));
+}
+
+.market-axis-badge--my-status-pending {
+  background: color-mix(in srgb, var(--info-color, #0d6efd) 8%, var(--bg-primary));
+  border-color: color-mix(in srgb, var(--info-color, #0d6efd) 16%, transparent);
+  color: color-mix(in srgb, var(--info-color, #0d6efd) 58%, var(--text-secondary));
+}
+
+.market-axis-badge--my-status-rejected {
+  background: color-mix(in srgb, var(--danger-color, #dc3545) 8%, var(--bg-primary));
+  border-color: color-mix(in srgb, var(--danger-color, #dc3545) 16%, transparent);
+  color: color-mix(in srgb, var(--danger-color, #dc3545) 58%, var(--text-secondary));
+}
+
+.market-axis-badge--my-status-canceled,
+.market-axis-badge--my-status-expired {
+  background: color-mix(in srgb, var(--text-secondary) 8%, var(--bg-primary));
+  border-color: color-mix(in srgb, var(--text-secondary) 14%, transparent);
+  color: color-mix(in srgb, var(--text-secondary) 78%, var(--text-primary));
+}
+
+.market-axis-badge--my-status-adjust {
+  background: color-mix(in srgb, var(--warning-color, #ffc107) 10%, var(--bg-primary));
+  border-color: color-mix(in srgb, var(--warning-color, #ffc107) 18%, transparent);
+  color: color-mix(in srgb, var(--warning-color, #b8860b) 62%, var(--text-secondary));
+}
+
+.market-axis-badge--my-status-draft {
+  background: color-mix(in srgb, #6f42c1 8%, var(--bg-primary));
+  border-color: color-mix(in srgb, #6f42c1 16%, transparent);
+  color: color-mix(in srgb, #6f42c1 58%, var(--text-secondary));
+}
+
+.market-axis-badge--my-status-default {
+  background: color-mix(in srgb, var(--text-secondary) 7%, var(--bg-primary));
+  border-color: color-mix(in srgb, var(--text-secondary) 12%, transparent);
+  color: var(--text-secondary);
+}
+
+.market-axis-my-slot-row__footer {
+  grid-area: footer;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: var(--spacing-sm) var(--market-axis-my-slot-inset-right) var(--spacing-sm) var(--spacing-xs);
+}
+
+.market-axis-my-slot-row__info {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+  width: 50%;
+  max-width: 50%;
+  min-width: 0;
+  margin-right: auto;
+  flex: 1 1 auto;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid color-mix(in srgb, var(--info-color, #0d6efd) 32%, var(--border-light));
+  border-radius: var(--radius-small);
+  background: color-mix(in srgb, var(--info-color, #0d6efd) 8%, var(--bg-secondary));
+}
+
+.market-axis-my-slot-row__info-icon {
+  flex-shrink: 0;
+  color: var(--info-color, #0d6efd);
+  line-height: 0;
+  margin-top: 0.1em;
+}
+
+.market-axis-my-slot-row__info-text {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.market-axis-my-slot-row__rule {
+  grid-area: rule;
+  margin-top: var(--spacing-xs);
+}
+
+.market-axis-my-slot-row:not(.market-axis-my-slot-row--empty) .market-axis-my-slot-row__rule {
+  display: none;
+}
+
+.market-axis-my-slot-row__actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-width: 0;
+  flex: 0 1 auto;
+  padding: 0;
+}
+
+.market-axis-my-slot-row__cta {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--spacing-xs);
+  width: auto;
+  max-width: 100%;
+}
+
+.market-axis-my-slot-row__apply-btn {
+  width: auto;
+  flex: 0 1 auto;
+  white-space: nowrap;
+}
+
+.market-axis-my-slot-row__post-match-answered {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--text-secondary);
+}
+
+.market-axis-my-slot-row--completed-muted {
+  opacity: 0.62;
+}
+
+.market-axis-my-slot-row--completed-muted .market-axis-my-slot-row__team-name,
+.market-axis-my-slot-row--completed-muted .market-axis-my-slot-row__venue-value,
+.market-axis-my-slot-row--completed-muted .market-axis-my-slot-row__time {
+  color: var(--text-secondary);
+}
+
+.market-axis-my-filter-empty {
+  margin: var(--spacing-sm) 0 var(--spacing-base);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.market-axis-my-quick-filters {
+  margin-bottom: var(--spacing-base);
+}
+
+.market-axis-my-slot-row--empty:not(.market-axis-recruit-row):not(.market-axis-my-application-row) {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "empty";
+  padding: var(--spacing-sm) var(--spacing-xs) var(--spacing-sm) var(--market-axis-my-slot-inset-left);
+  margin: 0;
+}
+
+.market-axis-my-slot-row--summary-card {
+  grid-template-areas: "summary";
+  padding: 0;
+}
+
+.market-axis-my-slot-row__summary {
+  grid-area: summary;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-width: 0;
+  padding: var(--spacing-md) var(--spacing-lg) var(--spacing-md) var(--market-axis-row-content-inset-left);
+}
+
+.market-axis-my-slot-row__summary-badge {
+  flex-shrink: 0;
+}
+
+.market-axis-my-slot-row__summary-text {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.market-axis-row-new-badge {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-lg);
+  z-index: 3;
+  line-height: 0;
+  pointer-events: none;
+}
+
+.market-axis-row-new-badge .market-axis-badge--new {
+  pointer-events: auto;
+  box-shadow: 0 1px 2px color-mix(in srgb, #ffc107 16%, transparent);
+}
+
+.market-axis-my-slot-row__empty {
+  grid-area: empty;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.market-axis-my-slot-row__empty-label {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.market-axis-my-slot-row__empty-text {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 900px) {
+  .market-axis-my-schedule-header {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .market-axis-my-slot-list:not(.market-axis-list--recruit-grid) {
+    padding-left: var(--spacing-sm);
+    padding-right: var(--spacing-sm);
+  }
+
+  .market-axis-my-slot-row:not(.market-axis-recruit-row):not(.market-axis-my-application-row):not(.market-axis-my-slot-row--empty) {
+    grid-template-columns: minmax(0, auto) var(--market-axis-my-slot-inset-logo-team) minmax(0, 2.5rem) var(--market-axis-my-slot-inset-team) minmax(0, 1fr);
+    grid-template-areas:
+      "datetime divider logo . team"
+      "spacer spacer spacer spacer spacer"
+      "footer footer footer footer footer"
+      "rule rule rule rule rule";
+    gap: var(--spacing-xs) var(--spacing-sm);
+    align-items: center;
+  }
+
+  .market-axis-my-slot-row__team {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .market-axis-my-slot-row__footer {
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--spacing-sm);
+  }
+
+  .market-axis-my-slot-row__info {
+    width: 100%;
+    max-width: 100%;
+    margin-right: 0;
+  }
+
+  .market-axis-my-slot-row__actions {
+    justify-content: flex-end;
+  }
+
+  .market-axis-my-slot-row__cta {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    width: auto;
+    max-width: 100%;
+  }
+
+  .market-axis-my-slot-row__apply-btn {
+    width: auto;
+    flex: 0 1 auto;
+    max-width: 12rem;
+  }
+}
+
+/* レガシー縦積み行（旧マーケット行。申請状況2段カードは除外） */
+.market-axis-row:not(.market-axis-recruit-row):not(.market-axis-my-application-row) {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
@@ -1863,7 +3198,7 @@ body.page-template-page-match-board-own-php .full-container {
 
 .market-axis-row-line1.market-axis-row-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--spacing-sm);
@@ -1950,6 +3285,58 @@ body.page-template-page-match-board-own-php .full-container {
   color: var(--text-secondary);
 }
 
+/* 新着バッジ（lightbulb SVG のみ・明るい黄色・きらめき） */
+.market-axis-badge--new {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 0.32em;
+  border-radius: 999px;
+  background: color-mix(in srgb, #ffc107 18%, transparent);
+  color: #ffc107;
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.market-axis-badge--new-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  color: #ffc107;
+  animation: market-axis-new-lightbulb-sparkle 1.5s ease-in-out infinite;
+}
+
+.market-axis-badge--new .aidunite-icon--inline svg,
+.market-axis-badge--new .aidunite-icon__svg {
+  fill: currentColor;
+  transform: none;
+}
+
+@keyframes market-axis-new-lightbulb-sparkle {
+  0%,
+  100% {
+    opacity: 1;
+    filter: none;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 3px rgba(255, 214, 64, 0.45));
+    transform: scale(1.04);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .market-axis-badge--new-icon-wrap {
+    animation: none;
+  }
+}
+
 /* 希望未登録：説明文とCTA */
 .market-axis-no-preference-message {
   margin: 0 0 var(--spacing-sm);
@@ -2002,7 +3389,7 @@ body.page-template-page-match-board-own-php .full-container {
    最後のカードとボトムナビの間に余白を確保して見切れを防ぐ */
 .market-axis-empty-card {
   padding: var(--spacing-lg) var(--spacing-base);
-  margin-bottom: calc(80px + env(safe-area-inset-bottom, 0) + var(--spacing-lg)); /* ボトムナビ + 安全領域 + 余白 */
+  margin-bottom: var(--spacing-lg);
   background: var(--bg-primary);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-medium);
@@ -2021,6 +3408,63 @@ body.page-template-page-match-board-own-php .full-container {
   margin: 0;
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
+}
+
+/* ページネーション */
+.market-axis-pagination-info {
+  margin: var(--spacing-sm) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.market-axis-pagination {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin: var(--spacing-base) 0 var(--spacing-lg);
+  padding: 0;
+}
+
+.market-axis-pagination .page-numbers {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-small);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-decoration: none;
+  line-height: 1.2;
+}
+
+.market-axis-pagination a.page-numbers:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.market-axis-pagination .page-numbers.current {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: var(--text-on-primary, #fff);
+}
+
+.market-axis-pagination .page-numbers.dots {
+  border-color: transparent;
+  background: transparent;
+  min-width: auto;
+  padding-inline: var(--spacing-xs);
+}
+
+.market-axis-pagination .page-numbers:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
 .market-axis-invite-summary {

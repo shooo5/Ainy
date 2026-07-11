@@ -53,8 +53,12 @@ function aidunite_handle_stripe_webhook() {
             break;
 
         case 'invoice.payment_succeeded':
-            // 月謝（チーム月謝）の場合は専用処理に振り分け
-            if (isset($event_data->metadata->billing_type) && $event_data->metadata->billing_type === 'team_tuition') {
+            $invoice_billing = isset($event_data->metadata->billing_type)
+                ? (string) $event_data->metadata->billing_type
+                : '';
+            if ($invoice_billing === 'team_tuition') {
+                aidunite_handle_tuition_invoice_succeeded($event_data, $account_id);
+            } elseif ($account_id && !empty($event_data->subscription)) {
                 aidunite_handle_tuition_invoice_succeeded($event_data, $account_id);
             } else {
                 aidunite_handle_invoice_payment_succeeded($event_data);
@@ -62,6 +66,24 @@ function aidunite_handle_stripe_webhook() {
             break;
 
         case 'invoice.payment_failed':
+            $failed_billing = isset($event_data->metadata->billing_type)
+                ? (string) $event_data->metadata->billing_type
+                : '';
+            if (
+                $failed_billing === 'team_tuition'
+                && function_exists('aidunite_handle_tuition_invoice_payment_failed')
+                && aidunite_handle_tuition_invoice_payment_failed($event_data, $account_id)
+            ) {
+                break;
+            }
+            if (
+                $account_id
+                && !empty($event_data->subscription)
+                && function_exists('aidunite_handle_tuition_invoice_payment_failed')
+                && aidunite_handle_tuition_invoice_payment_failed($event_data, $account_id)
+            ) {
+                break;
+            }
             aidunite_handle_invoice_payment_failed($event_data);
             break;
 
@@ -78,6 +100,12 @@ function aidunite_handle_stripe_webhook() {
             aidunite_handle_subscription_updated($event_data);
             break;
 
+        case 'charge.refunded':
+            if (function_exists('aidunite_competition_handle_charge_refunded')) {
+                aidunite_competition_handle_charge_refunded($event_data);
+            }
+            break;
+
         default:
             error_log('未処理のイベント: ' . $event_type);
     }
@@ -90,44 +118,32 @@ function aidunite_handle_stripe_webhook() {
  * checkout.session.completed イベント処理
  */
 function aidunite_handle_checkout_completed($session) {
-    $user_id = $session->metadata->user_id ?? null;
-    $team_id = $session->metadata->team_id ?? null;
+    if (isset($session->metadata->billing_type) && (string) $session->metadata->billing_type === 'competition_entry') {
+        if (function_exists('aidunite_competition_handle_entry_checkout_completed')) {
+            aidunite_competition_handle_entry_checkout_completed($session);
+        }
 
-    if (empty($user_id) || empty($team_id)) {
-        error_log('Webhook: user_idまたはteam_idが見つかりません');
         return;
     }
 
-    $user_id = (int) $user_id;
-    $team_id = (int) $team_id;
-    if (function_exists('aidunite_user_has_managed_team_access') && !aidunite_user_has_managed_team_access($user_id, $team_id)) {
-        error_log('Webhook: metadata の team_id がユーザー所属と一致しません (user=' . $user_id . ', team=' . $team_id . ')');
+    if (isset($session->metadata->billing_type) && (string) $session->metadata->billing_type === 'team_tuition') {
+        if (function_exists('aidunite_payment_handle_tuition_checkout_session_completed')) {
+            aidunite_payment_handle_tuition_checkout_session_completed($session);
+        }
+
         return;
     }
 
-    // サブスクリプションIDを取得
-    $subscription_id = $session->subscription ?? null;
+    if (function_exists('aidunite_payment_persist_platform_checkout_completed')) {
+        aidunite_payment_persist_platform_checkout_completed($session, [
+            'send_email' => true,
+            'context' => 'webhook',
+        ]);
 
-    if (!empty($subscription_id)) {
-        aidunite_set_stripe_subscription_id($user_id, $subscription_id);
-
-        // 毎月1日に統一するため、billing_cycle_anchorを更新
-        aidunite_update_billing_cycle_anchor_to_first($subscription_id, $session->metadata);
+        return;
     }
 
-    // 支払いステータスを更新
-    aidunite_set_payment_status($user_id, 'paid');
-
-    // トライアル開始日を設定（まだ設定されていない場合）
-    $trial_start = aidunite_get_trial_start_date($team_id);
-    if (empty($trial_start)) {
-        aidunite_set_trial_start_date($team_id);
-    }
-
-    // 決済登録完了メール通知を送信
-    aidunite_send_payment_registration_email($user_id, $team_id);
-
-    error_log("Webhook: 支払い完了 (User ID: {$user_id}, Team ID: {$team_id})");
+    error_log('Webhook: aidunite_payment_persist_platform_checkout_completed が未ロードです');
 }
 
 /**
@@ -141,18 +157,23 @@ function aidunite_handle_invoice_payment_succeeded($invoice) {
     }
 
     // サブスクリプションIDからユーザーIDを取得
-    $user_id = aidunite_get_user_id_by_subscription_id($subscription_id);
+    $user_id = aidunite_payment_resolve_user_id_by_stripe_subscription_id((string) $subscription_id);
+    $user_id = $user_id > 0 ? $user_id : null;
 
     if (empty($user_id)) {
         error_log('Webhook: サブスクリプションIDに対応するユーザーが見つかりません');
         return;
     }
 
-    // 支払いステータスを更新
-    aidunite_set_payment_status($user_id, 'paid');
+    $team_id = aidunite_payment_resolve_team_id_by_stripe_subscription_id((string) $subscription_id);
+    $team_id = $team_id > 0 ? $team_id : null;
+    if ($team_id > 0 && function_exists('aidunite_set_team_payment_status')) {
+        aidunite_set_team_payment_status($team_id, 'paid', $user_id);
+    } else {
+        aidunite_set_payment_status($user_id, 'paid');
+    }
 
     // 最初の請求完了後、次の請求日を毎月1日に統一
-    // 最初の請求かどうかを判定（subscriptionのcurrent_period_startがbilling_cycle_anchorと一致する場合）
     aidunite_align_billing_to_first_of_month($subscription_id);
 
     error_log("Webhook: 自動課金成功 (User ID: {$user_id})");
@@ -168,16 +189,21 @@ function aidunite_handle_invoice_payment_failed($invoice) {
         return;
     }
 
-    // サブスクリプションIDからユーザーIDを取得
-    $user_id = aidunite_get_user_id_by_subscription_id($subscription_id);
+    $user_id = aidunite_payment_resolve_user_id_by_stripe_subscription_id((string) $subscription_id);
+    $user_id = $user_id > 0 ? $user_id : null;
 
     if (empty($user_id)) {
         error_log('Webhook: サブスクリプションIDに対応するユーザーが見つかりません');
         return;
     }
 
-    // 支払いステータスを更新
-    aidunite_set_payment_status($user_id, 'unpaid');
+    $team_id = aidunite_payment_resolve_team_id_by_stripe_subscription_id((string) $subscription_id);
+    $team_id = $team_id > 0 ? $team_id : null;
+    if ($team_id > 0) {
+        aidunite_set_team_payment_status($team_id, 'unpaid', $user_id);
+    } else {
+        aidunite_set_payment_status($user_id, 'unpaid');
+    }
 
     error_log("Webhook: 支払い失敗 (User ID: {$user_id})");
 }
@@ -188,19 +214,31 @@ function aidunite_handle_invoice_payment_failed($invoice) {
 function aidunite_handle_subscription_deleted($subscription) {
     $subscription_id = $subscription->id;
 
-    // サブスクリプションIDからユーザーIDを取得
-    $user_id = aidunite_get_user_id_by_subscription_id($subscription_id);
+    $user_id = aidunite_payment_resolve_user_id_by_stripe_subscription_id((string) $subscription_id);
+    $user_id = $user_id > 0 ? $user_id : null;
 
     if (empty($user_id)) {
         error_log('Webhook: サブスクリプションIDに対応するユーザーが見つかりません');
         return;
     }
 
-    // 支払いステータスを更新（後払い方式のため、解約済みとして記録）
-    aidunite_set_payment_status($user_id, 'cancelled');
-
-    // 解約日を記録
-    update_user_meta($user_id, 'subscription_cancelled_date', current_time('mysql'));
+    $team_id = aidunite_payment_resolve_team_id_by_stripe_subscription_id((string) $subscription_id);
+    $team_id = $team_id > 0 ? $team_id : null;
+    if ($team_id && function_exists('aidunite_payment_exit_read_pending')) {
+        $pending = aidunite_payment_exit_read_pending($team_id);
+        if ($pending !== null) {
+            error_log("Webhook: サブスクリプション解約（猶予中のため team ステータスは維持） (Team ID: {$team_id})");
+            return;
+        }
+    }
+    if ($team_id && function_exists('aidunite_payment_exit_finalize_team_cancellation')) {
+        aidunite_payment_exit_finalize_team_cancellation($team_id);
+    } else {
+        aidunite_set_payment_status($user_id, 'cancelled');
+        if (function_exists('aidunite_user_write_subscription_cancelled_date_meta')) {
+            aidunite_user_write_subscription_cancelled_date_meta($user_id);
+        }
+    }
 
     error_log("Webhook: サブスクリプション解約 (User ID: {$user_id})");
 }
@@ -211,42 +249,33 @@ function aidunite_handle_subscription_deleted($subscription) {
 function aidunite_handle_subscription_updated($subscription) {
     $subscription_id = $subscription->id;
 
-    // サブスクリプションIDからユーザーIDを取得
-    $user_id = aidunite_get_user_id_by_subscription_id($subscription_id);
+    $user_id = aidunite_payment_resolve_user_id_by_stripe_subscription_id((string) $subscription_id);
+    $user_id = $user_id > 0 ? $user_id : null;
 
     if (empty($user_id)) {
         return;
     }
 
-    // サブスクリプションのステータスに応じて支払いステータスを更新
+    $team_id = aidunite_payment_resolve_team_id_by_stripe_subscription_id((string) $subscription_id);
+    $team_id = $team_id > 0 ? $team_id : null;
+    $set_status = static function ($status) use ($team_id, $user_id) {
+        if ($team_id && function_exists('aidunite_set_team_payment_status')) {
+            aidunite_set_team_payment_status($team_id, $status, $user_id);
+        } else {
+            aidunite_set_payment_status($user_id, $status);
+        }
+    };
     if ($subscription->status === 'active') {
-        aidunite_set_payment_status($user_id, 'paid');
+        $set_status('paid');
     } elseif ($subscription->status === 'past_due' || $subscription->status === 'unpaid') {
-        aidunite_set_payment_status($user_id, 'unpaid');
+        $set_status('unpaid');
     }
 
     error_log("Webhook: サブスクリプション更新 (User ID: {$user_id}, Status: {$subscription->status})");
 }
 
 /**
- * サブスクリプションIDからユーザーIDを取得
- */
-function aidunite_get_user_id_by_subscription_id($subscription_id) {
-    global $wpdb;
-
-    $user_id = $wpdb->get_var($wpdb->prepare(
-        "SELECT user_id FROM {$wpdb->usermeta}
-         WHERE meta_key = 'stripe_subscription_id'
-         AND meta_value = %s
-         LIMIT 1",
-        $subscription_id
-    ));
-
-    return $user_id ? (int) $user_id : null;
-}
-
-/**
- * 請求日を毎月1日に統一するため、billing_cycle_anchorを更新（最初の請求完了後）
+ * システム料：請求日を毎月1日に統一（2回目以降の invoice 成功後に実行）
  * 注意: 最初の請求日はStripeの制約に従うが、2回目以降は毎月1日に統一する
  */
 function aidunite_align_billing_to_first_of_month($subscription_id) {
@@ -306,19 +335,6 @@ function aidunite_align_billing_to_first_of_month($subscription_id) {
 }
 
 /**
- * 請求日を毎月1日に統一するため、billing_cycle_anchorを更新（Checkout完了時）
- * 注意: この関数は最初の請求日を更新しようとしますが、Stripeの制約により
- * 実際には最初の請求日は変更できません。2回目以降の統一は
- * aidunite_align_billing_to_first_of_month()で行います。
- */
-function aidunite_update_billing_cycle_anchor_to_first($subscription_id, $metadata) {
-    // 最初の請求日はStripeの制約に従うため、ここでは何もしない
-    // 2回目以降の統一は、aidunite_align_billing_to_first_of_month()で行う
-    error_log("最初の請求日はStripeの制約に従います。2回目以降の統一は最初の請求完了後に行います。");
-    return true;
-}
-
-/**
  * 決済登録完了メール通知を送信
  */
 function aidunite_send_payment_registration_email($user_id, $team_id) {
@@ -332,14 +348,7 @@ function aidunite_send_payment_registration_email($user_id, $team_id) {
     $team_name = $team ? $team->post_title : 'チーム';
     $monthly_fee = aidunite_calculate_monthly_fee($team_id);
     $plan = aidunite_get_plan_info($team_id);
-    $plan_name = $plan ? $plan['name'] : 'スタンダードプラン';
-
-    // 早期決済特典を取得
-    $bonus = aidunite_calculate_early_payment_bonus($team_id);
-    $bonus_message = '';
-    if ($bonus && $bonus['bonus_months'] > 0) {
-        $bonus_message = "\n\n🎉 早期決済特典: {$bonus['bonus_months']}か月無料の特典が適用されました！";
-    }
+    $plan_name = $plan ? $plan['name'] : 'Matchプラン';
 
     $subject = '【Aniy】決済登録が完了しました';
     $message = "{$user->display_name} 様\n\n";
@@ -349,7 +358,6 @@ function aidunite_send_payment_registration_email($user_id, $team_id) {
     $message .= "プラン: {$plan_name}\n";
     $message .= "月額料金: ¥" . number_format($monthly_fee) . "/月\n";
     $message .= "チーム: {$team_name}\n";
-    $message .= $bonus_message;
     $message .= "\n\n引き続き、Aniyをよろしくお願いいたします。\n\n";
     $message .= "ご不明な点がございましたら、お気軽にお問い合わせください。\n\n";
     $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";

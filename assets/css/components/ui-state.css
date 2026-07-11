@@ -1,0 +1,56 @@
+/* ========================================
+   UI 状態演出（パルス・エントリー・ローディング）
+   ======================================== */
+
+@keyframes ui-state-pulse {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes ui-state-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(var(--spacing-sm, 8px));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ui-state-pulse {
+  animation: ui-state-pulse 0.45s ease-out;
+}
+
+.ui-state-enter {
+  animation: ui-state-fade-in-up 0.3s ease-out;
+}
+
+/* 未読バッジ等 — 件数変化時の強調 */
+.ainy-notifications-tab-count.ui-state-pulse,
+[data-tab-count].ui-state-pulse,
+.count-badge.ui-state-pulse {
+  display: inline-block;
+}
+
+/* showButtonLoading 未使用時のフォールバック */
+.btn.is-loading,
+button.is-loading {
+  opacity: 0.85;
+  cursor: wait;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-state-pulse,
+  .ui-state-enter,
+  .tab-content.active {
+    animation: none;
+  }
+}

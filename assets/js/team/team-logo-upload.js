@@ -74,13 +74,7 @@
   var allowedMime = ['image/jpeg', 'image/png', 'image/webp'];
 
   function notify(message, type) {
-    if (typeof showToastNotification === 'function') {
-      showToastNotification(message, type);
-      return;
-    }
-    if (type === 'error') {
-      window.alert(message);
-    }
+    aiduniteToast(message, type || 'info');
   }
 
   function mergeConfig(optionsConfig) {

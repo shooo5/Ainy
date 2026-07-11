@@ -5,8 +5,11 @@
  *
  * matching_gender_condition → schedule_gender
  * schedule_place_option → schedule_place
+ * male_teams / female_teams → male_slots / female_slots
+ * schedule_note → schedule_quick_memo
  *
  * 既に統一キーが存在する場合はスキップ（上書きしない）
+ * 新規保存は schedule-persist.php が正本キーのみ書き込み（Phase 4）
  */
 
 // 直接実行を防ぐ
@@ -31,7 +34,16 @@ function aidunite_migrate_meta_keys() {
         'place_migrated' => 0,
         'place_skipped' => 0,
         'place_errors' => 0,
-        'total_schedules' => 0
+        'male_slots_migrated' => 0,
+        'male_slots_skipped' => 0,
+        'male_slots_errors' => 0,
+        'female_slots_migrated' => 0,
+        'female_slots_skipped' => 0,
+        'female_slots_errors' => 0,
+        'memo_migrated' => 0,
+        'memo_skipped' => 0,
+        'memo_errors' => 0,
+        'total_schedules' => 0,
     ];
 
     // すべてのスケジュールを取得
@@ -87,6 +99,51 @@ function aidunite_migrate_meta_keys() {
                 // 既に統一キーが存在する場合、スキップ
                 $results['place_skipped']++;
                 error_log("[META-UNIFY Phase4] Skipped place migration for schedule_id={$schedule_id} (already exists: {$new_place})");
+            }
+        }
+
+        $old_male = get_post_meta($schedule_id, 'male_teams', true);
+        $new_male = get_post_meta($schedule_id, 'male_slots', true);
+        if ($old_male !== '' && $old_male !== false) {
+            if ($new_male === '' || $new_male === false) {
+                $result = update_post_meta($schedule_id, 'male_slots', (int) $old_male);
+                if ($result !== false) {
+                    $results['male_slots_migrated']++;
+                } else {
+                    $results['male_slots_errors']++;
+                }
+            } else {
+                $results['male_slots_skipped']++;
+            }
+        }
+
+        $old_female = get_post_meta($schedule_id, 'female_teams', true);
+        $new_female = get_post_meta($schedule_id, 'female_slots', true);
+        if ($old_female !== '' && $old_female !== false) {
+            if ($new_female === '' || $new_female === false) {
+                $result = update_post_meta($schedule_id, 'female_slots', (int) $old_female);
+                if ($result !== false) {
+                    $results['female_slots_migrated']++;
+                } else {
+                    $results['female_slots_errors']++;
+                }
+            } else {
+                $results['female_slots_skipped']++;
+            }
+        }
+
+        $old_memo = get_post_meta($schedule_id, 'schedule_note', true);
+        $new_memo = get_post_meta($schedule_id, 'schedule_quick_memo', true);
+        if ($old_memo !== '' && $old_memo !== false) {
+            if ($new_memo === '' || $new_memo === false) {
+                $result = update_post_meta($schedule_id, 'schedule_quick_memo', $old_memo);
+                if ($result !== false) {
+                    $results['memo_migrated']++;
+                } else {
+                    $results['memo_errors']++;
+                }
+            } else {
+                $results['memo_skipped']++;
             }
         }
     }
@@ -161,7 +218,10 @@ function aidunite_render_meta_key_migration_page() {
         <ul>
             <li><strong>matching_gender_condition</strong> → <strong>schedule_gender</strong></li>
             <li><strong>schedule_place_option</strong> → <strong>schedule_place</strong></li>
+            <li><strong>male_teams</strong> / <strong>female_teams</strong> → <strong>male_slots</strong> / <strong>female_slots</strong></li>
+            <li><strong>schedule_note</strong> → <strong>schedule_quick_memo</strong></li>
         </ul>
+        <p><strong>Phase 4 書き込み:</strong> 新規・更新の保存は正本キーのみ（旧キーは読取フォールバックのみ）。緊急時のみ <code>AIDUNITE_SCHEDULE_LEGACY_META_WRITES</code> を true に定義。</p>
         <p><strong>注意:</strong> 既に統一キーが存在する場合はスキップされます（上書きしません）。</p>
 
         <?php if ($migrated && $results): ?>
@@ -204,16 +264,28 @@ function aidunite_render_meta_key_migration_page() {
                             <td>会場条件: エラー</td>
                             <td><?php echo esc_html($results['place_errors']); ?>件</td>
                         </tr>
+                        <tr>
+                            <td>男子枠: 移行完了</td>
+                            <td><?php echo esc_html($results['male_slots_migrated'] ?? 0); ?>件</td>
+                        </tr>
+                        <tr>
+                            <td>女子枠: 移行完了</td>
+                            <td><?php echo esc_html($results['female_slots_migrated'] ?? 0); ?>件</td>
+                        </tr>
+                        <tr>
+                            <td>メモ: 移行完了</td>
+                            <td><?php echo esc_html($results['memo_migrated'] ?? 0); ?>件</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
         <?php endif; ?>
 
-        <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
+        <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" data-aidunite-confirm="移行を実行しますか？既存の統一キーは上書きされません。" data-aidunite-confirm-label="実行する">
             <?php wp_nonce_field('aidunite_meta_key_migration'); ?>
             <input type="hidden" name="action" value="aidunite_migrate_meta_keys">
             <p>
-                <input type="submit" class="button button-primary" value="移行を実行" onclick="return confirm('移行を実行しますか？既存の統一キーは上書きされません。');">
+                <input type="submit" class="button button-primary" value="移行を実行">
             </p>
         </form>
 
@@ -251,7 +323,13 @@ function aidunite_cleanup_old_meta_keys() {
         'gender_errors' => 0,
         'place_deleted' => 0,
         'place_errors' => 0,
-        'total_schedules' => 0
+        'male_teams_deleted' => 0,
+        'male_teams_errors' => 0,
+        'female_teams_deleted' => 0,
+        'female_teams_errors' => 0,
+        'memo_deleted' => 0,
+        'memo_errors' => 0,
+        'total_schedules' => 0,
     ];
 
     // すべてのスケジュールを取得
@@ -302,6 +380,36 @@ function aidunite_cleanup_old_meta_keys() {
         } elseif (!empty($old_place) && empty($new_place)) {
             // 統一キーが存在しない場合はスキップ（安全のため）
             error_log("[META-UNIFY Phase5] Skipped deletion of schedule_place_option for schedule_id={$schedule_id} (unified key does not exist)");
+        }
+
+        $old_male_teams = get_post_meta($schedule_id, 'male_teams', true);
+        $new_male_slots = get_post_meta($schedule_id, 'male_slots', true);
+        if ($old_male_teams !== '' && $old_male_teams !== false && $new_male_slots !== '' && $new_male_slots !== false) {
+            if (delete_post_meta($schedule_id, 'male_teams')) {
+                $results['male_teams_deleted']++;
+            } else {
+                $results['male_teams_errors']++;
+            }
+        }
+
+        $old_female_teams = get_post_meta($schedule_id, 'female_teams', true);
+        $new_female_slots = get_post_meta($schedule_id, 'female_slots', true);
+        if ($old_female_teams !== '' && $old_female_teams !== false && $new_female_slots !== '' && $new_female_slots !== false) {
+            if (delete_post_meta($schedule_id, 'female_teams')) {
+                $results['female_teams_deleted']++;
+            } else {
+                $results['female_teams_errors']++;
+            }
+        }
+
+        $old_memo = get_post_meta($schedule_id, 'schedule_note', true);
+        $new_memo = get_post_meta($schedule_id, 'schedule_quick_memo', true);
+        if ($old_memo !== '' && $old_memo !== false && $new_memo !== '' && $new_memo !== false) {
+            if (delete_post_meta($schedule_id, 'schedule_note')) {
+                $results['memo_deleted']++;
+            } else {
+                $results['memo_errors']++;
+            }
         }
     }
 
@@ -361,6 +469,8 @@ function aidunite_render_meta_key_cleanup_section() {
     <ul>
         <li><strong>matching_gender_condition</strong> → 削除（統一キーが存在する場合のみ）</li>
         <li><strong>schedule_place_option</strong> → 削除（統一キーが存在する場合のみ）</li>
+        <li><strong>male_teams</strong> / <strong>female_teams</strong> → 削除（<strong>male_slots</strong> / <strong>female_slots</strong> がある場合のみ）</li>
+        <li><strong>schedule_note</strong> → 削除（<strong>schedule_quick_memo</strong> がある場合のみ）</li>
     </ul>
     <p><strong>注意:</strong> 統一キーが存在しない場合はスキップされます（安全のため）。</p>
 
@@ -401,11 +511,11 @@ function aidunite_render_meta_key_cleanup_section() {
         </div>
     <?php endif; ?>
 
-    <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
+    <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" data-aidunite-confirm="旧メタキーを削除しますか？統一キーが存在しない場合はスキップされます。" data-aidunite-confirm-label="実行する">
         <?php wp_nonce_field('aidunite_meta_key_cleanup'); ?>
         <input type="hidden" name="action" value="aidunite_cleanup_meta_keys">
         <p>
-            <input type="submit" class="button button-primary" value="クリーンアップを実行" onclick="return confirm('旧メタキーを削除しますか？統一キーが存在しない場合はスキップされます。');">
+            <input type="submit" class="button button-primary" value="クリーンアップを実行">
         </p>
     </form>
     <?php
@@ -425,6 +535,9 @@ if (defined('WP_CLI') && WP_CLI) {
         WP_CLI::line("  処理対象スケジュール数: {$results['total_schedules']}件");
         WP_CLI::line("  性別条件: 移行 {$results['gender_migrated']}件, スキップ {$results['gender_skipped']}件, エラー {$results['gender_errors']}件");
         WP_CLI::line("  会場条件: 移行 {$results['place_migrated']}件, スキップ {$results['place_skipped']}件, エラー {$results['place_errors']}件");
+        WP_CLI::line("  男子枠: 移行 " . ($results['male_slots_migrated'] ?? 0) . "件");
+        WP_CLI::line("  女子枠: 移行 " . ($results['female_slots_migrated'] ?? 0) . "件");
+        WP_CLI::line("  メモ: 移行 " . ($results['memo_migrated'] ?? 0) . "件");
     });
 
     WP_CLI::add_command('aidunite cleanup-meta-keys', function($args, $assoc_args) {
@@ -436,5 +549,8 @@ if (defined('WP_CLI') && WP_CLI) {
         WP_CLI::line("  処理対象スケジュール数: {$results['total_schedules']}件");
         WP_CLI::line("  性別条件: 削除 {$results['gender_deleted']}件, エラー {$results['gender_errors']}件");
         WP_CLI::line("  会場条件: 削除 {$results['place_deleted']}件, エラー {$results['place_errors']}件");
+        WP_CLI::line("  male_teams: 削除 " . ($results['male_teams_deleted'] ?? 0) . "件");
+        WP_CLI::line("  female_teams: 削除 " . ($results['female_teams_deleted'] ?? 0) . "件");
+        WP_CLI::line("  schedule_note: 削除 " . ($results['memo_deleted'] ?? 0) . "件");
     });
 }

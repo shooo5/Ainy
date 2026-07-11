@@ -155,7 +155,7 @@
       })
         .done(function (response) {
           if (!response || !response.success) {
-            alert('送信に失敗しました: ' + (response && response.message ? response.message : 'エラー'));
+            aiduniteToast('送信に失敗しました: ' + (response && response.message ? response.message : 'エラー'), 'error');
             $btn.prop('disabled', false);
             return;
           }
@@ -185,7 +185,7 @@
           }
         })
         .fail(function () {
-          alert('送信に失敗しました。ページを再読み込みして再度お試しください。');
+          aiduniteToast('送信に失敗しました。ページを再読み込みして再度お試しください。', 'error');
           $btn.prop('disabled', false);
         });
     });

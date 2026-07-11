@@ -62,9 +62,9 @@ function aidunite_refresh_pending_registration($user_id, array $registration_dat
         'display_name' => $names['display_name'] !== '' ? $names['display_name'] : $user->display_name,
     ]);
 
-    $token = bin2hex(random_bytes(16));
-    update_user_meta($user_id, 'registration_token', $token);
-    update_user_meta($user_id, 'registration_token_time', time());
+    $token = function_exists('aidunite_user_persist_provisional_registration_token')
+        ? aidunite_user_persist_provisional_registration_token($user_id)
+        : bin2hex(random_bytes(16));
     aidunite_update_user_registration_status_meta($user_id, 'pending');
 
     $mail_result = aidunite_send_activation_email($user_id, $registration_data, $token);
@@ -157,10 +157,9 @@ function aidunite_register_member($registration_data) {
         update_user_meta($user_id, $key, $value);
     }
 
-    // 本登録用トークン生成
-    $token = bin2hex(random_bytes(16));
-    update_user_meta($user_id, 'registration_token', $token);
-    update_user_meta($user_id, 'registration_token_time', time());
+    $token = function_exists('aidunite_user_persist_provisional_registration_token')
+        ? aidunite_user_persist_provisional_registration_token($user_id)
+        : bin2hex(random_bytes(16));
 
     // 本登録メール送信
     $mail_result = aidunite_send_activation_email($user_id, $registration_data, $token);
@@ -176,14 +175,6 @@ function aidunite_register_member($registration_data) {
         'mail_error' => $mail_result['error'] ?? '',
         'redirect_url' => $redirect_url,
     ];
-}
-
-/**
- * 後方互換性のためのラッパー関数（段階的削除予定）
- * @deprecated 代わりに aidunite_register_member() を使用してください
- */
-function tunageru_register_member($registration_data) {
-    return aidunite_register_member($registration_data);
 }
 
 /*--------------------------------------------------------------
@@ -257,24 +248,6 @@ function aidunite_get_field_label($field_name) {
 }
 
 /*--------------------------------------------------------------
-  関係タイプ別リダイレクトURL取得
---------------------------------------------------------------*/
-function aidunite_get_redirect_url_by_relation_type($relation_type) {
-    switch ($relation_type) {
-        case 'team_leader':
-            return home_url('/mypage/');
-        case 'parent':
-            return home_url('/guardian-page/');
-        case 'supporter':
-            return home_url('/supporter-page/');
-        case 'player':
-            return home_url('/mypage/');
-        default:
-            return home_url('/mypage/');
-    }
-}
-
-/*--------------------------------------------------------------
   初回登録完了メール送信
 --------------------------------------------------------------*/
 function aidunite_send_welcome_email($user_id, $registration_data) {
@@ -339,8 +312,12 @@ function aidunite_complete_registration_with_token($user_id, $token) {
         return 'expired';
     }
 
-    delete_user_meta($user_id, 'registration_token');
-    delete_user_meta($user_id, 'registration_token_time');
+    if (function_exists('aidunite_user_persist_clear_provisional_registration_token')) {
+        aidunite_user_persist_clear_provisional_registration_token($user_id);
+    } else {
+        delete_user_meta($user_id, 'registration_token');
+        delete_user_meta($user_id, 'registration_token_time');
+    }
     aidunite_update_user_registration_status_meta($user_id, 'accepted');
     update_user_meta($user_id, 'user_status', 0);
 
@@ -353,12 +330,19 @@ function aidunite_complete_registration_with_token($user_id, $token) {
         aidunite_set_user_type($user_id, $default_role);
     }
 
-    if (function_exists('aidunite_send_welcome_email')) {
+    $registration_source = (string) get_user_meta($user_id, 'registration_source', true);
+    $is_guardian_signup = strpos($registration_source, 'guardian_invite') === 0;
+
+    if (!$is_guardian_signup && function_exists('aidunite_send_welcome_email')) {
         aidunite_send_welcome_email($user_id, [
             'last_name' => $user->last_name,
             'first_name' => $user->first_name,
             'user_email' => $user->user_email,
         ]);
+    }
+
+    if (function_exists('do_action')) {
+        do_action('aidunite_registration_accepted', $user_id);
     }
 
     $team_name = (string) get_user_meta($user_id, 'team_name', true);
@@ -390,7 +374,16 @@ function aidunite_resolve_approve_registration_view_state() {
 
     $result = aidunite_complete_registration_with_token($user_id, $token);
     if ($result === 'success') {
-        wp_safe_redirect(home_url('/approve-registration/?approved=1'));
+        $redirect_args = ['approved' => '1'];
+        $registration_source = (string) get_user_meta($user_id, 'registration_source', true);
+        if (strpos($registration_source, 'guardian_invite') === 0) {
+            $redirect_args['flow'] = 'guardian';
+            $invite_type = (string) get_user_meta($user_id, 'guardian_invite_type', true);
+            if ($invite_type === 'qr') {
+                $redirect_args['team_pending'] = '1';
+            }
+        }
+        wp_safe_redirect(add_query_arg($redirect_args, home_url('/approve-registration/')));
         exit;
     }
 
@@ -414,7 +407,7 @@ function aidunite_send_activation_email($user_id, $registration_data, $token) {
 
     $message = "{$greeting_name}さん\n\n";
     $message .= "Ainyへの仮登録が完了しました。\n";
-    $message .= "本登録を完了するには、下記リンクをクリックしてください。\n\n";
+    $message .= "下記リンクから、本登録を完了してください。\n\n";
     $message .= "▼本登録はこちら\n{$confirm_url}\n\n";
     $message .= "※このリンクは24時間以内に有効です。\n";
     $message .= "期限を過ぎた場合は、再度登録をお願いいたします。\n\n";

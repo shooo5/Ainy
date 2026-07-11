@@ -1,0 +1,156 @@
+/**
+ * page-parent-payment.php — 保護者月謝（セクションは payment-setup.css、カードのみ本ファイル）
+ */
+.parent-payment-page .payment-setup-content--shell {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-base);
+}
+
+.parent-payment-page .payment-setup-section + .payment-setup-section {
+    margin-top: 0;
+}
+
+.parent-payment-page .parent-payment-info-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-base);
+}
+
+.parent-payment-page .parent-payment-info-card {
+    align-items: center;
+    background: var(--bg-primary, var(--surface-color, #fff));
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-large);
+    box-shadow: var(--shadow-sm);
+    display: grid;
+    gap: var(--spacing-sm) var(--spacing-base);
+    grid-template-columns: minmax(6.5rem, 7.5rem) 1fr;
+    margin: 0;
+    min-height: 4.5rem;
+    padding: var(--spacing-base) var(--spacing-lg);
+}
+
+.parent-payment-page .parent-payment-info-card__label {
+    align-self: center;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    margin: 0;
+    text-align: left;
+}
+
+.parent-payment-page .parent-payment-info-card__value {
+    align-items: center;
+    color: var(--text-primary);
+    display: flex;
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    gap: var(--spacing-xs);
+    justify-content: center;
+    line-height: 1.35;
+    margin: 0;
+    text-align: center;
+}
+
+.parent-payment-page .parent-payment-info-card__value--team {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.parent-payment-page .parent-payment-info-card__logo {
+    border-radius: var(--radius-medium);
+    height: 4rem;
+    object-fit: cover;
+    width: 4rem;
+}
+
+.parent-payment-page .parent-payment-info-card__logo--placeholder {
+    align-items: center;
+    background: var(--bg-secondary, rgba(0, 0, 0, 0.04));
+    border-radius: var(--radius-medium);
+    color: var(--primary-color);
+    display: flex;
+    height: 4rem;
+    justify-content: center;
+    width: 4rem;
+}
+
+.parent-payment-page .parent-payment-info-card__team-name {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    margin: 0;
+    text-align: center;
+}
+
+.parent-payment-page .parent-payment-info-card__value-icon {
+    color: var(--primary-color);
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+.parent-payment-page .parent-payment-method__lead {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    margin: 0 0 var(--spacing-base);
+}
+
+.parent-payment-page .parent-payment-method__cta {
+    align-items: center;
+    display: inline-flex;
+    gap: var(--spacing-xs);
+    justify-content: center;
+    min-height: 3rem;
+    width: 100%;
+}
+
+.parent-payment-page .parent-payment-method__cta--pending {
+    opacity: 0.72;
+}
+
+.parent-payment-page .parent-payment-method__cancel {
+    margin-top: var(--spacing-sm);
+    width: 100%;
+}
+
+.parent-payment-page .parent-payment-method__note {
+    align-items: center;
+    color: var(--text-secondary);
+    display: flex;
+    font-size: var(--font-size-xs);
+    gap: var(--spacing-xs);
+    justify-content: center;
+    margin: var(--spacing-sm) 0 0;
+}
+
+.parent-payment-page .parent-payment-history__loading {
+    color: var(--text-secondary);
+    margin: 0;
+    text-align: center;
+}
+
+@media (min-width: 768px) {
+    .parent-payment-page .parent-payment-info-cards {
+        display: grid;
+        gap: var(--spacing-base);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .parent-payment-page .parent-payment-info-card {
+        display: flex;
+        flex-direction: column;
+        grid-template-columns: none;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .parent-payment-page .parent-payment-info-card__label {
+        text-align: center;
+    }
+
+    .parent-payment-page .parent-payment-method__cta,
+    .parent-payment-page .parent-payment-method__cancel {
+        width: auto;
+        min-width: 16rem;
+    }
+}

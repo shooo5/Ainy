@@ -76,8 +76,12 @@ function aidunite_team_settings_collect_debug_snapshot($user_id) {
             'post_status' => $post ? $post->post_status : null,
             'post_type' => $post ? $post->post_type : null,
             'post_author' => $post ? (int) $post->post_author : null,
-            'team_leader_id' => (int) get_post_meta($tid, 'team_leader_id', true),
-            'team_status' => (string) get_post_meta($tid, 'team_status', true),
+            'team_leader_id' => function_exists('aidunite_team_read_leader_id')
+                ? aidunite_team_read_leader_id($tid)
+                : (int) get_post_meta($tid, 'team_leader_id', true),
+            'team_status' => function_exists('aidunite_team_read_canonical_meta')
+                ? (string) (aidunite_team_read_canonical_meta($tid)['team_status_raw'] ?? '')
+                : (string) get_post_meta($tid, 'team_status', true),
             'is_leader_meta' => aidunite_team_settings_user_is_leader_of_team($user_id, $tid),
             'has_leader_access' => aidunite_team_settings_user_has_team_leader_access($user_id, $tid),
             'can_access' => aidunite_team_settings_user_can_access_team($user_id, $tid),
@@ -341,7 +345,9 @@ function aidunite_team_settings_resolve_context($user_id) {
         return new WP_Error('invalid_team', 'チーム情報を読み込めませんでした。');
     }
 
-    $team_status = (string) get_post_meta($team_id, 'team_status', true);
+    $team_status = function_exists('aidunite_team_read_canonical_meta')
+        ? (string) (aidunite_team_read_canonical_meta($team_id)['team_status_raw'] ?? '')
+        : (string) get_post_meta($team_id, 'team_status', true);
     if ($team_status === 'pending' && !$is_admin) {
         aidunite_team_settings_debug_log('resolve_fail', [
             'code' => 'team_inactive_pending',
@@ -409,7 +415,9 @@ function aidunite_team_settings_user_is_leader_of_team($user_id, $team_id) {
         $resolved = aidunite_team_resolve_leader_user_id($team_id);
         return $resolved > 0 && $resolved === $user_id;
     }
-    $leader = (int) get_post_meta($team_id, 'team_leader_id', true);
+    $leader = function_exists('aidunite_team_read_leader_id')
+        ? aidunite_team_read_leader_id($team_id)
+        : (int) get_post_meta($team_id, 'team_leader_id', true);
     if ($leader > 0) {
         return $leader === $user_id;
     }
@@ -460,9 +468,12 @@ function aidunite_team_settings_save_from_post($team_id, $user_id) {
         ? aidunite_normalize_team_gender_option((string) $gender_raw)
         : strtolower(trim((string) $gender_raw));
 
+    $existing_gender = function_exists('aidunite_team_read_canonical_meta')
+        ? (string) (aidunite_team_read_canonical_meta($team_id)['team_gender_option_raw'] ?? '')
+        : (string) get_post_meta($team_id, 'team_gender_option', true);
     $existing_gender = function_exists('aidunite_normalize_team_gender_option')
-        ? aidunite_normalize_team_gender_option((string) get_post_meta($team_id, 'team_gender_option', true))
-        : strtolower(trim((string) get_post_meta($team_id, 'team_gender_option', true)));
+        ? aidunite_normalize_team_gender_option($existing_gender)
+        : strtolower(trim($existing_gender));
 
     $ban_both = apply_filters('aidunite_mvp_ban_new_team_gender_both', true);
 
@@ -517,15 +528,24 @@ function aidunite_team_settings_save_from_post($team_id, $user_id) {
         return $updated;
     }
 
-    update_post_meta($team_id, 'team_name', $team_name);
-    update_post_meta($team_id, 'team_name_kana', $team_name_kana);
-    update_post_meta($team_id, 'team_description', $team_description);
-    update_post_meta($team_id, 'sport_type', $sport_type);
-    update_post_meta($team_id, 'team_category', $team_category);
-    aidunite_update_team_type_meta($team_id, $team_type);
-    update_post_meta($team_id, 'team_gender_option', $incoming_gender);
-    update_post_meta($team_id, 'team_place', $team_place);
-    update_post_meta($team_id, 'team_logo', $team_logo);
+    if (!function_exists('aidunite_team_persist_settings_meta')) {
+        require_once get_stylesheet_directory() . '/functions/team/team-persist.php';
+    }
+    aidunite_team_persist_settings_meta($team_id, [
+        'team_name' => $team_name,
+        'team_name_kana' => $team_name_kana,
+        'team_description' => $team_description,
+        'sport_type' => $sport_type,
+        'team_category' => $team_category,
+        'team_type' => $team_type,
+        'team_gender_option' => $incoming_gender,
+        'gender' => $incoming_gender,
+        'team_place' => $team_place,
+        'team_logo' => $team_logo,
+        'registrant_name' => $registrant_name,
+        'contact_mail' => $contact_mail,
+        'contact_phone' => $contact_phone,
+    ]);
     if (function_exists('aidunite_save_team_logo_crop_meta')) {
         aidunite_save_team_logo_crop_meta(
             $team_id,
@@ -534,14 +554,34 @@ function aidunite_team_settings_save_from_post($team_id, $user_id) {
             wp_unslash($_POST['team_logo_zoom'] ?? 100)
         );
     }
-    update_post_meta($team_id, 'registrant_name', $registrant_name);
-    update_post_meta($team_id, 'contact_mail', $contact_mail);
-    update_post_meta($team_id, 'contact_phone', $contact_phone);
 
     delete_post_meta($team_id, 'team_location');
     delete_post_meta($team_id, 'team_contact');
 
     return true;
+}
+
+function aidunite_team_settings_dashboard_member_list_badge($team_id) {
+    $team_id = (int) $team_id;
+    if ($team_id <= 0) {
+        return '0名';
+    }
+
+    $player_count = 0;
+    if (function_exists('aidunite_get_team_members')) {
+        $player_count = count(aidunite_get_team_members($team_id, 'player'));
+    }
+
+    $parent_active = 0;
+    if (function_exists('aidunite_parent_read_parent_counts')) {
+        $parent_active = (int) (aidunite_parent_read_parent_counts($team_id)['active'] ?? 0);
+    }
+
+    if ($parent_active > 0) {
+        return sprintf('選手 %d / 保護者 %d', $player_count, $parent_active);
+    }
+
+    return sprintf('%d名', $player_count);
 }
 
 /**
@@ -554,7 +594,9 @@ function aidunite_team_settings_save_from_post($team_id, $user_id) {
 function aidunite_team_settings_dashboard_menu_items($team_id, $user_id) {
     $team_id = (int) $team_id;
     $user_id = (int) $user_id;
-    $members = function_exists('aidunite_get_team_member_count') ? (int) aidunite_get_team_member_count($team_id) : 0;
+    $members = function_exists('aidunite_team_settings_dashboard_member_list_badge')
+        ? aidunite_team_settings_dashboard_member_list_badge($team_id)
+        : (function_exists('aidunite_get_team_member_count') ? sprintf('%d名', (int) aidunite_get_team_member_count($team_id)) : '0名');
     $pending_att = function_exists('aidunite_get_pending_attendance_count_team')
         ? (int) aidunite_get_pending_attendance_count_team($team_id)
         : 0;
@@ -563,13 +605,30 @@ function aidunite_team_settings_dashboard_menu_items($team_id, $user_id) {
 
     $att_badge = $pending_att > 0 ? sprintf('未回答 %d件', $pending_att) : '今月の出欠';
 
-    return [
+    $payment_status = function_exists('aidunite_get_payment_status')
+        ? (string) aidunite_get_payment_status($user_id)
+        : '';
+    $payment_status_labels = [
+        'paid' => '利用中',
+        'trial' => 'トライアル中',
+        'unpaid' => '未払い',
+        'cancelled' => '解約済み',
+    ];
+    $payment_badge = $payment_status_labels[$payment_status] ?? '設定';
+    $payment_needs_attention = $payment_status === 'unpaid'
+        || (
+            function_exists('aidunite_is_payment_required')
+            && aidunite_is_payment_required($user_id)
+            && $payment_status !== 'paid'
+        );
+
+    $items = [
         [
             'title' => 'メンバー一覧',
             'url' => home_url('/team-members'),
             'icon' => 'group',
             'description' => 'チームメンバーの確認・管理を行います',
-            'badge' => sprintf('%d名', $members),
+            'badge' => $members,
         ],
         [
             'title' => '出欠一覧',
@@ -594,6 +653,33 @@ function aidunite_team_settings_dashboard_menu_items($team_id, $user_id) {
             'badge' => $unread > 0 ? sprintf('未読 %d件', $unread) : '設定',
         ],
         [
+            'title' => '契約・お支払い',
+            'url' => home_url('/payment-setup'),
+            'slug' => 'payment-setup',
+            'icon' => 'payments',
+            'description' => 'プラン選択とお支払い方法の設定を行います',
+            'badge' => $payment_badge,
+            'attention' => $payment_needs_attention,
+        ],
+        [
+            'title' => 'チーム月謝管理',
+            'url' => home_url('/team-payment-management'),
+            'slug' => 'team-payment-management',
+            'icon' => 'payments',
+            'description' => '保護者向け月謝の金額設定と Stripe Connect 連携',
+            'badge' => 'Club',
+            'plan_feature' => 'tuition_connect',
+        ],
+        [
+            'title' => '月謝の徴収状況',
+            'url' => home_url('/team-tuition-collections'),
+            'slug' => 'team-tuition-collections',
+            'icon' => 'bar_chart_4_bars',
+            'description' => '保護者ごとの今月の支払い状況と入金履歴の確認',
+            'badge' => 'Club',
+            'plan_feature' => 'tuition_connect',
+        ],
+        [
             'title' => '公開プロフィール',
             'url' => function_exists('aidunite_get_team_public_profile_url')
                 ? aidunite_get_team_public_profile_url($team_id)
@@ -611,12 +697,56 @@ function aidunite_team_settings_dashboard_menu_items($team_id, $user_id) {
         ],
         [
             'title' => '保護者招待・追加',
-            'url' => home_url('/invite-guardian'),
+            'url' => aidunite_get_invite_guardian_page_url(),
+            'slug' => 'invite-guardian',
             'icon' => 'forward_to_inbox',
             'description' => '保護者を招待し、チームに参加してもらいます',
             'badge' => '招待',
         ],
     ];
+
+    foreach ($items as &$item) {
+        $slug = (string) ($item['slug'] ?? '');
+        if ($slug === '' && !empty($item['url'])) {
+            $path = trim((string) parse_url((string) $item['url'], PHP_URL_PATH), '/');
+            $slug = $path !== '' ? basename($path) : '';
+        }
+        if ($slug === 'invite-guardian' && empty($item['url'])) {
+            $item['url'] = aidunite_get_invite_guardian_page_url();
+        }
+    }
+    unset($item);
+
+    return apply_filters('aidunite_team_settings_dashboard_menu_items', $items, $team_id, $user_id);
+}
+
+/**
+ * 保護者招待ページの正規 URL（固定ページ permalink を優先）
+ *
+ * @return string
+ */
+function aidunite_get_invite_guardian_page_url() {
+    $page = get_page_by_path('invite-guardian', OBJECT, 'page');
+    if ($page instanceof WP_Post && $page->post_status === 'publish') {
+        $tpl = function_exists('get_page_template_slug') ? (string) get_page_template_slug($page->ID) : '';
+        $tpl_base = $tpl !== '' ? basename(str_replace('\\', '/', $tpl)) : '';
+        if ($tpl_base === '' || $tpl_base === 'page-invite-guardian.php') {
+            return (string) get_permalink($page->ID);
+        }
+    }
+
+    $pages = get_posts([
+        'post_type' => 'page',
+        'post_status' => 'publish',
+        'posts_per_page' => 1,
+        'meta_key' => '_wp_page_template',
+        'meta_value' => 'page-invite-guardian.php',
+    ]);
+    if (!empty($pages[0]) && $pages[0] instanceof WP_Post) {
+        return (string) get_permalink($pages[0]->ID);
+    }
+
+    return home_url('/invite-guardian');
 }
 
 /**
@@ -648,7 +778,7 @@ function aidunite_render_team_settings_hero_body(array $args) {
     $meta_line = implode(' · ', $meta_parts);
     ?>
     <div class="ainy-webapp-hero-team-card">
-        <?php if ($team_logo !== '' && filter_var($team_logo, FILTER_VALIDATE_URL)) : ?>
+        <?php if ($team_logo !== '' && function_exists('aidunite_team_logo_is_displayable') && aidunite_team_logo_is_displayable($team_logo)) : ?>
             <img class="ainy-webapp-hero-team-card__logo" src="<?php echo esc_url($team_logo); ?>" alt="" width="64" height="64" loading="lazy" />
         <?php else : ?>
             <div class="ainy-webapp-hero-team-card__logo ainy-webapp-hero-team-card__logo--placeholder" aria-hidden="true">🏟️</div>

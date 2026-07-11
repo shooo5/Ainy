@@ -91,15 +91,15 @@ foreach ($icon_groups as $group) {
     </p>
     <div class="ref-icon-color-demo ref-inline-wrap" aria-label="home アイコン色見本">
         <div class="ref-icon-color-demo__item ref-icon-color-demo__item--muted">
-            <?php echo aidunite_get_chat_icon_svg('home', ['width' => '32', 'height' => '32', 'class' => 'ref-icon-preview__svg']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php echo aidunite_get_theme_icon_svg('home', ['width' => '32', 'height' => '32', 'class' => 'ref-icon-preview__svg']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             <span class="ref-icon-color-demo__label">非アクティブ相当<br><code>#999</code></span>
         </div>
         <div class="ref-icon-color-demo__item ref-icon-color-demo__item--on-dark">
-            <?php echo aidunite_get_chat_icon_svg('home', ['width' => '32', 'height' => '32', 'class' => 'ref-icon-preview__svg']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php echo aidunite_get_theme_icon_svg('home', ['width' => '32', 'height' => '32', 'class' => 'ref-icon-preview__svg']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             <span class="ref-icon-color-demo__label">アクティブ相当<br><code>#fff</code></span>
         </div>
         <div class="ref-icon-color-demo__item ref-icon-color-demo__item--brand">
-            <?php echo aidunite_get_chat_icon_svg('home', ['width' => '32', 'height' => '32', 'class' => 'ref-icon-preview__svg']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php echo aidunite_get_theme_icon_svg('home', ['width' => '32', 'height' => '32', 'class' => 'ref-icon-preview__svg']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             <span class="ref-icon-color-demo__label">マッチ詳細等<br><code>var(--primary-color)</code></span>
         </div>
     </div>

@@ -35,10 +35,9 @@ if (!function_exists('aidunite_resolve_home_anchor_schedule_id_for_match_request
             if ($lock === 'home') {
                 return $sid;
             }
-            $place = (string) get_post_meta($sid, 'schedule_place', true);
-            if ($place === '') {
-                $place = (string) get_post_meta($sid, 'schedule_place_option', true);
-            }
+            $place = function_exists('aidunite_schedule_read_place_raw')
+                ? aidunite_schedule_read_place_raw((int) $sid)
+                : '';
             if ($place === 'home') {
                 return $sid;
             }
@@ -314,12 +313,7 @@ if (!function_exists('aidunite_get_active_chat_room_for_match_game')) {
                 if ($status === 'active') {
                     return $room;
                 }
-                if ($status === 'completed'
-                    && function_exists('aidunite_count_game_established_match_requests')
-                    && aidunite_count_game_established_match_requests($match_game_id, 0) > 0
-                    && function_exists('aidunite_reactivate_chat_room')) {
-                    return aidunite_reactivate_chat_room((int) $room->id);
-                }
+                // completed は自動で active に戻さない（キャンセル→再承認で旧ルームが復活するのを防ぐ）
             }
         }
 

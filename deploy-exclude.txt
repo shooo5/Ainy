@@ -33,5 +33,9 @@ js/simple-test.js
 js/ui-test-automation.js
 js/package.json
 js/package-lock.json
-create-communication-pages.php
+tools/create-communication-pages.php
+tools/funnel-baseline-report.php
+tools/notification-delivery-weekly-report.php
+tools/notification-badge-consistency-check.php
+tools/ui-token-audit.php
 backups/

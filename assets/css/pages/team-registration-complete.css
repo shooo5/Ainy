@@ -32,7 +32,7 @@
   padding: var(--spacing-xl) var(--spacing-lg);
   box-shadow: var(--shadow-lg);
   border: 1px solid rgba(106, 90, 249, 0.08);
-  text-align: center;
+  text-align: left;
   overflow: hidden;
 }
 
@@ -97,8 +97,7 @@
 }
 
 .team-reg-complete-hero,
-.team-reg-complete-status,
-.team-reg-complete-future,
+.team-reg-complete-pending,
 .team-reg-complete-actions,
 .team-reg-complete-email,
 .team-reg-complete-details {
@@ -108,32 +107,8 @@
 
 /* ① Hero */
 .team-reg-complete-hero {
-  margin-bottom: var(--spacing-lg);
-}
-
-.team-reg-complete-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  margin: 0 0 var(--spacing-md);
-  padding: var(--spacing-xs) var(--spacing-base);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--success-color);
-  background: rgba(40, 167, 69, 0.1);
-  border: 1px solid rgba(40, 167, 69, 0.2);
-  border-radius: 999px;
-}
-
-.team-reg-complete-pill__icon {
-  display: inline-flex;
-  width: 18px;
-  height: 18px;
-}
-
-.team-reg-complete-pill__icon .registration-complete-icon__svg {
-  width: 18px;
-  height: 18px;
+  margin-bottom: var(--spacing-xl);
+  text-align: center;
 }
 
 .team-reg-complete-hero__check {
@@ -152,25 +127,10 @@
 
 .team-reg-complete-title {
   margin: 0 0 var(--spacing-md);
-  font-size: clamp(1.35rem, 3.8vw, 1.85rem);
+  font-size: clamp(1.35rem, 3.8vw, 1.75rem);
   font-weight: 700;
   line-height: 1.45;
   letter-spacing: -0.02em;
-  color: var(--text-primary);
-}
-
-.team-reg-complete-title__team {
-  display: block;
-  color: var(--primary-color);
-  font-size: clamp(1.5rem, 4.2vw, 2rem);
-  line-height: 1.35;
-}
-
-.team-reg-complete-title__suffix {
-  display: block;
-  margin-top: var(--spacing-xs);
-  font-size: clamp(1.1rem, 3vw, 1.35rem);
-  font-weight: 700;
   color: var(--text-primary);
 }
 
@@ -182,187 +142,241 @@
   line-height: 1.75;
 }
 
-.team-reg-complete-lead p {
-  margin: 0 0 var(--spacing-xs);
-}
-
-.team-reg-complete-lead p:last-child {
-  margin-bottom: 0;
-}
-
-/* ② ステータス */
-.team-reg-complete-status {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: var(--spacing-sm) var(--spacing-base);
-  margin-bottom: var(--spacing-xl);
-  padding: var(--spacing-base) var(--spacing-md);
-  text-align: left;
-  background: rgba(253, 126, 20, 0.1);
-  border: 1px solid rgba(253, 126, 20, 0.18);
-  border-radius: var(--radius-medium);
-}
-
-.team-reg-complete-status__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  align-self: center;
-  flex-shrink: 0;
-  width: 44px;
-  min-height: calc((var(--font-size-sm) * 1.4) + var(--spacing-xs) + (var(--font-size-xs) * 1.5));
-}
-
-.team-reg-complete-status__icon img {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
-}
-
-.team-reg-complete-status__main {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.team-reg-complete-status__label {
-  font-size: var(--font-size-xs);
-  color: var(--text-muted);
-}
-
-.team-reg-complete-status__value {
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.4;
-}
-
-.team-reg-complete-status__eta {
-  margin: 0;
-  padding-left: var(--spacing-base);
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-  line-height: 1.55;
-  border-left: 1px dashed rgba(253, 126, 20, 0.35);
-}
-
-.team-reg-complete-status__eta strong {
-  color: var(--text-primary);
+.team-reg-complete-lead strong {
+  color: var(--success-color);
   font-weight: 700;
 }
 
-.team-reg-complete-status__eta-br {
-  display: none;
-}
-
-/* ③ 承認後機能 */
-.team-reg-complete-future {
+/* ② 申請中チーム一覧 */
+.team-reg-pending {
   margin-bottom: var(--spacing-xl);
-  text-align: left;
 }
 
-.team-reg-complete-future__title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-xs);
+.team-reg-pending__heading {
   margin: 0 0 var(--spacing-md);
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base);
   font-weight: 700;
   color: var(--text-primary);
 }
 
-.team-reg-complete-feature-grid {
+.team-reg-pending__cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-sm);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.team-reg-complete-feature {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-base);
-  text-align: center;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-large);
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.22s ease, box-shadow 0.22s ease;
+.team-reg-pending__item {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.team-reg-complete-feature:hover {
-  transform: translateY(-3px);
+/* 左アクセント線 + シャドウ（mypage-joy-week-card 系統） */
+.team-reg-pending__details {
+  --team-reg-pending-accent: var(--warning-color, #fd7e14);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-left-width: 4px;
+  border-left-color: var(--team-reg-pending-accent);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.team-reg-pending__details--male {
+  --team-reg-pending-accent: var(--gender-boys-accent, #3b82f6);
+}
+
+.team-reg-pending__details--female {
+  --team-reg-pending-accent: var(--gender-girls-accent-dark);
+}
+
+.team-reg-pending__details[open] {
   box-shadow: var(--shadow-md);
 }
 
-.team-reg-complete-feature__icon {
-  display: flex;
+.team-reg-pending__card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: var(--spacing-sm);
+  row-gap: var(--spacing-xs);
   align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  color: var(--text-on-dark, #fff);
+  padding: var(--spacing-base);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
 }
 
-.team-reg-complete-feature__icon svg {
-  display: block;
-  width: 28px;
-  height: 28px;
-}
-
-.team-reg-complete-feature__icon img {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
-}
-
-.team-reg-complete-feature__icon--match {
-  background: linear-gradient(145deg, rgba(106, 90, 249, 0.9), rgba(140, 26, 246, 0.85));
-}
-
-.team-reg-complete-feature__icon--schedule {
-  background: linear-gradient(145deg, rgba(74, 144, 226, 0.95), rgba(99, 179, 237, 0.9));
-}
-
-.team-reg-complete-feature__icon--chat {
-  background: linear-gradient(145deg, rgba(40, 167, 69, 0.92), rgba(72, 187, 120, 0.88));
-}
-
-.team-reg-complete-feature__body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-  flex: 1;
-}
-
-.team-reg-complete-feature__title {
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.4;
-}
-
-.team-reg-complete-feature__desc {
-  font-size: var(--font-size-xs);
-  color: var(--text-muted);
-  line-height: 1.55;
-}
-
-.team-reg-complete-feature__chev {
+.team-reg-pending__card::-webkit-details-marker {
   display: none;
 }
 
-/* ④ CTA */
+.team-reg-pending__card::marker {
+  content: '';
+}
+
+.team-reg-pending__card:hover {
+  background: color-mix(in srgb, var(--bg-primary) 96%, var(--team-reg-pending-accent) 4%);
+}
+
+.team-reg-pending__card:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+}
+
+.team-reg-pending__details[open] > .team-reg-pending__card {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.team-reg-pending__card-logo {
+  grid-row: 1 / 3;
+  grid-column: 1;
+  align-self: center;
+}
+
+.team-reg-pending__card-name {
+  grid-row: 1;
+  grid-column: 2;
+  margin: 0;
+  min-width: 0;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.team-reg-pending__card-status {
+  grid-row: 1;
+  grid-column: 3;
+  justify-self: end;
+  align-self: center;
+}
+
+.team-reg-pending__card-meta {
+  grid-row: 2;
+  grid-column: 2;
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.team-reg-pending__card-meta-sep {
+  margin: 0 var(--spacing-xs);
+  color: var(--text-muted);
+}
+
+.team-reg-pending__card-chev {
+  grid-row: 2;
+  grid-column: 3;
+  justify-self: end;
+  align-self: center;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+}
+
+.team-reg-pending__details[open] .team-reg-pending__card-chev {
+  transform: rotate(-135deg);
+  margin-top: 4px;
+}
+
+.team-reg-pending__card-panel {
+  padding: var(--spacing-base);
+}
+
+.team-reg-pending__card-panel .team-reg-complete-details__body {
+  padding-top: 0;
+}
+
+.team-reg-pending__card .screen-reader-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.team-reg-pending__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-medium);
+  overflow: hidden;
+  background: var(--bg-secondary);
+  color: var(--primary-color);
+  border: 1px solid var(--border-light);
+}
+
+.team-reg-pending__avatar--male {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--gender-boys-accent, #3b82f6);
+}
+
+.team-reg-pending__avatar--female {
+  background: rgba(167, 139, 250, 0.18);
+  color: var(--gender-girls-accent-dark);
+}
+
+.team-reg-pending__avatar-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.team-reg-pending__avatar-icon {
+  display: inline-flex;
+}
+
+.team-reg-pending__avatar-icon svg {
+  display: block;
+  width: 26px;
+  height: 26px;
+}
+
+.team-reg-pending__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 0.25rem 0.625rem;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: #c05621;
+  background: rgba(253, 126, 20, 0.12);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.team-reg-pending__status-icon {
+  display: inline-flex;
+  color: inherit;
+}
+
+.team-reg-pending__status-icon svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+/* ③ CTA */
 .team-reg-complete-actions {
-  margin-bottom: var(--spacing-md);
+  margin-top: var(--spacing-md);
 }
 
 .team-reg-complete-cta {
@@ -407,13 +421,13 @@
   height: 22px;
 }
 
-/* ⑤ メール案内 */
+/* ④ メール案内 */
 .team-reg-complete-email {
   display: grid;
   grid-template-columns: auto 1fr;
   column-gap: var(--spacing-sm);
   align-items: center;
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
   padding: var(--spacing-base);
   text-align: left;
   background: rgba(106, 90, 249, 0.08);
@@ -450,7 +464,7 @@
 
 .team-reg-complete-email__desc {
   margin: 0;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-2xs);
   color: var(--text-secondary);
   line-height: 1.55;
 }
@@ -679,55 +693,6 @@
 
   .team-reg-complete-card {
     padding: var(--spacing-lg) var(--spacing-base);
-  }
-
-  .team-reg-complete-status {
-    grid-template-columns: auto 1fr;
-    grid-template-rows: auto auto;
-  }
-
-  .team-reg-complete-status__eta {
-    grid-column: 1 / -1;
-    padding-left: 0;
-    padding-top: var(--spacing-sm);
-    border-left: none;
-    border-top: 1px dashed rgba(253, 126, 20, 0.35);
-    text-align: center;
-  }
-
-  .team-reg-complete-status__eta-br {
-    display: inline;
-  }
-
-  .team-reg-complete-feature-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .team-reg-complete-feature {
-    flex-direction: row;
-    align-items: center;
-    text-align: left;
-    gap: var(--spacing-sm);
-  }
-
-  .team-reg-complete-feature__icon {
-    flex-shrink: 0;
-  }
-
-  .team-reg-complete-feature__body {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .team-reg-complete-feature__chev {
-    display: block;
-    flex-shrink: 0;
-    width: 8px;
-    height: 8px;
-    margin-right: var(--spacing-xs);
-    border-right: 2px solid var(--text-muted);
-    border-bottom: 2px solid var(--text-muted);
-    transform: rotate(-45deg);
   }
 }
 

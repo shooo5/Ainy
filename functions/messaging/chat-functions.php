@@ -199,6 +199,10 @@ function aidunite_restore_chat_room_status_if_invalid($room_id) {
     }
 
     // 旧実装の deleted / 空文字 / null を active に戻す
+    if (function_exists('aidunite_chat_persist_update_room')) {
+        return aidunite_chat_persist_update_room($room_id_int, ['status' => 'active']);
+    }
+
     $updated = $wpdb->update(
         $rooms_table,
         ['status' => 'active'],
@@ -230,26 +234,47 @@ function aidunite_create_team_chat($team_id) {
     $participants_table = $wpdb->prefix . 'chat_participants';
 
     $team_id_int = intval($team_id);
-    if (!$team_id_int) return new WP_Error('invalid_team_id', 'チームIDが無効です');
+    if (!$team_id_int) {
+        return new WP_Error('invalid_team_id', 'チームIDが無効です');
+    }
+
+    if (function_exists('aidunite_payment_gate_team_chat_creation')) {
+        $gate = aidunite_payment_gate_team_chat_creation($team_id_int);
+        if (is_wp_error($gate)) {
+            return $gate;
+        }
+    }
 
     // 既存があれば返す
     $existing = aidunite_get_team_chat_room($team_id_int);
     if ($existing) return intval($existing->id);
 
-    $result = $wpdb->insert($rooms_table, [
-        'room_type' => 'team',
-        'name' => 'チームチャット',
-        'description' => 'チーム内のコミュニケーション',
-        'team_id' => $team_id_int,
-        'status' => 'active',
-        'created_at' => current_time('mysql')
-    ], ['%s','%s','%s','%d','%s','%s']);
-
-    if ($result === false) {
-        return new WP_Error('db_error', 'チームチャットの作成に失敗しました: ' . $wpdb->last_error);
+    if (function_exists('aidunite_chat_persist_insert_room')) {
+        $room_id = aidunite_chat_persist_insert_room([
+            'room_type' => 'team',
+            'name' => 'チームチャット',
+            'description' => 'チーム内のコミュニケーション',
+            'team_id' => $team_id_int,
+            'status' => 'active',
+            'created_at' => current_time('mysql'),
+        ], ['%s', '%s', '%s', '%d', '%s', '%s']);
+        if (is_wp_error($room_id)) {
+            return $room_id;
+        }
+    } else {
+        $result = $wpdb->insert($rooms_table, [
+            'room_type' => 'team',
+            'name' => 'チームチャット',
+            'description' => 'チーム内のコミュニケーション',
+            'team_id' => $team_id_int,
+            'status' => 'active',
+            'created_at' => current_time('mysql'),
+        ], ['%s', '%s', '%s', '%d', '%s', '%s']);
+        if ($result === false) {
+            return new WP_Error('db_error', 'チームチャットの作成に失敗しました: ' . $wpdb->last_error);
+        }
+        $room_id = (int) $wpdb->insert_id;
     }
-
-    $room_id = intval($wpdb->insert_id);
 
     // チームメンバーを参加者に追加（存在すれば）
     if (function_exists('aidunite_get_team_members')) {
@@ -271,14 +296,14 @@ function aidunite_create_team_chat($team_id) {
 /**
  * 対戦チャットルームを取得
  */
-if (!function_exists('aidunite_get_match_request_bound_chat_room')) {
+if (!function_exists('aidunite_get_match_request_chat_room_for_lifecycle')) {
     /**
-     * 当該 MR に直接紐づくルームのみ（共有ゲームの正規ルームは含めない）
+     * キャンセル完了化・再申請クローズ用：active / completed を含め MR に紐づくルームを取得
      *
      * @param int $match_id match_request ID
      * @return object|null
      */
-    function aidunite_get_match_request_bound_chat_room($match_id) {
+    function aidunite_get_match_request_chat_room_for_lifecycle($match_id) {
         global $wpdb;
         $match_id_int = (int) $match_id;
         if ($match_id_int <= 0) {
@@ -300,6 +325,151 @@ if (!function_exists('aidunite_get_match_request_bound_chat_room')) {
              WHERE room_type IN ('match', 'group')
                AND match_id = %d
              ORDER BY (CASE WHEN status = 'active' THEN 1 ELSE 0 END) DESC, id DESC
+             LIMIT 1",
+            $match_id_int
+        ));
+    }
+}
+
+if (!function_exists('aidunite_match_request_should_fork_new_chat_room')) {
+    /**
+     * キャンセル→再申請→再承認時に、同一 MR の旧 active ルームを再利用せず新規作成する
+     *
+     * @param int $match_request_id
+     * @return bool
+     */
+    function aidunite_match_request_should_fork_new_chat_room($match_request_id) {
+        global $wpdb;
+        $match_request_id = (int) $match_request_id;
+        if ($match_request_id <= 0) {
+            return false;
+        }
+
+        $rooms_table = $wpdb->prefix . 'chat_rooms';
+        $completed_count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$rooms_table}
+             WHERE room_type IN ('match', 'group')
+               AND match_id = %d
+               AND status = 'completed'",
+            $match_request_id
+        ));
+        if ($completed_count < 1) {
+            return false;
+        }
+
+        // 当該 MR に active が既にあれば新規 fork 不要（ループ生成・完了済み閲覧時の重複防止）
+        if (function_exists('aidunite_get_active_match_chat_room')) {
+            $active_mr = aidunite_get_active_match_chat_room($match_request_id);
+            if ($active_mr && !empty($active_mr->id)) {
+                return false;
+            }
+        }
+        if (function_exists('aidunite_get_match_request_bound_chat_room')) {
+            $bound = aidunite_get_match_request_bound_chat_room($match_request_id);
+            if ($bound && !empty($bound->id)) {
+                return false;
+            }
+        }
+
+        $mr_post = get_post($match_request_id);
+        if (!$mr_post || $mr_post->post_type !== 'match_request') {
+            return false;
+        }
+        $mr_meta = (string) get_post_meta($match_request_id, 'status', true);
+        $mr_norm = function_exists('aidunite_normalize_match_request_status')
+            ? aidunite_normalize_match_request_status($mr_meta, (string) $mr_post->post_status)
+            : strtolower($mr_meta);
+
+        // キャンセル済み等は履歴閲覧のみ（完了済みタブから旧 room_id を開いても新規作成しない）
+        return in_array($mr_norm, ['pending', 'accepted', 'publish', 'established'], true);
+    }
+}
+
+if (!function_exists('aidunite_complete_active_match_request_chat_rooms')) {
+    /**
+     * 再申請前に当該 MR の active ルームを completed へ（DB 上 match_id 一致分も対象）
+     *
+     * @param int $request_id
+     * @return void
+     */
+    function aidunite_complete_active_match_request_chat_rooms($request_id) {
+        global $wpdb;
+        $request_id = (int) $request_id;
+        if ($request_id <= 0) {
+            return;
+        }
+
+        $rooms_table = $wpdb->prefix . 'chat_rooms';
+        $room_ids = [];
+        $meta_room_id = (int) get_post_meta($request_id, 'chat_room_id', true);
+        if ($meta_room_id > 0) {
+            $room_ids[$meta_room_id] = true;
+        }
+        $rows = $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM {$rooms_table}
+             WHERE room_type IN ('match', 'group')
+               AND match_id = %d
+               AND status = 'active'",
+            $request_id
+        ));
+        if (is_array($rows)) {
+            foreach ($rows as $rid) {
+                $room_ids[(int) $rid] = true;
+            }
+        }
+
+        foreach (array_keys($room_ids) as $room_id) {
+            if ($room_id <= 0) {
+                continue;
+            }
+            if (function_exists('aidunite_chat_persist_update_room')) {
+                aidunite_chat_persist_update_room($room_id, ['status' => 'completed']);
+            } else {
+                $wpdb->update(
+                    $rooms_table,
+                    ['status' => 'completed'],
+                    ['id' => $room_id],
+                    ['%s'],
+                    ['%d']
+                );
+            }
+            if (function_exists('aidunite_mark_chat_room_read_for_all_participants')) {
+                aidunite_mark_chat_room_read_for_all_participants($room_id);
+            }
+        }
+    }
+}
+
+if (!function_exists('aidunite_get_match_request_bound_chat_room')) {
+    /**
+     * 当該 MR に直接紐づくルームのみ（共有ゲームの正規ルームは含めない）
+     *
+     * @param int $match_id match_request ID
+     * @return object|null
+     */
+    function aidunite_get_match_request_bound_chat_room($match_id) {
+        global $wpdb;
+        $match_id_int = (int) $match_id;
+        if ($match_id_int <= 0) {
+            return null;
+        }
+
+        $meta_room_id = (int) get_post_meta($match_id_int, 'chat_room_id', true);
+        if ($meta_room_id > 0) {
+            $meta_room = aidunite_get_chat_room($meta_room_id);
+            if ($meta_room && (string) ($meta_room->status ?? '') === 'active') {
+                return $meta_room;
+            }
+        }
+
+        $rooms_table = $wpdb->prefix . 'chat_rooms';
+
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$rooms_table}
+             WHERE room_type IN ('match', 'group')
+               AND match_id = %d
+               AND status = 'active'
+             ORDER BY id DESC
              LIMIT 1",
             $match_id_int
         ));
@@ -429,9 +599,11 @@ function aidunite_mark_match_chat_completed($match_id, $reason = '') {
         return true;
     }
 
-    $room = function_exists('aidunite_get_match_request_bound_chat_room')
-        ? aidunite_get_match_request_bound_chat_room($match_id_int)
-        : aidunite_get_match_chat_room($match_id_int);
+    $room = function_exists('aidunite_get_match_request_chat_room_for_lifecycle')
+        ? aidunite_get_match_request_chat_room_for_lifecycle($match_id_int)
+        : (function_exists('aidunite_get_match_request_bound_chat_room')
+            ? aidunite_get_match_request_bound_chat_room($match_id_int)
+            : aidunite_get_match_chat_room($match_id_int));
     if (!is_object($room) || empty($room->id)) {
         return false;
     }
@@ -450,13 +622,17 @@ function aidunite_mark_match_chat_completed($match_id, $reason = '') {
         return true;
     }
 
-    $updated = $wpdb->update(
-        $rooms_table,
-        ['status' => 'completed'],
-        ['id' => $room_id_int],
-        ['%s'],
-        ['%d']
-    );
+    if (function_exists('aidunite_chat_persist_update_room')) {
+        $updated = aidunite_chat_persist_update_room($room_id_int, ['status' => 'completed']);
+    } else {
+        $updated = $wpdb->update(
+            $rooms_table,
+            ['status' => 'completed'],
+            ['id' => $room_id_int],
+            ['%s'],
+            ['%d']
+        );
+    }
     if ($updated === false) {
         return false;
     }
@@ -474,6 +650,10 @@ function aidunite_mark_match_chat_completed($match_id, $reason = '') {
             'message_type' => 'system',
             'content' => $content
         ]);
+    }
+
+    if (function_exists('aidunite_mark_chat_room_read_for_all_participants')) {
+        aidunite_mark_chat_room_read_for_all_participants($room_id_int);
     }
 
     return true;
@@ -832,6 +1012,9 @@ if (!function_exists('aidunite_handle_chat_on_match_request_canceled')) {
             return;
         }
 
+        if (function_exists('aidunite_complete_active_match_request_chat_rooms')) {
+            aidunite_complete_active_match_request_chat_rooms($request_id);
+        }
         if (function_exists('aidunite_mark_match_chat_completed')) {
             aidunite_mark_match_chat_completed($request_id, 'canceled');
         }
@@ -864,13 +1047,8 @@ function aidunite_get_schedule_chat_room($schedule_id) {
     if ($status === 'active') {
         return $room;
     }
-    if ($status === 'completed'
-        && function_exists('aidunite_count_game_established_match_requests')
-        && aidunite_count_game_established_match_requests($schedule_id_int, 0) > 0
-        && function_exists('aidunite_reactivate_chat_room')) {
-        return aidunite_reactivate_chat_room((int) $room->id);
-    }
 
+    // completed は自動で active に戻さない（get_active_chat_room_for_match_game と同様）
     return null;
 }
 
@@ -1022,12 +1200,17 @@ function aidunite_add_team_to_chat_room($room_id, $team_id) {
             $room_name = '練習試合グループチャット（' . implode(', ', $team_names) . '）';
         }
 
-        $wpdb->update($rooms_table, [
-            'room_type' => 'group',
-            'name' => $room_name
-        ], [
-            'id' => $room_id_int
-        ], ['%s', '%s'], ['%d']);
+        if (function_exists('aidunite_chat_persist_update_room')) {
+            aidunite_chat_persist_update_room($room_id_int, [
+                'room_type' => 'group',
+                'name' => $room_name,
+            ]);
+        } else {
+            $wpdb->update($rooms_table, [
+                'room_type' => 'group',
+                'name' => $room_name,
+            ], ['id' => $room_id_int], ['%s', '%s'], ['%d']);
+        }
     }
 
     return true;
@@ -1219,13 +1402,20 @@ if (!function_exists('aidunite_sync_schedule_chat_room_members')) {
                 $new_name = (string) ($room->name ?? '対戦チャット');
             }
         }
-        $wpdb->update(
-            $rooms_table,
-            ['room_type' => $new_type, 'name' => $new_name],
-            ['id' => $room_id_int],
-            ['%s', '%s'],
-            ['%d']
-        );
+        if (function_exists('aidunite_chat_persist_update_room')) {
+            aidunite_chat_persist_update_room($room_id_int, [
+                'room_type' => $new_type,
+                'name' => $new_name,
+            ]);
+        } else {
+            $wpdb->update(
+                $rooms_table,
+                ['room_type' => $new_type, 'name' => $new_name],
+                ['id' => $room_id_int],
+                ['%s', '%s'],
+                ['%d']
+            );
+        }
     }
 }
 
@@ -1291,7 +1481,9 @@ function aidunite_create_or_extend_match_chat($match_request_id, $team_a_id, $te
 
     // §3A.1: match_game に active があれば拡張のみ（統合・副ルーム収集はしない）
     $existing_room = null;
-    if ($schedule_id_int > 0 && function_exists('aidunite_get_active_chat_room_for_match_game')) {
+    $fork_new_room = function_exists('aidunite_match_request_should_fork_new_chat_room')
+        && aidunite_match_request_should_fork_new_chat_room($match_request_id_int);
+    if (!$fork_new_room && $schedule_id_int > 0 && function_exists('aidunite_get_active_chat_room_for_match_game')) {
         $existing_room = aidunite_get_active_chat_room_for_match_game($schedule_id_int);
     }
 
@@ -1410,15 +1602,20 @@ function aidunite_create_match_chat($match_id, $team_a_id, $team_b_id, $match_da
         }
     }
 
+    $fork_new_room = function_exists('aidunite_match_request_should_fork_new_chat_room')
+        && aidunite_match_request_should_fork_new_chat_room($match_id_int);
+
     // 1) match_request 単位で既存チェック（active限定）
-    $existing = function_exists('aidunite_get_active_match_chat_room')
-        ? aidunite_get_active_match_chat_room($match_id_int)
-        : aidunite_get_match_chat_room($match_id_int);
-    if ($existing) {
-        return intval($existing->id);
+    if (!$fork_new_room) {
+        $existing = function_exists('aidunite_get_active_match_chat_room')
+            ? aidunite_get_active_match_chat_room($match_id_int)
+            : null;
+        if ($existing) {
+            return intval($existing->id);
+        }
     }
 
-    // 1b) 同一 MR の最新ルームを再利用（completed は共有ゲーム成立中なら reactivate）
+    // 1b) 同一 MR の active ルームのみ再利用（completed は再利用・再有効化しない）
     $latest_for_mr = $wpdb->get_row($wpdb->prepare(
         "SELECT * FROM {$rooms_table}
          WHERE room_type IN ('match', 'group')
@@ -1428,36 +1625,14 @@ function aidunite_create_match_chat($match_id, $team_a_id, $team_b_id, $match_da
         $match_id_int
     ));
     if ($latest_for_mr && !empty($latest_for_mr->id)) {
-        $match_game_id = function_exists('aidunite_resolve_match_game_id_for_match_request')
-            ? (int) aidunite_resolve_match_game_id_for_match_request($match_id_int)
-            : (int) $schedule_id_int;
-        $shared_game = $match_game_id > 0
-            && $match_game_id !== 9999
-            && function_exists('aidunite_count_game_established_match_requests')
-            && aidunite_count_game_established_match_requests($match_game_id, 0) > 0;
-        $mr_norm = '';
-        $mr_post = get_post($match_id_int);
-        if ($mr_post && $mr_post->post_type === 'match_request') {
-            $mr_meta = (string) get_post_meta($match_id_int, 'status', true);
-            $mr_norm = function_exists('aidunite_normalize_match_request_status')
-                ? aidunite_normalize_match_request_status($mr_meta, (string) $mr_post->post_status)
-                : strtolower($mr_meta);
-        }
         $latest_status = (string) ($latest_for_mr->status ?? '');
-        if ($latest_status === 'completed' && ($shared_game || $mr_norm === 'established')) {
-            if (function_exists('aidunite_reactivate_chat_room')) {
-                $reactivated = aidunite_reactivate_chat_room((int) $latest_for_mr->id);
-                if ($reactivated && !empty($reactivated->id)) {
-                    return (int) $reactivated->id;
-                }
-            }
-        } elseif ($latest_status === 'active') {
+        if ($latest_status === 'active' && !$fork_new_room) {
             return (int) $latest_for_mr->id;
         }
     }
 
     // 2) match_game の active ルームのみ再利用（§3A.3）
-    if ($schedule_id_int > 0) {
+    if (!$fork_new_room && $schedule_id_int > 0) {
         $existing_by_schedule = function_exists('aidunite_get_active_chat_room_for_match_game')
             ? aidunite_get_active_chat_room_for_match_game($schedule_id_int)
             : aidunite_get_schedule_chat_room($schedule_id_int);
@@ -1529,13 +1704,18 @@ function aidunite_create_match_chat($match_id, $team_a_id, $team_b_id, $match_da
         $room_format[] = '%d';
     }
 
-    $result = $wpdb->insert($rooms_table, $room_data, $room_format);
-
-    if ($result === false) {
-        return new WP_Error('db_error', '対戦チャットの作成に失敗しました: ' . $wpdb->last_error);
+    if (function_exists('aidunite_chat_persist_insert_room')) {
+        $room_id = aidunite_chat_persist_insert_room($room_data, $room_format);
+        if (is_wp_error($room_id)) {
+            return $room_id;
+        }
+    } else {
+        $result = $wpdb->insert($rooms_table, $room_data, $room_format);
+        if ($result === false) {
+            return new WP_Error('db_error', '対戦チャットの作成に失敗しました: ' . $wpdb->last_error);
+        }
+        $room_id = (int) $wpdb->insert_id;
     }
-
-    $room_id = intval($wpdb->insert_id);
 
     foreach ([$team_a_id_int, $team_b_id_int] as $tid) {
         if (function_exists('aidunite_add_team_to_chat_room')) {
@@ -1588,21 +1768,34 @@ function aidunite_create_message_thread_chat($message_id, $team_id) {
     $message = aidunite_get_message($message_id_int);
     $room_name = $message ? $message->title : 'メッセージスレッド';
 
-    $result = $wpdb->insert($rooms_table, [
-        'room_type' => 'message_thread',
-        'name' => $room_name,
-        'description' => 'メッセージ掲示板の投稿についてのチャット',
-        'team_id' => $team_id_int,
-        'related_message_id' => $message_id_int,
-        'status' => 'active',
-        'created_at' => current_time('mysql')
-    ], ['%s', '%s', '%s', '%d', '%d', '%s', '%s']);
-
-    if ($result === false) {
-        return new WP_Error('db_error', 'メッセージスレッドチャットの作成に失敗しました: ' . $wpdb->last_error);
+    if (function_exists('aidunite_chat_persist_insert_room')) {
+        $room_id = aidunite_chat_persist_insert_room([
+            'room_type' => 'message_thread',
+            'name' => $room_name,
+            'description' => 'メッセージ掲示板の投稿についてのチャット',
+            'team_id' => $team_id_int,
+            'related_message_id' => $message_id_int,
+            'status' => 'active',
+            'created_at' => current_time('mysql'),
+        ], ['%s', '%s', '%s', '%d', '%d', '%s', '%s']);
+        if (is_wp_error($room_id)) {
+            return $room_id;
+        }
+    } else {
+        $result = $wpdb->insert($rooms_table, [
+            'room_type' => 'message_thread',
+            'name' => $room_name,
+            'description' => 'メッセージ掲示板の投稿についてのチャット',
+            'team_id' => $team_id_int,
+            'related_message_id' => $message_id_int,
+            'status' => 'active',
+            'created_at' => current_time('mysql'),
+        ], ['%s', '%s', '%s', '%d', '%d', '%s', '%s']);
+        if ($result === false) {
+            return new WP_Error('db_error', 'メッセージスレッドチャットの作成に失敗しました: ' . $wpdb->last_error);
+        }
+        $room_id = (int) $wpdb->insert_id;
     }
-
-    $room_id = intval($wpdb->insert_id);
 
     // チームメンバーを参加者に追加（存在すれば）
     if (function_exists('aidunite_get_team_members')) {
@@ -1672,22 +1865,36 @@ function aidunite_create_system_chat($system_type, $related_id, $team_id, $room_
         $description = aidunite_get_system_room_description($system_type_safe);
     }
 
-    $result = $wpdb->insert($rooms_table, [
-        'room_type' => 'system',
-        'name' => $room_name,
-        'description' => $description,
-        'team_id' => $team_id_int,
-        'system_type' => $system_type_safe,
-        'related_id' => $related_id_int,
-        'status' => 'active',
-        'created_at' => current_time('mysql')
-    ], ['%s', '%s', '%s', '%d', '%s', '%d', '%s', '%s']);
-
-    if ($result === false) {
-        return new WP_Error('db_error', 'システムチャットの作成に失敗しました: ' . $wpdb->last_error);
+    if (function_exists('aidunite_chat_persist_insert_room')) {
+        $room_id = aidunite_chat_persist_insert_room([
+            'room_type' => 'system',
+            'name' => $room_name,
+            'description' => $description,
+            'team_id' => $team_id_int,
+            'system_type' => $system_type_safe,
+            'related_id' => $related_id_int,
+            'status' => 'active',
+            'created_at' => current_time('mysql'),
+        ], ['%s', '%s', '%s', '%d', '%s', '%d', '%s', '%s']);
+        if (is_wp_error($room_id)) {
+            return $room_id;
+        }
+    } else {
+        $result = $wpdb->insert($rooms_table, [
+            'room_type' => 'system',
+            'name' => $room_name,
+            'description' => $description,
+            'team_id' => $team_id_int,
+            'system_type' => $system_type_safe,
+            'related_id' => $related_id_int,
+            'status' => 'active',
+            'created_at' => current_time('mysql'),
+        ], ['%s', '%s', '%s', '%d', '%s', '%d', '%s', '%s']);
+        if ($result === false) {
+            return new WP_Error('db_error', 'システムチャットの作成に失敗しました: ' . $wpdb->last_error);
+        }
+        $room_id = (int) $wpdb->insert_id;
     }
-
-    $room_id = intval($wpdb->insert_id);
 
     // チームメンバーを参加者に追加（存在すれば）
     if (function_exists('aidunite_get_team_members')) {
@@ -1776,20 +1983,32 @@ function aidunite_create_or_get_group_chat($participant_ids, $room_name = null) 
         $room_name = 'グループチャット';
     }
 
-    $result = $wpdb->insert($rooms_table, [
-        'room_type' => 'group',
-        'name' => $room_name,
-        'description' => 'グループチャット',
-        'unique_key' => $unique_key,
-        'status' => 'active',
-        'created_at' => current_time('mysql')
-    ], ['%s', '%s', '%s', '%s', '%s', '%s']);
-
-    if ($result === false) {
-        return new WP_Error('db_error', 'グループチャットの作成に失敗しました: ' . $wpdb->last_error);
+    if (function_exists('aidunite_chat_persist_insert_room')) {
+        $room_id = aidunite_chat_persist_insert_room([
+            'room_type' => 'group',
+            'name' => $room_name,
+            'description' => 'グループチャット',
+            'unique_key' => $unique_key,
+            'status' => 'active',
+            'created_at' => current_time('mysql'),
+        ], ['%s', '%s', '%s', '%s', '%s', '%s']);
+        if (is_wp_error($room_id)) {
+            return $room_id;
+        }
+    } else {
+        $result = $wpdb->insert($rooms_table, [
+            'room_type' => 'group',
+            'name' => $room_name,
+            'description' => 'グループチャット',
+            'unique_key' => $unique_key,
+            'status' => 'active',
+            'created_at' => current_time('mysql'),
+        ], ['%s', '%s', '%s', '%s', '%s', '%s']);
+        if ($result === false) {
+            return new WP_Error('db_error', 'グループチャットの作成に失敗しました: ' . $wpdb->last_error);
+        }
+        $room_id = (int) $wpdb->insert_id;
     }
-
-    $room_id = intval($wpdb->insert_id);
 
     // 参加者を追加
     foreach ($sorted_ids as $user_id) {
@@ -1843,21 +2062,32 @@ function aidunite_create_or_get_direct_chat($user_id_1, $user_id_2) {
         ? $user_1->display_name . ' と ' . $user_2->display_name
         : 'ダイレクトチャット';
 
-    // 新規作成
-    $result = $wpdb->insert($rooms_table, [
-        'room_type' => 'direct',
-        'name' => $room_name,
-        'description' => '1対1のチャット',
-        'unique_key' => $unique_key,
-        'status' => 'active',
-        'created_at' => current_time('mysql')
-    ], ['%s', '%s', '%s', '%s', '%s', '%s']);
-
-    if ($result === false) {
-        return new WP_Error('db_error', 'ダイレクトチャットの作成に失敗しました: ' . $wpdb->last_error);
+    if (function_exists('aidunite_chat_persist_insert_room')) {
+        $room_id = aidunite_chat_persist_insert_room([
+            'room_type' => 'direct',
+            'name' => $room_name,
+            'description' => '1対1のチャット',
+            'unique_key' => $unique_key,
+            'status' => 'active',
+            'created_at' => current_time('mysql'),
+        ], ['%s', '%s', '%s', '%s', '%s', '%s']);
+        if (is_wp_error($room_id)) {
+            return $room_id;
+        }
+    } else {
+        $result = $wpdb->insert($rooms_table, [
+            'room_type' => 'direct',
+            'name' => $room_name,
+            'description' => '1対1のチャット',
+            'unique_key' => $unique_key,
+            'status' => 'active',
+            'created_at' => current_time('mysql'),
+        ], ['%s', '%s', '%s', '%s', '%s', '%s']);
+        if ($result === false) {
+            return new WP_Error('db_error', 'ダイレクトチャットの作成に失敗しました: ' . $wpdb->last_error);
+        }
+        $room_id = (int) $wpdb->insert_id;
     }
-
-    $room_id = intval($wpdb->insert_id);
 
     // 参加者を追加
     foreach ($user_ids as $user_id) {
@@ -1914,55 +2144,29 @@ function aidunite_create_or_get_chat_room_by_participants($participant_ids, $roo
  * チャットメッセージ保存
  */
 function aidunite_save_chat_message($message_data) {
+    if (function_exists('aidunite_chat_persist_save_message')) {
+        return aidunite_chat_persist_save_message($message_data);
+    }
+
     global $wpdb;
     $table = $wpdb->prefix . 'chat_messages';
-
-    $room_id = intval($message_data['room_id'] ?? 0);
-    $sender_id = isset($message_data['sender_id']) ? intval($message_data['sender_id']) : 0;
-    $parent_message_id = isset($message_data['parent_message_id']) ? intval($message_data['parent_message_id']) : null;
-    $message_type = sanitize_text_field($message_data['message_type'] ?? 'text');
-    $content = sanitize_textarea_field($message_data['content'] ?? '');
-    $file_url = sanitize_text_field($message_data['file_url'] ?? '');
-    $is_private = !empty($message_data['is_private']) ? 1 : 0;
-
-    if (function_exists('aidunite_normalize_chat_payload')) {
-        $normalized = aidunite_normalize_chat_payload([
-            'message_type' => $message_type,
-        ]);
-        $message_type = (string) ($normalized['message_type'] ?? $message_type);
-    }
-
-    if (!$room_id) {
+    $room_id = (int) ($message_data['room_id'] ?? 0);
+    if ($room_id <= 0) {
         return new WP_Error('invalid_params', 'room_idが無効です');
     }
-    if ($sender_id < 0) {
-        return new WP_Error('invalid_params', 'sender_idが無効です');
-    }
-
-    $insert_data = [
+    $result = $wpdb->insert($table, [
         'room_id' => $room_id,
-        'sender_id' => $sender_id,
-        'message_type' => $message_type,
-        'content' => $content,
-        'file_url' => $file_url,
-        'is_private' => $is_private,
-        'created_at' => current_time('mysql')
-    ];
-    $insert_fmt = ['%d', '%d', '%s', '%s', '%s', '%d', '%s'];
+        'sender_id' => (int) ($message_data['sender_id'] ?? 0),
+        'message_type' => sanitize_text_field($message_data['message_type'] ?? 'text'),
+        'content' => sanitize_textarea_field($message_data['content'] ?? ''),
+        'file_url' => sanitize_text_field($message_data['file_url'] ?? ''),
+        'is_private' => !empty($message_data['is_private']) ? 1 : 0,
+        'created_at' => current_time('mysql'),
+    ], ['%d', '%d', '%s', '%s', '%s', '%d', '%s']);
 
-    $has_parent_col = in_array('parent_message_id', $wpdb->get_col("SHOW COLUMNS FROM {$table} LIKE 'parent_message_id'"));
-    if ($has_parent_col && $parent_message_id > 0) {
-        $insert_data['parent_message_id'] = $parent_message_id;
-        $insert_fmt[] = '%d';
-    }
-
-    $result = $wpdb->insert($table, $insert_data, $insert_fmt);
-
-    if ($result === false) {
-        return new WP_Error('db_error', 'メッセージ保存に失敗しました: ' . $wpdb->last_error);
-    }
-
-    return intval($wpdb->insert_id);
+    return $result === false
+        ? new WP_Error('db_error', 'メッセージ保存に失敗しました: ' . $wpdb->last_error)
+        : (int) $wpdb->insert_id;
 }
 
 /**
@@ -2043,6 +2247,12 @@ function aidunite_get_chat_messages_data($room_id, $page = 1, $per_page = 50) {
         $m->my_reactions = isset($reactions_map[$m->id]) ? array_keys($reactions_map[$m->id]['my_reactions']) : [];
         if (!$has_parent) {
             $m->parent_message_id = null;
+        }
+        if (!empty($m->created_at) && function_exists('aidunite_format_chat_created_at_for_client')) {
+            $m->created_at = aidunite_format_chat_created_at_for_client($m->created_at);
+        }
+        if (!empty($m->edited_at) && function_exists('aidunite_format_chat_created_at_for_client')) {
+            $m->edited_at = aidunite_format_chat_created_at_for_client($m->edited_at);
         }
         $team_meta = aidunite_resolve_sender_team_name_for_chat((int) $m->sender_id, $room_id_int);
         $m->sender_team_id = $team_meta['team_id'];
@@ -2130,9 +2340,15 @@ function aidunite_check_chat_permission($room_id, $user_id) {
     $user_id_int = intval($user_id);
     if (!$user_id_int) return false;
 
-    // 管理者の場合は常にアクセス許可（テスト・確認用）
+    // 管理者の場合は常にアクセス許可（テスト・確認用）。プレビューモード時は effective role に従う
     if (current_user_can('administrator')) {
-        return true;
+        $admin_preview = false;
+        if (function_exists('aidunite_get_effective_user_role')) {
+            list(, $admin_preview) = aidunite_get_effective_user_role();
+        }
+        if (!$admin_preview) {
+            return true;
+        }
     }
 
     // room_type別の簡易チェック
@@ -2143,6 +2359,10 @@ function aidunite_check_chat_permission($room_id, $user_id) {
     }
 
     if ($room->room_type === 'match' || $room->room_type === 'group') {
+        if (!aidunite_user_can_access_match_game_chat($user_id_int)) {
+            return false;
+        }
+
         // schedule_idベースのチェックを追加（match/group共通）
         $columns = $wpdb->get_col("SHOW COLUMNS FROM {$wpdb->prefix}chat_rooms LIKE '%'");
         $has_schedule_id = in_array('schedule_id', $columns);
@@ -2269,15 +2489,17 @@ function aidunite_get_match_info_from_chat_room($room_id) {
         return null; // スケジュール情報がない場合はnullを返す
     }
 
-    // スケジュール情報を取得
-    $schedule_date = get_post_meta($schedule_id, 'schedule_date', true);
-    $schedule_start_time = get_post_meta($schedule_id, 'schedule_start_time', true);
-    $schedule_end_time = get_post_meta($schedule_id, 'schedule_end_time', true);
-    $venue_name = get_post_meta($schedule_id, 'venue_name', true);
-    $schedule_place = get_post_meta($schedule_id, 'schedule_place', true);
-    if (empty($schedule_place)) {
-        $schedule_place = get_post_meta($schedule_id, 'schedule_place_option', true);
-    }
+    // スケジュール情報を取得（表示正本）
+    $sch_disp = function_exists('aidunite_schedule_get_api_display_fields')
+        ? aidunite_schedule_get_api_display_fields((int) $schedule_id)
+        : [];
+    $schedule_date = (string) ($sch_disp['date'] ?? '');
+    $schedule_start_time = (string) ($sch_disp['start_time'] ?? '');
+    $schedule_end_time = (string) ($sch_disp['end_time'] ?? '');
+    $venue_name = (string) ($sch_disp['venue_name'] ?? get_post_meta($schedule_id, 'venue_name', true));
+    $schedule_place = (string) ($sch_disp['place'] ?? (function_exists('aidunite_schedule_read_place_raw')
+        ? aidunite_schedule_read_place_raw((int) $schedule_id)
+        : ''));
     $venue_address = get_post_meta($schedule_id, 'venue_address', true); // 住所（存在する場合）
 
     // 申請確定値（match_request）を優先取得
@@ -2427,6 +2649,119 @@ function aidunite_get_match_info_from_chat_room($room_id) {
         'participant_names_display' => $participant_names_display,
         'weather_info' => $weather_info
     ];
+}
+
+if (!function_exists('aidunite_get_chat_room_latest_message_id')) {
+    /**
+     * ルーム内の最新メッセージ ID（既読同期用）
+     *
+     * @param int $room_id
+     * @return int
+     */
+    function aidunite_get_chat_room_latest_message_id($room_id) {
+        global $wpdb;
+        $room_id_int = (int) $room_id;
+        if ($room_id_int <= 0) {
+            return 0;
+        }
+        $chat_messages_table = $wpdb->prefix . 'chat_messages';
+
+        return (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT MAX(id) FROM {$chat_messages_table} WHERE room_id = %d",
+            $room_id_int
+        ));
+    }
+}
+
+if (!function_exists('aidunite_sync_chat_read_status_to_latest')) {
+    /**
+     * ルーム内の最新メッセージまで既読に追いつかせる
+     *
+     * @param int $room_id
+     * @param int $user_id
+     * @return bool|WP_Error
+     */
+    function aidunite_sync_chat_read_status_to_latest($room_id, $user_id) {
+        $room_id_int = (int) $room_id;
+        $user_id_int = (int) $user_id;
+        if ($room_id_int <= 0 || $user_id_int <= 0) {
+            return new WP_Error('invalid_params', 'room_idまたはuser_idが無効です');
+        }
+        $latest_id = aidunite_get_chat_room_latest_message_id($room_id_int);
+
+        return aidunite_update_read_status($room_id_int, $user_id_int, $latest_id);
+    }
+}
+
+if (!function_exists('aidunite_resolve_chat_room_participant_user_ids')) {
+    /**
+     * ルーム完了時の既読同期対象 user_id 一覧
+     *
+     * @param int $room_id
+     * @return int[]
+     */
+    function aidunite_resolve_chat_room_participant_user_ids($room_id) {
+        global $wpdb;
+        $room_id_int = (int) $room_id;
+        if ($room_id_int <= 0) {
+            return [];
+        }
+
+        $participants_table = $wpdb->prefix . 'chat_participants';
+        $user_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT user_id FROM {$participants_table} WHERE room_id = %d",
+            $room_id_int
+        ));
+        $user_ids = array_values(array_unique(array_filter(array_map('intval', (array) $user_ids))));
+
+        if (!empty($user_ids)) {
+            return $user_ids;
+        }
+
+        $room = aidunite_get_chat_room($room_id_int);
+        if (!$room) {
+            return [];
+        }
+
+        $team_ids = array_values(array_unique(array_filter([
+            (int) ($room->team_a_id ?? 0),
+            (int) ($room->team_b_id ?? 0),
+            (int) ($room->team_id ?? 0),
+        ])));
+        foreach ($team_ids as $team_id) {
+            if ($team_id <= 0) {
+                continue;
+            }
+            $leaders = function_exists('get_team_leaders') ? get_team_leaders($team_id) : [];
+            foreach ((array) $leaders as $leader_id) {
+                $leader_id = (int) $leader_id;
+                if ($leader_id > 0) {
+                    $user_ids[$leader_id] = $leader_id;
+                }
+            }
+        }
+
+        return array_values($user_ids);
+    }
+}
+
+if (!function_exists('aidunite_mark_chat_room_read_for_all_participants')) {
+    /**
+     * ルーム完了時など：参加者全員の既読を最新まで進める（完了済みの未読バッジ残留防止）
+     *
+     * @param int $room_id
+     * @return void
+     */
+    function aidunite_mark_chat_room_read_for_all_participants($room_id) {
+        $room_id_int = (int) $room_id;
+        if ($room_id_int <= 0) {
+            return;
+        }
+        $latest_id = aidunite_get_chat_room_latest_message_id($room_id_int);
+        foreach (aidunite_resolve_chat_room_participant_user_ids($room_id_int) as $user_id) {
+            aidunite_update_read_status($room_id_int, (int) $user_id, $latest_id);
+        }
+    }
 }
 
 /**
@@ -2605,6 +2940,14 @@ function aidunite_search_chat_messages_data($room_id, $search_term, $page = 1, $
         $room_id_int, $search_like, $search_like
     ));
 
+    if ($messages) {
+        foreach ($messages as $m) {
+            if (!empty($m->created_at) && function_exists('aidunite_format_chat_created_at_for_client')) {
+                $m->created_at = aidunite_format_chat_created_at_for_client($m->created_at);
+            }
+        }
+    }
+
     return [
         'messages' => $messages ?: [],
         'total' => $total,
@@ -2658,6 +3001,62 @@ function aidunite_filter_chat_room_ids_for_team_scope(array $room_ids, array $sc
  * @param int $per_page 1ページあたりの件数
  * @return array{items: array, total: int, page: int, per_page: int, total_pages: float|int, total_unread: int, by_type: array{match: int, team: int, board: int}} total_unread / by_type は参加ルーム全体に基づきページングと独立
  */
+/**
+ * チーム間試合チャット（match / group）へのアクセス可否（代表者・管理者のみ）
+ *
+ * @param int|null $user_id
+ */
+function aidunite_user_can_access_match_game_chat($user_id = null) {
+    $user_id = $user_id === null ? get_current_user_id() : (int) $user_id;
+    if ($user_id <= 0 || !function_exists('aidunite_get_effective_user_role')) {
+        return false;
+    }
+
+    list($role,) = aidunite_get_effective_user_role();
+
+    return in_array((string) $role, ['team_leader', 'administrator'], true);
+}
+
+/**
+ * 試合関連のチーム間チャットルーム種別か
+ *
+ * @param string $room_type
+ */
+function aidunite_is_match_game_chat_room_type($room_type) {
+    return in_array((string) $room_type, ['match', 'group'], true);
+}
+
+/**
+ * 保護者・選手などから match/group ルーム ID を除外
+ *
+ * @param int[] $room_ids
+ * @param int   $user_id
+ * @return int[]
+ */
+function aidunite_filter_match_game_chat_room_ids_for_user(array $room_ids, $user_id) {
+    $room_ids = array_values(array_unique(array_filter(array_map('intval', $room_ids))));
+    if ($room_ids === [] || aidunite_user_can_access_match_game_chat($user_id)) {
+        return $room_ids;
+    }
+
+    global $wpdb;
+    $chat_rooms_table = $wpdb->prefix . 'chat_rooms';
+    $placeholders = implode(',', array_fill(0, count($room_ids), '%d'));
+    $rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT id, room_type FROM {$chat_rooms_table} WHERE id IN ($placeholders)",
+        $room_ids
+    ));
+
+    $allowed = [];
+    foreach ((array) $rows as $row) {
+        if (!aidunite_is_match_game_chat_room_type((string) ($row->room_type ?? ''))) {
+            $allowed[] = (int) $row->id;
+        }
+    }
+
+    return array_values(array_unique($allowed));
+}
+
 /**
  * タイムライン用：閲覧チーム視点の相手チーム表示名
  *
@@ -2796,7 +3195,12 @@ function aidunite_build_timeline_chat_items_for_room_ids(array $room_ids, $user_
     $items = [];
     foreach ($latest_messages as $msg) {
         $room_id_int = (int) $msg->room_id;
+        $room_status = (!empty($msg->room_status) ? (string) $msg->room_status : 'active');
         $unread_count = isset($unread_counts[$room_id_int]) ? (int) $unread_counts[$room_id_int] : 0;
+        // 完了済みルームは未読バッジを出さない（現行 active ルームのみ未読対象）
+        if (in_array($room_status, ['completed', 'archived'], true)) {
+            $unread_count = 0;
+        }
         $opponent_label = aidunite_timeline_opponent_team_label($msg, $scope_team_ids);
 
         $items[] = [
@@ -2813,7 +3217,7 @@ function aidunite_build_timeline_chat_items_for_room_ids(array $room_ids, $user_
             'room_id' => $msg->room_id,
             'room_type' => $msg->room_type,
             'room_name' => $msg->room_name,
-            'room_status' => (!empty($msg->room_status) ? $msg->room_status : 'active'),
+            'room_status' => $room_status,
             'thread_room_id' => null,
             'unread_count' => $unread_count,
             'opponent_team_label' => $opponent_label,
@@ -2904,8 +3308,8 @@ function aidunite_get_unified_timeline($user_id, $team_id, $page = 1, $per_page 
         $participant_rooms = array_merge($participant_rooms, $team_rooms);
     }
 
-    // 2-3. ゲームリスト用チャットルーム（match）— 統合副ルームは除外
-    if (!empty($scope_team_ids)) {
+    // 2-3. ゲームリスト用チャットルーム（match）— 代表者・管理者のみ
+    if (!empty($scope_team_ids) && aidunite_user_can_access_match_game_chat($user_id_int)) {
         $ph_m = implode(',', array_fill(0, count($scope_team_ids), '%d'));
         $merged_excl = aidunite_chat_rooms_has_merged_into_column()
             ? ' AND (merged_into_room_id IS NULL OR merged_into_room_id = 0)'
@@ -2920,6 +3324,7 @@ function aidunite_get_unified_timeline($user_id, $team_id, $page = 1, $per_page 
     }
 
     $participant_rooms = array_values(array_unique(array_map('intval', $participant_rooms)));
+    $participant_rooms = aidunite_filter_match_game_chat_room_ids_for_user($participant_rooms, $user_id_int);
     if (!empty($participant_rooms) && !empty($scope_team_ids)) {
         $participant_rooms = aidunite_filter_chat_room_ids_for_team_scope($participant_rooms, $scope_team_ids);
     }
@@ -2939,16 +3344,22 @@ function aidunite_get_unified_timeline($user_id, $team_id, $page = 1, $per_page 
         $room_unread_map = aidunite_get_unread_counts($participant_rooms, $user_id_int);
         $total_unread = array_sum($room_unread_map);
         $ph_rt = implode(',', array_fill(0, count($participant_rooms), '%d'));
-        $rt_sql = "SELECT id, room_type FROM {$chat_rooms_table} WHERE id IN ($ph_rt)";
+        $rt_sql = "SELECT id, room_type, status FROM {$chat_rooms_table} WHERE id IN ($ph_rt)";
         $rt_rows = $wpdb->get_results($wpdb->prepare($rt_sql, $participant_rooms));
         $room_type_by_id = [];
+        $room_status_by_id = [];
         foreach ((array) $rt_rows as $rt_row) {
             $room_type_by_id[(int) $rt_row->id] = (string) $rt_row->room_type;
+            $room_status_by_id[(int) $rt_row->id] = (string) ($rt_row->status ?? 'active');
         }
         foreach ($participant_rooms as $prid) {
             $prid = (int) $prid;
             $uc = isset($room_unread_map[$prid]) ? (int) $room_unread_map[$prid] : 0;
             if ($uc <= 0) {
+                continue;
+            }
+            $room_st = isset($room_status_by_id[$prid]) ? $room_status_by_id[$prid] : 'active';
+            if (in_array($room_st, ['completed', 'archived'], true)) {
                 continue;
             }
             $rt = isset($room_type_by_id[$prid]) ? $room_type_by_id[$prid] : '';

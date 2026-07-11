@@ -354,9 +354,9 @@ class ScheduleManager {
             const schedule = dateSchedules[0];
             modalContent = this.generateScheduleDetailHTML(schedule);
 
-            // 編集・削除ボタンのリンクを設定
-            editBtn.href = `/schedule-edit?id=${schedule.id}`;
-            deleteBtn.dataset.scheduleId = schedule.id;
+            const scheduleId = parseInt(schedule.id, 10) || 0;
+            editBtn.href = scheduleId > 0 ? `/schedule-edit?id=${encodeURIComponent(String(scheduleId))}` : '#';
+            deleteBtn.dataset.scheduleId = scheduleId > 0 ? String(scheduleId) : '';
         } else {
             // 複数スケジュール
             modalContent = '<h4>複数のスケジュールがあります</h4>';
@@ -369,7 +369,12 @@ class ScheduleManager {
             deleteBtn.dataset.scheduleId = '';
         }
 
-        modalBody.innerHTML = modalContent;
+        modalBody.replaceChildren();
+        if (modalContent) {
+            const template = document.createElement('template');
+            template.innerHTML = modalContent;
+            modalBody.appendChild(template.content);
+        }
         modal.classList.add('active');
         this.selectedDate = date;
     }
@@ -426,11 +431,7 @@ class ScheduleManager {
         const scheduleId = deleteBtn.dataset.scheduleId;
 
         if (!scheduleId) {
-            if (typeof showToastNotification !== 'undefined') {
-                showToastNotification('削除するスケジュールを選択してください。', 'warning');
-            } else {
-                alert('削除するスケジュールを選択してください。');
-            }
+            this.showNotification('削除するスケジュールを選択してください。', 'warning');
             return;
         }
 
@@ -493,36 +494,84 @@ class ScheduleManager {
                     if (nBoard > 0 || nMr > 0) {
                         confirmText = '関連する掲示板・マッチ申請データも含めて削除される場合があります。' + confirmText;
                     }
-                    if (!confirm(confirmText)) {
-                        return;
-                    }
-                    runRestDelete();
+                    const askDelete = () => {
+                        if (typeof AidUniteScheduleModal !== 'undefined' && typeof AidUniteScheduleModal.confirmAction === 'function') {
+                            AidUniteScheduleModal.confirmAction({ message: confirmText, onConfirm: runRestDelete });
+                        } else if (typeof showConfirmModal === 'function') {
+                            showConfirmModal({
+                                title: '削除確認',
+                                message: confirmText,
+                                confirmLabel: '削除する',
+                                cancelLabel: 'キャンセル',
+                                confirmVariant: 'danger',
+                                onConfirm: runRestDelete
+                            });
+                        }
+                    };
+                    askDelete();
                 },
                 onError: () => {
-                    if (!confirm('依存状況を取得できませんでした。このまま削除を試みますか？')) {
-                        return;
+                    const askFallbackDelete = () => {
+                        if (typeof AidUniteScheduleModal !== 'undefined' && typeof AidUniteScheduleModal.confirmAction === 'function') {
+                            AidUniteScheduleModal.confirmAction({
+                                message: 'このスケジュールを削除してもよろしいですか？',
+                                onConfirm: runRestDelete
+                            });
+                        } else if (typeof showConfirmModal === 'function') {
+                            showConfirmModal({
+                                title: '削除確認',
+                                message: 'このスケジュールを削除してもよろしいですか？',
+                                confirmLabel: '削除する',
+                                cancelLabel: 'キャンセル',
+                                confirmVariant: 'danger',
+                                onConfirm: runRestDelete
+                            });
+                        }
+                    };
+                    if (typeof AidUniteScheduleModal !== 'undefined' && typeof AidUniteScheduleModal.confirmAction === 'function') {
+                        AidUniteScheduleModal.confirmAction({
+                            title: '確認',
+                            message: '依存状況を取得できませんでした。このまま削除を試みますか？',
+                            confirmLabel: '続行する',
+                            onConfirm: askFallbackDelete
+                        });
+                    } else if (typeof showConfirmModal === 'function') {
+                        showConfirmModal({
+                            title: '確認',
+                            message: '依存状況を取得できませんでした。このまま削除を試みますか？',
+                            confirmLabel: '続行する',
+                            cancelLabel: 'キャンセル',
+                            confirmVariant: 'danger',
+                            onConfirm: askFallbackDelete
+                        });
                     }
-                    if (!confirm('このスケジュールを削除してもよろしいですか？')) {
-                        return;
-                    }
-                    runRestDelete();
                 }
             });
             return;
         }
 
-        if (!confirm('このスケジュールを削除してもよろしいですか？')) {
-            return;
+        if (typeof AidUniteScheduleModal !== 'undefined' && typeof AidUniteScheduleModal.confirmAction === 'function') {
+            AidUniteScheduleModal.confirmAction({
+                message: 'このスケジュールを削除してもよろしいですか？',
+                onConfirm: runRestDelete
+            });
+        } else if (typeof showConfirmModal === 'function') {
+            showConfirmModal({
+                title: '削除確認',
+                message: 'このスケジュールを削除してもよろしいですか？',
+                confirmLabel: '削除する',
+                cancelLabel: 'キャンセル',
+                confirmVariant: 'danger',
+                onConfirm: runRestDelete
+            });
         }
-        runRestDelete();
     }
 
     showDeleteConfirmation() {
-        if (typeof showToastNotification !== 'undefined') {
-            showToastNotification('削除するスケジュールを選択してください。カレンダーから日付をクリックしてスケジュールを選択してから削除してください。', 'warning');
-        } else {
-            alert('削除するスケジュールを選択してください。カレンダーから日付をクリックしてスケジュールを選択してから削除してください。');
-        }
+        this.showNotification(
+            '削除するスケジュールを選択してください。カレンダーから日付をクリックしてスケジュールを選択してから削除してください。',
+            'warning'
+        );
     }
 
     loadSchedules() {
@@ -543,7 +592,9 @@ class ScheduleManager {
         const monthSchedules = this.getSchedulesForMonth(this.currentMonth, this.currentYear);
 
         if (monthSchedules.length === 0) {
-            listContent.innerHTML = '<p class="no-schedules">この月のスケジュールはありません</p>';
+            listContent.innerHTML = typeof aiduniteCompactEmptyHtml === 'function'
+                ? aiduniteCompactEmptyHtml('この月のスケジュールはありません', 'no-schedules')
+                : '<p class="no-schedules">この月のスケジュールはありません</p>';
             return;
         }
 
@@ -554,7 +605,26 @@ class ScheduleManager {
         });
         listHTML += '</div>';
 
-        listContent.innerHTML = listHTML;
+        listContent.replaceChildren();
+        const template = document.createElement('template');
+        template.innerHTML = listHTML;
+        listContent.appendChild(template.content);
+        listContent.querySelectorAll('[data-schedule-edit-id]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const id = parseInt(btn.getAttribute('data-schedule-edit-id'), 10) || 0;
+                if (id > 0) {
+                    this.editScheduleById(id);
+                }
+            });
+        });
+        listContent.querySelectorAll('[data-schedule-delete-id]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const id = parseInt(btn.getAttribute('data-schedule-delete-id'), 10) || 0;
+                if (id > 0) {
+                    this.deleteScheduleById(id);
+                }
+            });
+        });
     }
 
     getSchedulesForMonth(month, year) {
@@ -574,6 +644,7 @@ class ScheduleManager {
     }
 
     generateScheduleListItemHTML(schedule) {
+        const scheduleId = parseInt(schedule.id, 10) || 0;
         return `
             <div class="schedule-list-item">
                 <div class="schedule-list-date">${this.formatDisplayDate(schedule.date)}</div>
@@ -586,8 +657,8 @@ class ScheduleManager {
                     </div>
                 </div>
                 <div class="schedule-list-actions">
-                    <button class="dashboard-btn btn-secondary btn-sm" onclick="scheduleManager.editScheduleById(${schedule.id})">編集</button>
-                    <button class="dashboard-btn btn-danger btn-sm" onclick="scheduleManager.deleteScheduleById(${schedule.id})">削除</button>
+                    <button type="button" class="dashboard-btn btn-secondary btn-sm" data-schedule-edit-id="${scheduleId}">編集</button>
+                    <button type="button" class="dashboard-btn btn-danger btn-sm" data-schedule-delete-id="${scheduleId}">削除</button>
                 </div>
             </div>
         `;
@@ -595,7 +666,11 @@ class ScheduleManager {
 
     editScheduleById(scheduleId) {
         const win = getWindow();
-        win.location.href = `/schedule-edit?id=${scheduleId}`;
+        const id = parseInt(scheduleId, 10) || 0;
+        if (id <= 0) {
+            return;
+        }
+        win.location.href = `/schedule-edit?id=${encodeURIComponent(String(id))}`;
     }
 
     deleteScheduleById(scheduleId) {
@@ -645,17 +720,8 @@ class ScheduleManager {
         console.log(`${type}: ${message}`);
 
         // トースト通知を使用
-        if (typeof showToastNotification !== 'undefined') {
+        if (typeof showToastNotification === 'function') {
             showToastNotification(message, type);
-        } else {
-            // フォールバック
-            if (type === 'success') {
-                alert(message);
-            } else if (type === 'error') {
-                alert(message);
-            } else {
-                alert(message);
-            }
         }
     }
 }

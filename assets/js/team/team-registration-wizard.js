@@ -2,6 +2,7 @@
   'use strict';
 
   var config = window.aiduniteTeamRegistration || {};
+  var chipIcons = config.chipIcons && typeof config.chipIcons === 'object' ? config.chipIcons : {};
   var form = document.getElementById('team-registration-form');
   if (!form) {
     return;
@@ -12,7 +13,6 @@
   var scopeRadios = form.querySelectorAll('input[name="registration_scope_radio"]');
   var scopeHidden = document.getElementById('registration_scope');
   var genderHidden = document.getElementById('team_gender_option');
-  var baseNameInput = document.getElementById('team_name_base');
   var maleNameInput = document.getElementById('team_male_name');
   var femaleNameInput = document.getElementById('team_female_name');
   var submitBtn = document.getElementById('team-reg-submit');
@@ -67,8 +67,21 @@
       genderHidden.value = scope === 'both' ? '' : scope;
     }
     syncProgressChrome();
-    syncAutoTeamNames();
+    syncCommonHeadVisibility();
+    syncRegistrationLegacyFields();
     applyGenderTheme();
+  }
+
+  function syncCommonHeadVisibility() {
+    var isBoth = scope === 'both';
+    var commonHead = document.querySelector('[data-team-reg-common-head]');
+    if (commonHead) {
+      commonHead.hidden = !isBoth;
+    }
+    var nameHint = document.querySelector('[data-team-name-hint]');
+    if (nameHint) {
+      nameHint.hidden = !isBoth;
+    }
   }
 
   function stepForProgressSlot(slotIdx) {
@@ -155,29 +168,7 @@
     });
   }
 
-  function teamNameWithSuffix(base, suffix) {
-    var b = String(base || '').trim();
-    if (b === '') {
-      return '';
-    }
-    if (b.endsWith(suffix)) {
-      return b;
-    }
-    return b + ' ' + suffix;
-  }
-
-  function syncAutoTeamNames() {
-    var base = baseNameInput ? baseNameInput.value.trim() : '';
-    if (maleNameInput && (scope === 'male' || scope === 'both')) {
-      if (!maleNameInput.dataset.userEdited || maleNameInput.dataset.userEdited !== '1') {
-        maleNameInput.value = teamNameWithSuffix(base, '男子');
-      }
-    }
-    if (femaleNameInput && (scope === 'female' || scope === 'both')) {
-      if (!femaleNameInput.dataset.userEdited || femaleNameInput.dataset.userEdited !== '1') {
-        femaleNameInput.value = teamNameWithSuffix(base, '女子');
-      }
-    }
+  function syncRegistrationLegacyFields() {
     if (legacyLogoHidden && scope === 'male' && logoApis.male) {
       legacyLogoHidden.value = logoApis.male.getUrl();
     }
@@ -186,18 +177,16 @@
     }
   }
 
-  if (maleNameInput) {
-    maleNameInput.addEventListener('input', function () {
-      maleNameInput.dataset.userEdited = '1';
-    });
-  }
-  if (femaleNameInput) {
-    femaleNameInput.addEventListener('input', function () {
-      femaleNameInput.dataset.userEdited = '1';
-    });
-  }
-  if (baseNameInput) {
-    baseNameInput.addEventListener('input', syncAutoTeamNames);
+  function syncDualRegistrationLogoFields(postData) {
+    if (scope !== 'both') {
+      return;
+    }
+    if (logoApis.male) {
+      postData.set('team_male_logo', logoApis.male.getUrl());
+    }
+    if (logoApis.female) {
+      postData.set('team_female_logo', logoApis.female.getUrl());
+    }
   }
 
   scopeRadios.forEach(function (radio) {
@@ -281,60 +270,166 @@
     return el.value.trim();
   }
 
-  function summaryBlock(title, rows, logoApi) {
-    var html = '<section class="team-reg-summary-block"><h3 class="team-reg-summary-block__title">' + title + '</h3><dl class="team-reg-summary">';
-    rows.forEach(function (row) {
-      html +=
-        '<div class="team-reg-summary__row"><dt>' +
-        row.label +
-        '</dt><dd>' +
-        (row.value || '—') +
-        '</dd></div>';
-    });
-    html += '</dl>';
-    if (logoApi && logoApi.getUrl()) {
-      html += '<p class="team-reg-summary-block__logo-note">ロゴ：設定済み</p>';
+  function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.textContent = text == null ? '' : String(text);
+    return div.innerHTML;
+  }
+
+  function formatMultilineHtml(text) {
+    return escapeHtml(text).replace(/\r\n|\r|\n/g, '<br>');
+  }
+
+  function chipValue(value) {
+    var v = value == null ? '' : String(value).trim();
+    return v === '' || v === '—' ? '' : v;
+  }
+
+  function chipIcon(key) {
+    return chipIcons[key] || '';
+  }
+
+  function renderInfoChip(icon, label, value, solo) {
+    var v = chipValue(value);
+    if (!v) {
+      return '';
     }
-    html += '</section>';
-    return html;
+    var cls = 'team-info-chip' + (solo ? ' team-info-chip--solo' : '');
+    return (
+      '<article class="' +
+      cls +
+      '">' +
+      '<span class="team-info-chip__icon" aria-hidden="true">' +
+      icon +
+      '</span>' +
+      '<span class="team-info-chip__label">' +
+      escapeHtml(label) +
+      '</span>' +
+      '<span class="team-info-chip__value">' +
+      escapeHtml(v) +
+      '</span>' +
+      '</article>'
+    );
+  }
+
+  function renderIntroChip(icon, label, text) {
+    var v = chipValue(text);
+    if (!v) {
+      return '';
+    }
+    return (
+      '<article class="team-info-chip team-info-chip--solo team-info-chip--intro">' +
+      '<span class="team-info-chip__icon" aria-hidden="true">' +
+      icon +
+      '</span>' +
+      '<span class="team-info-chip__label">' +
+      escapeHtml(label) +
+      '</span>' +
+      '<div class="team-info-chip__prose">' +
+      formatMultilineHtml(v) +
+      '</div>' +
+      '</article>'
+    );
+  }
+
+  function renderConfirmHero(teamName, sport, logoApi, genderLabel) {
+    var logoUrl = logoApi && logoApi.getUrl ? logoApi.getUrl() : '';
+    var logoHtml = logoUrl
+      ? '<img class="team-public-profile__logo" src="' +
+        escapeHtml(logoUrl) +
+        '" alt="" width="120" height="120" />'
+      : '<div class="team-public-profile__logo team-public-profile__logo--placeholder" aria-hidden="true"></div>';
+    var sportLine = chipValue(sport);
+    if (genderLabel) {
+      sportLine = genderLabel + (sportLine ? ' · ' + sportLine : '');
+    }
+    return (
+      '<header class="team-public-profile__hero team-reg-confirm-hero">' +
+      logoHtml +
+      '<div class="team-public-profile__hero-text">' +
+      '<h3 class="team-public-profile__title">' +
+      escapeHtml(chipValue(teamName) || '—') +
+      '</h3>' +
+      (sportLine
+        ? '<p class="team-public-profile__sport">' + escapeHtml(sportLine) + '</p>'
+        : '') +
+      '</div>' +
+      '</header>'
+    );
+  }
+
+  function renderBasicChips() {
+    var chips = '';
+    if (scope === 'both') {
+      chips += renderInfoChip(chipIcon('base_name'), 'ベース名', fieldText('team_name_base'));
+    }
+    chips += renderInfoChip(chipIcon('category'), '年代', fieldText('team_category'));
+    chips += renderInfoChip(chipIcon('type'), '所属', fieldText('team_type'));
+    chips += renderInfoChip(chipIcon('location'), '都道府県', getActivityRegionLabel());
+    chips += renderInfoChip(chipIcon('website'), '公式サイト', fieldText('team_website'), true);
+    chips += renderInfoChip(chipIcon('sns'), 'サイト', fieldText('team_sns_url'), true);
+    if (!chips) {
+      return '';
+    }
+    return (
+      '<section class="team-public-profile__section team-public-profile__section--cards team-reg-confirm-section" aria-label="基本情報">' +
+      '<h3 class="team-public-profile__section-heading">基本情報</h3>' +
+      '<div class="team-info-chips">' +
+      chips +
+      '</div>' +
+      '</section>'
+    );
   }
 
   function renderSummary() {
     if (!summaryRoot) {
       return;
     }
-    var commonRows = [
-      { label: 'スポーツ', value: fieldText('sport_type') },
-      { label: '年代', value: fieldText('team_category') },
-      { label: '所属', value: fieldText('team_type') },
-      { label: '都道府県', value: getActivityRegionLabel() },
-      { label: '公式サイト', value: fieldText('team_website') },
-      { label: 'サイト', value: fieldText('team_sns_url') },
-    ];
-    var html = summaryBlock('共通', [
-      { label: 'ベース名', value: fieldText('team_name_base') },
-    ].concat(commonRows));
+    var sport = fieldText('sport_type');
+    var html = '<div class="team-reg-confirm-profile">';
 
     if (scope === 'male' || scope === 'both') {
-      html += summaryBlock(
-        '男子チーム',
-        [
-          { label: 'チーム名', value: fieldText('team_male_name') },
-          { label: '紹介文', value: fieldText('team_male_description') },
-        ],
-        logoApis.male
+      html += renderConfirmHero(
+        fieldText('team_male_name'),
+        sport,
+        logoApis.male,
+        scope === 'both' ? '男子' : ''
       );
     }
     if (scope === 'female' || scope === 'both') {
-      html += summaryBlock(
-        '女子チーム',
-        [
-          { label: 'チーム名', value: fieldText('team_female_name') },
-          { label: '紹介文', value: fieldText('team_female_description') },
-        ],
-        logoApis.female
+      html += renderConfirmHero(
+        fieldText('team_female_name'),
+        sport,
+        logoApis.female,
+        scope === 'both' ? '女子' : ''
       );
     }
+
+    html += renderBasicChips();
+
+    var introHtml = '';
+    if (scope === 'male' || scope === 'both') {
+      introHtml += renderIntroChip(
+        chipIcon('intro'),
+        scope === 'both' ? '男子チームの紹介' : '紹介',
+        fieldText('team_male_description')
+      );
+    }
+    if (scope === 'female' || scope === 'both') {
+      introHtml += renderIntroChip(
+        chipIcon('intro'),
+        scope === 'both' ? '女子チームの紹介' : '紹介',
+        fieldText('team_female_description')
+      );
+    }
+    if (introHtml) {
+      html +=
+        '<div class="team-info-chips team-info-chips--intro team-reg-confirm-intro">' +
+        introHtml +
+        '</div>';
+    }
+
+    html += '</div>';
     summaryRoot.innerHTML = html;
   }
 
@@ -401,11 +496,7 @@
   }
 
   function notify(message, type) {
-    if (typeof showToastNotification === 'function') {
-      showToastNotification(message, type);
-    } else if (type === 'error') {
-      window.alert(message);
-    }
+    aiduniteToast(message, type || 'info');
   }
 
   form.addEventListener('click', function (e) {
@@ -420,7 +511,7 @@
         return;
       }
       if (currentIndex === 0 && !getScope()) {
-        notify('申請するチームを選択してください。', 'error');
+        notify('申請するチームの性別を選択してください。', 'error');
         return;
       }
       showStepByIndex(currentIndex + 1);
@@ -432,7 +523,7 @@
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     buildStepSequence();
-    syncAutoTeamNames();
+    syncRegistrationLegacyFields();
     if (!validateStep(currentStepNumber())) {
       return;
     }
@@ -461,6 +552,7 @@
     if (scope === 'female' && logoApis.female) {
       postData.set('team_logo', logoApis.female.getUrl());
     }
+    syncDualRegistrationLogoFields(postData);
 
     fetch(config.ajaxUrl, {
       method: 'POST',
@@ -491,7 +583,7 @@
         notify(err.message || '送信に失敗しました', 'error');
         if (submitBtn) {
           submitBtn.disabled = false;
-          submitBtn.textContent = 'チーム登録を申請する';
+          submitBtn.textContent = 'チームを申請する';
         }
       });
   });

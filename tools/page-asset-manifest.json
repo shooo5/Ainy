@@ -1,0 +1,176 @@
+[
+  {
+    "page": "page-about.php",
+    "slug": "about",
+    "css": true,
+    "js": false
+  },
+  {
+    "page": "page-disclaimer.php",
+    "slug": "disclaimer",
+    "css": true,
+    "js": false
+  },
+  {
+    "page": "page-cookie-policy.php",
+    "slug": "cookie-policy",
+    "css": true,
+    "js": false
+  },
+  {
+    "page": "page-privacy-policy.php",
+    "slug": "privacy-policy",
+    "css": true,
+    "js": false
+  },
+  {
+    "page": "page-terms-of-service.php",
+    "slug": "terms-of-service",
+    "css": true,
+    "js": false
+  },
+  {
+    "page": "page-plan-info.php",
+    "slug": "plan-info",
+    "css": true,
+    "js": false
+  },
+  {
+    "page": "page-service.php",
+    "slug": "service",
+    "css": true,
+    "js": false
+  },
+  {
+    "page": "page-payment-required.php",
+    "slug": "payment-required",
+    "css": true,
+    "js": false
+  },
+  {
+    "page": "page-team-approval.php",
+    "slug": "team-approval",
+    "css": true,
+    "js": false
+  },
+  {
+    "page": "page-player-stats.php",
+    "slug": "player-stats",
+    "css": true,
+    "js": false
+  },
+  {
+    "page": "page-match-log-view.php",
+    "slug": "match-log-view",
+    "css": true,
+    "js": false
+  },
+  {
+    "page": "page-edit-player.php",
+    "slug": "edit-player",
+    "css": true,
+    "js": false
+  },
+  {
+    "page": "page-contact.php",
+    "slug": "contact",
+    "css": true,
+    "js": true
+  },
+  {
+    "page": "page-faq.php",
+    "slug": "faq",
+    "css": true,
+    "js": true
+  },
+  {
+    "page": "page-feedback.php",
+    "slug": "feedback",
+    "css": true,
+    "js": true
+  },
+  {
+    "page": "page-guide.php",
+    "slug": "guide",
+    "css": true,
+    "js": true
+  },
+  {
+    "page": "page-press.php",
+    "slug": "press",
+    "css": true,
+    "js": true
+  },
+  {
+    "page": "page-regulation.php",
+    "slug": "regulation",
+    "css": true,
+    "js": true
+  },
+  {
+    "page": "page-system-maintenance.php",
+    "slug": "system-maintenance",
+    "css": false,
+    "js": true
+  },
+  {
+    "page": "page-template-dashboard.php",
+    "slug": "template-dashboard",
+    "css": false,
+    "js": true
+  },
+  {
+    "page": "page-admin-schedule-list.php",
+    "slug": "admin-schedule-list",
+    "css": false,
+    "js": true
+  },
+  {
+    "page": "page-admin-match-feedback-list.php",
+    "slug": "admin-match-feedback-list",
+    "css": false,
+    "js": true
+  },
+  {
+    "page": "page-admin-user-list.php",
+    "slug": "admin-user-list",
+    "css": true,
+    "js": true
+  },
+  {
+    "page": "page-match-analytics.php",
+    "slug": "match-analytics",
+    "css": true,
+    "js": true
+  },
+  {
+    "page": "page-parent-payment.php",
+    "slug": "parent-payment",
+    "css": true,
+    "js": true
+  },
+  {
+    "page": "page-team-payment-management.php",
+    "slug": "team-payment-management",
+    "css": true,
+    "js": true
+  },
+  {
+    "page": "page-registration-preview.php",
+    "slug": "registration-preview",
+    "css": true,
+    "js": true
+  },
+  {
+    "page": "page-team-registration-preview.php",
+    "slug": "team-registration-preview",
+    "css": true,
+    "js": true
+  },
+  {
+    "page": "page-sample-preview.php",
+    "slug": "sample-preview",
+    "css": true,
+    "js": true
+  }
+]

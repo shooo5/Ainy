@@ -100,7 +100,7 @@
             });
           })
           .catch(function (err) {
-            window.alert(err.message || '切り替えに失敗しました。');
+            aiduniteToast(err.message || '切り替えに失敗しました。', 'error');
             selects.forEach(function (s) {
               s.value = initial;
               s.disabled = false;

@@ -34,15 +34,7 @@ add_action('rest_api_init', function() {
 function aidunite_get_rematch_suggestions($request) {
     try {
         $current_user_id = get_current_user_id();
-        $team_scope = function_exists('aidunite_get_managed_team_ids')
-            ? aidunite_get_managed_team_ids($current_user_id)
-            : [];
-        if (empty($team_scope)) {
-            $legacy = (int) get_user_meta($current_user_id, 'team_id', true);
-            if ($legacy > 0) {
-                $team_scope = [$legacy];
-            }
-        }
+        $team_scope = aidunite_match_resolve_user_team_scope($current_user_id);
 
         if (empty($team_scope)) {
             error_log('[REMATCH_SUGGESTIONS_API] Error: Team ID not found for user ' . $current_user_id);
@@ -88,20 +80,20 @@ function aidunite_get_rematch_suggestions($request) {
         $suggestions = [];
 
         foreach ($feedbacks as $feedback) {
-            $match_id = get_post_meta($feedback->ID, 'match_id', true);
-            if (!$match_id) {
+            $fb_meta = aidunite_match_feedback_get_display_meta((int) $feedback->ID);
+            $match_id = (int) ($fb_meta['match_id'] ?? 0);
+            if ($match_id <= 0) {
                 continue;
             }
 
-            // マッチ情報を取得
             $match_request = get_post($match_id);
             if (!$match_request || $match_request->post_type !== 'match_request') {
                 continue;
             }
 
-            // 相手チームIDを取得（managed 内のどちらが自チームかで判定）
-            $from_team_id = (int) get_post_meta($match_id, 'from_team_id', true);
-            $to_team_id = (int) get_post_meta($match_id, 'to_team_id', true);
+            $mr_meta = aidunite_match_request_get_canonical_meta($match_id);
+            $from_team_id = (int) ($mr_meta['from_team_id'] ?? 0);
+            $to_team_id = (int) ($mr_meta['to_team_id'] ?? 0);
 
             $my_tid = 0;
             if (in_array($from_team_id, $team_scope, true)) {
@@ -153,12 +145,14 @@ function aidunite_get_rematch_suggestions($request) {
             }
 
             // スケジュール情報を取得
-            $schedule_id = get_post_meta($match_id, 'to_schedule_id', true);
-            if (!$schedule_id) {
-                $schedule_id = get_post_meta($match_id, 'from_schedule_id', true);
+            $schedule_id = (int) ($mr_meta['to_schedule_id'] ?? 0);
+            if ($schedule_id <= 0) {
+                $schedule_id = (int) ($mr_meta['from_schedule_id'] ?? 0);
             }
 
-            $schedule_date = $schedule_id ? get_post_meta($schedule_id, 'schedule_date', true) : '';
+            $schedule_date = $schedule_id > 0 && function_exists('aidunite_schedule_read_normalized_date')
+                ? aidunite_schedule_read_normalized_date($schedule_id)
+                : '';
 
             // 過去6ヶ月以内かチェック
             if ($schedule_date && $schedule_date < $six_months_ago) {
@@ -166,9 +160,10 @@ function aidunite_get_rematch_suggestions($request) {
             }
 
             $opponent_team_name = get_the_title($opponent_team_id);
-            $satisfaction = get_post_meta($feedback->ID, 'satisfaction', true);
-            $opponent_rating = get_post_meta($feedback->ID, 'opponent_rating', true);
-            $opponent_satisfaction = get_post_meta($opponent_feedback[0]->ID, 'satisfaction', true);
+            $satisfaction = (string) ($fb_meta['satisfaction'] ?? '');
+            $opponent_rating = (string) ($fb_meta['opponent_rating'] ?? '');
+            $opp_meta = aidunite_match_feedback_get_display_meta((int) $opponent_feedback[0]->ID);
+            $opponent_satisfaction = (string) ($opp_meta['satisfaction'] ?? '');
 
             $suggestions[] = [
                 'match_id' => $match_id,

@@ -77,7 +77,90 @@ add_action('rest_api_init', function () {
         'callback' => 'aidunite_e2e_test_data_cleanup',
         'permission_callback' => $permission,
     ]);
+
+    register_rest_route('aidunite/v1', '/test-data/match-request/(?P<id>\d+)/chat-rooms', [
+        'methods' => 'GET',
+        'callback' => 'aidunite_e2e_get_match_request_chat_rooms',
+        'permission_callback' => $permission,
+        'args' => [
+            'id' => [
+                'required' => true,
+                'type' => 'integer',
+                'sanitize_callback' => 'absint',
+            ],
+        ],
+    ]);
 });
+
+/**
+ * E2E: 当該 MR に紐づくチャットルーム一覧（キャンセル→再申請→再承認の room 検証用）
+ *
+ * @param WP_REST_Request $request
+ * @return WP_REST_Response
+ */
+function aidunite_e2e_get_match_request_chat_rooms($request) {
+    global $wpdb;
+
+    $match_request_id = (int) $request->get_param('id');
+    if ($match_request_id <= 0) {
+        return new WP_REST_Response(['success' => false, 'message' => 'invalid match_request_id'], 400);
+    }
+
+    $mr = get_post($match_request_id);
+    if (!$mr || $mr->post_type !== 'match_request') {
+        return new WP_REST_Response(['success' => false, 'message' => 'match_request not found'], 404);
+    }
+
+    $rooms_table = $wpdb->prefix . 'chat_rooms';
+    $rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT id, status, match_id, room_type, schedule_id
+         FROM {$rooms_table}
+         WHERE room_type IN ('match', 'group')
+           AND match_id = %d
+         ORDER BY id ASC",
+        $match_request_id
+    ), ARRAY_A);
+
+    $rooms = [];
+    foreach ((array) $rows as $row) {
+        $rooms[] = [
+            'id' => (int) ($row['id'] ?? 0),
+            'status' => (string) ($row['status'] ?? ''),
+            'match_id' => (int) ($row['match_id'] ?? 0),
+            'room_type' => (string) ($row['room_type'] ?? ''),
+            'schedule_id' => (int) ($row['schedule_id'] ?? 0),
+        ];
+    }
+
+    $bound_room_id = (int) get_post_meta($match_request_id, 'chat_room_id', true);
+    $active_room_id = 0;
+    if (function_exists('aidunite_get_active_match_chat_room')) {
+        $active = aidunite_get_active_match_chat_room($match_request_id);
+        if ($active && !empty($active->id)) {
+            $active_room_id = (int) $active->id;
+        }
+    }
+
+    $completed_ids = [];
+    $active_ids = [];
+    foreach ($rooms as $room) {
+        if (($room['status'] ?? '') === 'completed') {
+            $completed_ids[] = (int) $room['id'];
+        } elseif (($room['status'] ?? '') === 'active') {
+            $active_ids[] = (int) $room['id'];
+        }
+    }
+
+    return new WP_REST_Response([
+        'success' => true,
+        'match_request_id' => $match_request_id,
+        'bound_room_id' => $bound_room_id,
+        'active_room_id' => $active_room_id,
+        'completed_room_ids' => $completed_ids,
+        'active_room_ids' => $active_ids,
+        'rooms' => $rooms,
+    ], 200);
+}
 
 /**
  * メールからユーザーとチームIDを取得
@@ -507,7 +590,9 @@ function aidunite_e2e_test_data_setup($request) {
             update_post_meta($from_schedule_id, 'intent', 'confirmed');
 
             if ($create_chat && function_exists('aidunite_create_or_extend_match_chat')) {
-                $match_date = get_post_meta($to_schedule_id, 'schedule_date', true);
+                $match_date = function_exists('aidunite_schedule_read_normalized_date')
+                    ? aidunite_schedule_read_normalized_date((int) $to_schedule_id)
+                    : '';
                 $chat_room_id = aidunite_create_or_extend_match_chat(
                     $match_request_id,
                     (int) $team_b['team_id'],

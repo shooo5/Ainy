@@ -1,0 +1,129 @@
+/**
+ * preview-mode-banner — 管理者プレビューモードバナー
+ */
+.preview-mode-banner {
+  background: linear-gradient(135deg, var(--warning-color, #ff9800) 0%, #f57c00 100%);
+  color: #fff;
+  margin-bottom: var(--spacing-base, 1em);
+  border-radius: var(--radius-base, 8px);
+  box-shadow: var(--shadow-sm);
+}
+
+.preview-mode-banner__header {
+  cursor: pointer;
+  padding: 0.75em 1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm, 0.5em);
+  font-weight: bold;
+  user-select: none;
+}
+
+.preview-mode-banner__header:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-base, 8px) var(--radius-base, 8px) 0 0;
+}
+
+.preview-mode-banner__toggle {
+  font-size: 0.85em;
+  opacity: 0.9;
+}
+
+.preview-mode-banner__body {
+  overflow: hidden;
+  transition: max-height 0.25s ease;
+}
+
+.preview-mode-banner.is-collapsed .preview-mode-banner__body {
+  max-height: 0;
+}
+
+.preview-mode-banner__inner {
+  padding: 0 1em 1em;
+  text-align: center;
+}
+
+.preview-mode-banner--simple .preview-mode-banner__header {
+  padding: 0.6em 1em;
+  cursor: pointer;
+}
+
+.preview-mode-banner--simple .preview-mode-banner__body .preview-mode-banner__inner {
+  padding: 0 1em 0.6em;
+}
+
+.preview-mode-banner__badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: var(--radius-small, 4px);
+  font-size: 0.9em;
+}
+
+.preview-mode-banner__role-pill {
+  background: rgba(255, 255, 255, 0.3);
+  padding: 2px 6px;
+  border-radius: var(--radius-small, 4px);
+  font-weight: bold;
+}
+
+.preview-mode-banner__meta {
+  margin-bottom: 0.5em;
+  font-size: 0.9em;
+  opacity: 0.9;
+}
+
+.preview-mode-banner__current {
+  margin-bottom: 1em;
+}
+
+.preview-mode-banner__current strong {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: var(--radius-small, 4px);
+  font-weight: bold;
+}
+
+.preview-mode-banner__form {
+  display: inline;
+}
+
+.preview-mode-banner__select {
+  margin: 0 0.5em;
+  padding: 5px 10px;
+  border-radius: var(--radius-small, 4px);
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text-primary, #333);
+  font-weight: bold;
+}
+
+.preview-mode-banner__off-link {
+  color: #fff;
+  text-decoration: underline;
+  margin-left: 1em;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 8px;
+  border-radius: var(--radius-small, 4px);
+}
+
+.preview-mode-banner__hint {
+  margin-top: 0.5em;
+  font-size: 0.9em;
+  opacity: 0.9;
+}
+
+.preview-mode-banner--simple .preview-mode-banner__header--gradient {
+  background: linear-gradient(135deg, var(--warning-color, #ff9800) 0%, #f57c00 100%);
+  color: #fff;
+  font-weight: bold;
+  border-radius: var(--radius-base, 8px) var(--radius-base, 8px) 0 0;
+}
+
+.preview-mode-banner--simple .preview-mode-banner__inner--gradient {
+  background: linear-gradient(135deg, var(--warning-color, #ff9800) 0%, #f57c00 100%);
+  color: #fff;
+  text-align: center;
+  border-radius: 0 0 var(--radius-base, 8px) var(--radius-base, 8px);
+  box-shadow: var(--shadow-sm);
+}

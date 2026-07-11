@@ -3,350 +3,157 @@
  * Template Name: 保護者月謝支払いページ
  */
 
-// functions.php で既に読み込まれているため、コメントアウト
-// require_once get_template_directory() . '/functions/payment/payment-config.php';
-// require_once get_template_directory() . '/functions/payment/payment-functions.php';
+$auth_result = AidUniteAuthMiddleware::require_auth(true);
+if (!$auth_result->is_valid()) {
+    return;
+}
+
+$user_id = (int) $auth_result->user_id;
+$team_id = function_exists('aidunite_user_read_primary_team_id')
+    ? (int) aidunite_user_read_primary_team_id($user_id)
+    : 0;
+
+$user_canonical = function_exists('aidunite_user_get_canonical_meta')
+    ? aidunite_user_get_canonical_meta($user_id)
+    : [];
+$user_role = (string) ($user_canonical['aidunite_role'] ?? '');
+
+$theme_key = ($team_id > 0 && function_exists('aidunite_get_team_ui_theme_key'))
+    ? (string) aidunite_get_team_ui_theme_key($team_id)
+    : '';
+if (!in_array($theme_key, ['boys', 'girls'], true)) {
+    $theme_key = '';
+}
+
+if (function_exists('aidunite_enqueue_payment_setup_shared_styles')) {
+    aidunite_enqueue_payment_setup_shared_styles();
+}
+
+if (function_exists('aidunite_web_app_page_prepare_hero_shell_body_class')) {
+    aidunite_web_app_page_prepare_hero_shell_body_class();
+}
 
 get_header();
 
-// 統一認証・権限チェック
-$auth_result = AidUniteAuthMiddleware::require_auth(true);
-if (!$auth_result->is_valid()) {
-    // リダイレクトは自動で実行される
-    return;
-}
+$shell_subtitle = '月謝のお支払い方法の登録と履歴の確認ができます';
+$shell_args = [
+    'page_class' => 'page-parent-payment parent-payment-page',
+    'title' => '月謝のお支払い',
+    'subtitle' => $shell_subtitle,
+    'back' => true,
+    'back_url' => home_url('/mypage'),
+    'active_nav' => 'none',
+    'team_theme' => $theme_key,
+];
 
-$user_id = $auth_result->user_id;
-$team_id = get_user_meta($user_id, 'team_id', true);
+$shell_mode = function_exists('aidunite_web_app_page_shell_begin')
+    ? aidunite_web_app_page_shell_begin($shell_args, [
+        'legacy_container_class' => 'page-container parent-payment-page',
+        'legacy_back_url' => home_url('/mypage'),
+        'legacy_back_label' => 'マイページに戻る',
+    ])
+    : 'legacy';
 
-if (empty($team_id)) {
-    echo '<div class="page-container">';
-    echo '<div class="error-message">チームが見つかりません。</div>';
-    echo '</div>';
+$close_shell = static function () use ($shell_mode) {
+    if (function_exists('aidunite_web_app_page_shell_end')) {
+        aidunite_web_app_page_shell_end($shell_mode);
+    } else {
+        echo '</div>';
+    }
+};
+
+$vm = [
+    'tuition_open' => false,
+    'has_subscription' => false,
+    'tuition_registration_pending' => false,
+    'checkout_button_label' => '支払い方法を登録する',
+];
+
+if ($team_id <= 0) {
+    echo '<div class="payment-setup-section payment-setup-alert" role="alert"><p>チームが見つかりません。</p></div>';
+    $close_shell();
     get_footer();
     return;
 }
 
-// 権限チェック（保護者・選手のみ）
-$user_role = get_user_meta($user_id, 'aidunite_role', true);
-if (!in_array($user_role, ['parent', 'player'])) {
-    echo '<div class="page-container">';
-    echo '<div class="error-message">このページは保護者・選手のみアクセス可能です。</div>';
-    echo '</div>';
+if (!in_array($user_role, ['parent', 'player'], true)) {
+    echo '<div class="payment-setup-section payment-setup-alert" role="alert"><p>このページは保護者・選手のみアクセス可能です。</p></div>';
+    $close_shell();
     get_footer();
     return;
 }
 
-$team = get_post($team_id);
-$monthly_fee = get_post_meta($team_id, 'team_monthly_fee', true);
-if (empty($monthly_fee)) {
-    $monthly_fee = 5000; // デフォルト値
+$team_display = function_exists('aidunite_team_get_display_bundle')
+    ? aidunite_team_get_display_bundle($team_id)
+    : [];
+$team_name = (string) ($team_display['team_name'] ?? '');
+if ($team_name === '') {
+    $team_post = get_post($team_id);
+    $team_name = $team_post ? (string) $team_post->post_title : '';
 }
+
+$tuition_display = function_exists('aidunite_payment_read_tuition_display')
+    ? aidunite_payment_read_tuition_display($team_id)
+    : [];
+$tuition_open = function_exists('aidunite_payment_team_tuition_open_for_parents')
+    ? aidunite_payment_team_tuition_open_for_parents($team_id)
+    : !empty($tuition_display['team_tuition_enabled']);
+$connect_block_reason = function_exists('aidunite_payment_read_team_tuition_connect_block_reason')
+    ? aidunite_payment_read_team_tuition_connect_block_reason($team_id)
+    : '';
+
+if (isset($_GET['payment']) && sanitize_key((string) wp_unslash($_GET['payment'])) === 'success') {
+    $session_id = isset($_GET['session_id'])
+        ? sanitize_text_field((string) wp_unslash($_GET['session_id']))
+        : '';
+    if ($session_id !== '' && function_exists('aidunite_payment_sync_tuition_from_checkout_session')) {
+        aidunite_payment_sync_tuition_from_checkout_session($user_id, $team_id, $session_id);
+    } elseif (function_exists('aidunite_payment_sync_parent_tuition_subscription_from_stripe')) {
+        aidunite_payment_sync_parent_tuition_subscription_from_stripe($user_id, $team_id);
+    }
+}
+
+$has_subscription = function_exists('aidunite_payment_parent_has_tuition_subscription')
+    ? aidunite_payment_parent_has_tuition_subscription($user_id, $team_id)
+    : false;
+$payment_flash = function_exists('aidunite_payment_read_flash_from_query')
+    ? aidunite_payment_read_flash_from_query()
+    : null;
+$tuition_registration_pending = is_array($payment_flash)
+    && ($payment_flash['type'] ?? '') === 'success'
+    && !$has_subscription;
+
+$vm = [
+    'team_logo' => (string) ($team_display['team_logo'] ?? ''),
+    'team_name' => $team_name,
+    'monthly_fee' => (int) ($tuition_display['team_monthly_fee'] ?? 0),
+    'tuition_open' => $tuition_open,
+    'connect_block_reason' => $connect_block_reason,
+    'has_subscription' => $has_subscription,
+    'tuition_registration_pending' => $tuition_registration_pending,
+    'checkout_button_label' => $tuition_registration_pending
+        ? '登録中'
+        : ($has_subscription ? '支払い方法を変更する' : '支払い方法を登録する'),
+];
 ?>
 
-<div class="page-container">
-    <div class="parent-payment-container">
-        <div class="parent-payment-header">
-            <h1>月謝支払い</h1>
-        </div>
-
-        <div class="parent-payment-content">
-            <!-- 支払い情報 -->
-            <div class="payment-info-card">
-                <h3>📊 支払い情報</h3>
-                <div class="info-item">
-                    <strong>チーム名:</strong> <?php echo esc_html($team->post_title); ?>
-                </div>
-                <div class="info-item">
-                    <strong>月謝金額:</strong> ¥<?php echo number_format($monthly_fee); ?>/月
-                </div>
-                <div class="info-item">
-                    <strong>支払い方法:</strong> サブスクリプション（毎月自動課金）
-                </div>
-                <div class="info-item note">
-                    <p>※ チームに直接支払いが行われます</p>
-                    <p>※ プラットフォーム手数料10%が差し引かれます</p>
-                </div>
-            </div>
-
-            <!-- 支払い方法 -->
-            <div class="payment-method-card">
-                <h3>💳 支払い方法</h3>
-                <div class="stripe-connect-payment">
-                    <p>Stripe Connectで月謝を支払います。</p>
-                    <p>クレジットカード情報は安全に処理されます。</p>
-                    <button id="start-stripe-connect-checkout" class="btn btn-primary">
-                        Stripe Connectで支払いを開始
-                    </button>
-                    <button id="cancel-stripe-connect-subscription" class="btn btn-secondary" style="margin-top:0.75rem;">
-                        月謝を停止する
-                    </button>
-                </div>
-            </div>
-
-            <!-- 支払い履歴 -->
-            <div class="payment-history-card">
-                <h3>📜 支払い履歴</h3>
-                <div id="payment-history-list">
-                    <p class="loading-message">履歴を読み込み中...</p>
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="payment-setup-content<?php echo $shell_mode !== 'legacy' ? ' payment-setup-content--shell' : ''; ?>">
+    <?php
+    get_template_part('template-parts/payment/parent-payment', 'content', [
+        'vm' => $vm,
+        'payment_flash' => $payment_flash,
+    ]);
+    ?>
 </div>
 
-<style>
-.parent-payment-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 2rem;
-}
+<?php
+$close_shell();
 
-.parent-payment-header {
-    text-align: center;
-    margin-bottom: 2rem;
-}
-
-.parent-payment-header h1 {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-}
-
-.payment-info-card,
-.payment-method-card,
-.payment-history-card {
-    background: white;
-    border: 1px solid var(--border-light);
-    border-radius: 8px;
-    padding: 2rem;
-    margin-bottom: 2rem;
-}
-
-.payment-info-card h3,
-.payment-method-card h3,
-.payment-history-card h3 {
-    font-size: 1.3rem;
-    margin-bottom: 1rem;
-    border-bottom: 2px solid var(--primary-color);
-    padding-bottom: 0.5rem;
-}
-
-.info-item {
-    margin-bottom: 0.75rem;
-    font-size: 1rem;
-}
-
-.info-item.note {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--border-light);
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-}
-
-.stripe-connect-payment {
-    margin-bottom: 1.5rem;
-}
-
-.stripe-connect-payment p {
-    margin-bottom: 0.5rem;
-}
-
-#start-stripe-connect-checkout {
-    width: 100%;
-    padding: 1rem;
-    font-size: 1.1rem;
-    margin-top: 1rem;
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.3s;
-}
-
-#start-stripe-connect-checkout:hover {
-    background: var(--primary-dark);
-}
-
-#start-stripe-connect-checkout:disabled {
-    background: var(--border-color);
-    cursor: not-allowed;
-}
-
-.loading-message {
-    text-align: center;
-    color: var(--text-secondary);
-    padding: 2rem;
-}
-
-.payment-history-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.payment-history-table th,
-.payment-history-table td {
-    padding: 0.75rem;
-    text-align: left;
-    border-bottom: 1px solid var(--border-light);
-}
-
-.payment-history-table th {
-    background: var(--bg-secondary);
-    font-weight: bold;
-}
-
-.empty-history {
-    text-align: center;
-    padding: 2rem;
-    color: var(--text-secondary);
-}
-
-/* モバイル対応 */
-@media (max-width: 768px) {
-    .parent-payment-container {
-        padding: 1rem;
-    }
-
-    .payment-history-table {
-        font-size: 0.9rem;
-    }
-}
-</style>
-
-<script>
-jQuery(document).ready(function($) {
-    // 支払い履歴を読み込む
-    function loadPaymentHistory() {
-        $.ajax({
-            url: '<?php echo admin_url('admin-ajax.php'); ?>',
-            type: 'POST',
-            data: {
-                action: 'aidunite_get_parent_payment_history',
-                team_id: <?php echo $team_id; ?>,
-                nonce: '<?php echo wp_create_nonce('aidunite_payment_nonce'); ?>'
-            },
-            success: function(response) {
-                if (response.success && response.data.history) {
-                    displayPaymentHistory(response.data.history);
-                } else {
-                    $('#payment-history-list').html('<p class="empty-history">支払い履歴がありません</p>');
-                }
-            },
-            error: function() {
-                $('#payment-history-list').html('<p class="empty-history">履歴の読み込みに失敗しました</p>');
-            }
-        });
-    }
-
-    function displayPaymentHistory(history) {
-        if (history.length === 0) {
-            $('#payment-history-list').html('<p class="empty-history">支払い履歴がありません</p>');
-            return;
-        }
-
-        let html = '<table class="payment-history-table">';
-        html += '<thead><tr><th>支払い日</th><th>金額</th><th>ステータス</th></tr></thead>';
-        html += '<tbody>';
-
-        history.forEach(function(item) {
-            html += '<tr>';
-            html += '<td>' + item.payment_date + '</td>';
-            html += '<td>¥' + item.amount.toLocaleString() + '</td>';
-            html += '<td>' + item.status + '</td>';
-            html += '</tr>';
-        });
-
-        html += '</tbody></table>';
-        $('#payment-history-list').html(html);
-    }
-
-    // Stripe Connect Checkout開始
-    $('#start-stripe-connect-checkout').on('click', function() {
-        const button = $(this);
-        button.prop('disabled', true).text('処理中...');
-
-        $.ajax({
-            url: '<?php echo admin_url('admin-ajax.php'); ?>',
-            type: 'POST',
-            data: {
-                action: 'aidunite_create_connect_checkout',
-                team_id: <?php echo $team_id; ?>,
-                nonce: '<?php echo wp_create_nonce('aidunite_payment_nonce'); ?>'
-            },
-            success: function(response) {
-                if (response.success && response.data.url) {
-                    window.location.href = response.data.url;
-                } else {
-                    if (typeof showToastNotification !== 'undefined') {
-                        showToastNotification(response.data.message || 'エラーが発生しました', 'error');
-                    } else {
-                        alert(response.data.message || 'エラーが発生しました');
-                    }
-                    button.prop('disabled', false).text('Stripe Connectで支払いを開始');
-                }
-            },
-            error: function() {
-                if (typeof showToastNotification !== 'undefined') {
-                    showToastNotification('通信エラーが発生しました', 'error');
-                } else {
-                    alert('通信エラーが発生しました');
-                }
-                button.prop('disabled', false).text('Stripe Connectで支払いを開始');
-            }
-        });
-    });
-
-    // 月謝サブスクリプション解約
-    $('#cancel-stripe-connect-subscription').on('click', function() {
-        if (!confirm('月謝の自動支払いを停止しますか？\n当月分の請求タイミングなどはチーム代表者にご確認ください。')) {
-            return;
-        }
-
-        const button = $(this);
-        button.prop('disabled', true).text('処理中...');
-
-        $.ajax({
-            url: '<?php echo admin_url('admin-ajax.php'); ?>',
-            type: 'POST',
-            data: {
-                action: 'aidunite_cancel_connect_subscription',
-                team_id: <?php echo $team_id; ?>,
-                nonce: '<?php echo wp_create_nonce('aidunite_payment_nonce'); ?>'
-            },
-            success: function(response) {
-                if (response.success) {
-                    if (typeof showToastNotification !== 'undefined') {
-                        showToastNotification(response.data.message || '月謝の解約リクエストを受け付けました。', 'success');
-                    } else {
-                        alert(response.data.message || '月謝の解約リクエストを受け付けました。');
-                    }
-                    button.prop('disabled', false).text('月謝を停止する');
-                    loadPaymentHistory();
-                } else {
-                    if (typeof showToastNotification !== 'undefined') {
-                        showToastNotification(response.data.message || 'エラーが発生しました', 'error');
-                    } else {
-                        alert(response.data.message || 'エラーが発生しました');
-                    }
-                    button.prop('disabled', false).text('月謝を停止する');
-                }
-            },
-            error: function() {
-                if (typeof showToastNotification !== 'undefined') {
-                    showToastNotification('通信エラーが発生しました', 'error');
-                } else {
-                    alert('通信エラーが発生しました');
-                }
-                button.prop('disabled', false).text('月謝を停止する');
-            }
-        });
-    });
-
-    // 初回読み込み
-    loadPaymentHistory();
-});
-</script>
-
-<?php get_footer(); ?>
+aidunite_page_asset_localize('parent-payment', [
+    'ajaxUrl' => admin_url('admin-ajax.php'),
+    'teamId' => (int) $team_id,
+    'paymentNonce' => wp_create_nonce('aidunite_payment_nonce'),
+    'checkoutButtonLabel' => (string) ($vm['checkout_button_label'] ?? ''),
+    'checkoutPending' => $tuition_registration_pending,
+]);
+get_footer();

@@ -1,0 +1,138 @@
+/**
+ * page-registration-preview.php
+ */
+/* プレビューページ専用スタイル */
+.registration-preview-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  background: var(--bg-secondary);
+  min-height: 100vh;
+}
+
+.registration-preview-header {
+  text-align: center;
+  margin-bottom: 40px;
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+}
+
+.registration-preview-header h1 {
+  font-size: 2.5rem;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.registration-preview-header p {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+}
+
+.registration-preview-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+}
+
+.preview-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  box-shadow: var(--shadow-lg);
+}
+
+.preview-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-xl);
+}
+
+.preview-btn.active {
+  background: linear-gradient(135deg, var(--success-color), var(--success-color));
+  box-shadow: var(--shadow-lg);
+}
+
+.preview-btn-icon {
+  font-size: 1.2rem;
+}
+
+.registration-preview-area {
+  background: white;
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  min-height: 600px;
+}
+
+.preview-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 600px;
+  color: var(--text-secondary);
+}
+
+.preview-placeholder-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.preview-placeholder h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.preview-placeholder p {
+  font-size: 1rem;
+}
+
+/* プレビューページの調整 */
+.preview-page {
+  position: relative;
+  min-height: auto;
+  padding: 20px;
+}
+
+.preview-page .registration-complete-container {
+  position: relative;
+  min-height: auto;
+  padding: 20px;
+}
+
+.preview-page .registration-complete-card {
+  max-width: 100%;
+  margin: 0;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .registration-preview-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .preview-btn {
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
+  }
+
+  .registration-preview-header h1 {
+    font-size: 2rem;
+  }
+}

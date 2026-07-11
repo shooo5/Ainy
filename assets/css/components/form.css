@@ -1,12 +1,14 @@
 /* ========================================
    フォーム コンポーネント
+   .form-control = 標準入力（見た目 + 状態）
+   状態: :focus-visible / .error / .success / .warning / :disabled
    ======================================== */
 
-/* フォームコンテナ */
+/* フォームコンテナ（スマホファースト） */
 .form-container {
   max-width: 600px;
-  margin: 0 auto;
-  padding: var(--spacing-lg);
+  margin: var(--spacing-sm) auto;
+  padding: var(--spacing-base);
   background: var(--bg-primary);
   border-radius: var(--radius-large);
   box-shadow: var(--shadow-md);
@@ -28,8 +30,8 @@
   display: block;
   color: var(--text-primary);
   font-weight: 600;
-  font-size: 1rem;
-  margin-bottom: 0.5rem;
+  font-size: var(--font-size-base);
+  margin-bottom: var(--spacing-sm);
   line-height: 1.4;
 }
 
@@ -46,25 +48,35 @@
   vertical-align: middle;
 }
 
-/* 入力フィールド */
+/* 入力フィールド（--form-control-* でコンテキスト上書き可） */
 .form-control {
   width: 100%;
-  padding: var(--spacing-base) calc(var(--spacing-base) + var(--spacing-xs));
-  border: 2px solid var(--border-light);
-  border-radius: var(--radius-medium);
-  font-size: var(--font-size-base);
+  padding: var(--form-control-padding, var(--spacing-base) calc(var(--spacing-base) + var(--spacing-xs)));
+  border: var(--form-control-border-width, 2px) solid var(--form-control-border-color, var(--border-light));
+  border-radius: var(--form-control-radius, var(--radius-medium));
+  font-size: var(--form-control-font-size, var(--font-size-base));
   font-family: inherit;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  transition: all 0.3s ease;
+  background: var(--form-control-background, var(--bg-primary));
+  color: var(--form-control-color, var(--text-primary));
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
   box-sizing: border-box;
-  min-height: 48px;
+  min-height: var(--form-control-min-height, 48px);
 }
 
 .form-control:focus {
   outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(106, 90, 249, 0.1);
+}
+
+.form-control:focus:not(:focus-visible) {
+  border-color: var(--form-control-focus-border-color, var(--primary-color));
+  box-shadow: var(--form-control-focus-shadow, 0 0 0 3px rgba(106, 90, 249, 0.1));
+}
+
+.form-control:focus:not(:focus-visible):not(select) {
   background: var(--bg-primary);
 }
 
@@ -112,6 +124,13 @@
   box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.1);
 }
 
+.error-message,
+.field-error {
+  color: var(--danger-color);
+  font-size: var(--font-size-sm);
+  margin-top: var(--spacing-xs);
+}
+
 /* セレクトボックス */
 select.form-control {
   appearance: none;
@@ -125,7 +144,11 @@ select.form-control {
 }
 
 select.form-control:focus {
+  background-color: var(--bg-primary);
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236a5af9' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
 }
 
 select.form-control:focus-visible {
@@ -353,11 +376,12 @@ textarea.form-control {
   color: var(--danger-color);
 }
 
-/* フォーム行 */
+/* フォーム行（スマホ: 縦積み） */
 .form-row {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: var(--spacing-md);
 }
 
 .form-row .form-group {
@@ -365,31 +389,29 @@ textarea.form-control {
   margin-bottom: 0;
 }
 
-.form-row-2 {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--spacing-base);
-}
-
+.form-row-2,
 .form-row-3 {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr;
   gap: var(--spacing-base);
 }
 
 /* フォームアクション */
 .form-actions {
   display: flex;
-  gap: var(--spacing-base);
-  justify-content: flex-end;
-  align-items: center;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  justify-content: stretch;
+  align-items: stretch;
   margin-top: var(--spacing-lg);
   padding-top: var(--spacing-md);
   border-top: 1px solid var(--border-light);
 }
 
 .form-actions .btn {
-  min-width: 120px;
+  width: 100%;
+  min-width: 0;
+  justify-content: center;
 }
 
 /* フォーム検証 */
@@ -464,16 +486,10 @@ textarea.form-control {
   gap: var(--spacing-md);
 }
 
-.form-grid-2 {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-.form-grid-3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-
+.form-grid-2,
+.form-grid-3,
 .form-grid-4 {
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: 1fr;
 }
 
 /* フォームカード */
@@ -527,13 +543,14 @@ textarea.form-control {
 
 .progress-steps {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: var(--spacing-base);
+  align-items: stretch;
 }
 
 .progress-step {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   gap: var(--spacing-sm);
   flex: 1;
@@ -565,7 +582,7 @@ textarea.form-control {
 .step-label {
   font-size: 0.8rem;
   color: var(--text-secondary);
-  text-align: center;
+  text-align: left;
   font-weight: 500;
 }
 
@@ -575,12 +592,12 @@ textarea.form-control {
 }
 
 /* ========================================
-   レスポンシブ対応
+   レスポンシブ対応（スマホファースト: min-width）
    ======================================== */
-@media (max-width: 768px) {
+@media (min-width: 481px) {
   .form-container {
-    padding: 1.5rem;
-    margin: 1rem;
+    padding: var(--spacing-md);
+    margin: var(--spacing-base) auto;
   }
 
   .form-control {
@@ -593,80 +610,68 @@ textarea.form-control {
     font-size: 0.95rem;
   }
 
-  .form-row {
-    flex-direction: column;
-    gap: 0;
-  }
-
-  .form-row-2,
-  .form-row-3 {
-    grid-template-columns: 1fr;
-  }
-
-  .form-grid-2,
-  .form-grid-3,
-  .form-grid-4 {
-    grid-template-columns: 1fr;
-  }
-
   .form-actions {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .form-actions .btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .progress-steps {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .progress-step {
-    flex-direction: row;
-    gap: 0.75rem;
-  }
-
-  .step-label {
-    text-align: left;
+    gap: var(--spacing-sm);
   }
 }
 
-@media (max-width: 480px) {
+@media (min-width: 769px) {
   .form-container {
-    padding: 1rem;
-    margin: 0.5rem;
+    padding: var(--spacing-lg);
+    margin: 0 auto;
   }
 
-  .form-control {
-    padding: 0.75rem;
-    font-size: 0.9rem;
-    min-height: 40px;
+  .form-row {
+    flex-direction: row;
+    gap: var(--spacing-base);
+    margin-bottom: var(--spacing-md);
   }
 
-  .form-label {
-    font-size: 0.9rem;
+  .form-row-2 {
+    grid-template-columns: repeat(2, 1fr);
   }
 
-  .form-card {
-    padding: 1rem;
+  .form-row-3 {
+    grid-template-columns: repeat(3, 1fr);
   }
 
-  .form-section-title {
-    font-size: 1.125rem;
+  .form-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .form-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .form-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
   }
 
   .form-actions {
-    gap: 0.5rem;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--spacing-base);
   }
 
-  .form-check {
-    align-items: flex-start;
+  .form-actions .btn {
+    width: auto;
+    min-width: 7.5rem;
   }
 
-  .form-check-label {
-    font-size: 0.9rem;
+  .progress-steps {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0;
+  }
+
+  .progress-step {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .step-label {
+    text-align: center;
   }
 }

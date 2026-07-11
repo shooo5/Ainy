@@ -26,15 +26,7 @@ add_action('rest_api_init', function() {
 function aidunite_get_match_analytics($request) {
     try {
         $current_user_id = get_current_user_id();
-        $team_scope = function_exists('aidunite_get_managed_team_ids')
-            ? aidunite_get_managed_team_ids($current_user_id)
-            : [];
-        if (empty($team_scope)) {
-            $legacy = (int) get_user_meta($current_user_id, 'team_id', true);
-            if ($legacy > 0) {
-                $team_scope = [$legacy];
-            }
-        }
+        $team_scope = aidunite_match_resolve_user_team_scope($current_user_id);
 
         if (empty($team_scope)) {
             error_log('[MATCH_ANALYTICS_API] Error: Team ID not found for user ' . $current_user_id);
@@ -98,7 +90,11 @@ function aidunite_get_match_analytics($request) {
         $day_of_week_data = [];
 
         foreach ($sent_requests as $request) {
-            $status = get_post_meta($request->ID, 'status', true) ?: '申請中';
+            $canonical = aidunite_match_request_get_canonical_meta((int) $request->ID);
+            $status = (string) ($canonical['status'] ?? '申請中');
+            if ($status === '') {
+                $status = '申請中';
+            }
 
             // ステータス別カウント
             if ($status === 'established' || $status === '試合確定') {
@@ -117,7 +113,7 @@ function aidunite_get_match_analytics($request) {
             // 成立までの日数を計算
             if ($status === 'established' || $status === '試合確定' || $status === 'accepted' || $status === '承認済み') {
                 $created_date = strtotime($request->post_date);
-                $accepted_date = get_post_meta($request->ID, 'accepted_at', true);
+                $accepted_date = (string) ($canonical['accepted_at'] ?? '');
                 if ($accepted_date) {
                     $accepted_timestamp = strtotime($accepted_date);
                     $days = ($accepted_timestamp - $created_date) / (24 * 60 * 60);
@@ -137,10 +133,10 @@ function aidunite_get_match_analytics($request) {
             }
 
             // マッチ度別データ（スケジュールIDから計算）
-            $my_schedule_id = get_post_meta($request->ID, 'my_schedule_id', true);
-            $other_schedule_id = get_post_meta($request->ID, 'to_schedule_id', true);
-            if (!$my_schedule_id) {
-                $my_schedule_id = get_post_meta($request->ID, 'from_schedule_id', true);
+            $my_schedule_id = (int) ($canonical['my_schedule_id'] ?? 0);
+            $other_schedule_id = (int) ($canonical['to_schedule_id'] ?? 0);
+            if ($my_schedule_id <= 0) {
+                $my_schedule_id = (int) ($canonical['from_schedule_id'] ?? 0);
             }
 
             if ($my_schedule_id && $other_schedule_id && function_exists('aidunite_evaluate_match_apply_context')) {
@@ -164,7 +160,10 @@ function aidunite_get_match_analytics($request) {
 
             // 時間帯別データ
             if ($other_schedule_id) {
-                $start_time = get_post_meta($other_schedule_id, 'schedule_start_time', true);
+                $other_api = function_exists('aidunite_schedule_get_api_display_fields')
+                    ? aidunite_schedule_get_api_display_fields((int) $other_schedule_id)
+                    : [];
+                $start_time = (string) ($other_api['start_time'] ?? '');
                 if ($start_time) {
                     $hour = intval(substr($start_time, 0, 2));
                     $time_slot = '';
@@ -188,7 +187,10 @@ function aidunite_get_match_analytics($request) {
                 }
 
                 // 曜日別データ
-                $schedule_date = get_post_meta($other_schedule_id, 'schedule_date', true);
+                $schedule_date = (string) ($other_api['date'] ?? '');
+                if ($schedule_date === '' && function_exists('aidunite_schedule_read_normalized_date')) {
+                    $schedule_date = aidunite_schedule_read_normalized_date((int) $other_schedule_id);
+                }
                 if ($schedule_date) {
                     $day_of_week = date('w', strtotime($schedule_date));
                     $day_names = ['日', '月', '火', '水', '木', '金', '土'];

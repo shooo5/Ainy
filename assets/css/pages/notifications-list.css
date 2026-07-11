@@ -9,7 +9,7 @@
   --ainy-notif-text: var(--text-primary, #111827);
   --ainy-notif-muted: var(--text-secondary, #667085);
   --ainy-notif-border: var(--border-color, #e5e7eb);
-  --ainy-notif-accent: var(--primary-color, #7c3aed);
+  --ainy-notif-accent: var(--primary-color);
   --ainy-notif-badge: var(--danger-color, #dc3545);
   --ainy-notif-toolbar-bg: var(--ainy-notif-card);
   --ainy-notif-toolbar-text: var(--ainy-notif-text);
@@ -22,7 +22,7 @@
   --ainy-notif-row-max-h: 88px;
   --ainy-notif-icon-size: 36px;
   --ainy-notif-row-gap: var(--spacing-base, 1rem);
-  --ainy-notif-unread-dot: #3b82f6;
+  --ainy-notif-unread-dot: var(--info-color);
   width: 100%;
   max-width: var(--ainy-webapp-shell-max-width, 1200px);
   margin-left: auto;
@@ -276,27 +276,27 @@ body:not([data-team-theme]) .ainy-notifications-toolbar__btn:hover {
 }
 
 .ainy-notification-card__icon--purple {
-  background: linear-gradient(135deg, var(--theme-secondary, #8b5cf6), var(--theme-accent-dark, #7c3aed));
+  background: linear-gradient(135deg, var(--theme-secondary), var(--theme-accent-dark));
 }
 
 .ainy-notification-card__icon--green {
-  background: linear-gradient(135deg, var(--success-color, #22c55e), #16a34a);
+  background: linear-gradient(135deg, var(--success-color), color-mix(in srgb, var(--success-color) 80%, var(--text-primary)));
 }
 
 .ainy-notification-card__icon--orange {
-  background: linear-gradient(135deg, #fb923c, var(--warning-color, #f97316));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--warning-color) 85%, var(--bg-primary)), var(--warning-color));
 }
 
 .ainy-notification-card__icon--blue {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  background: linear-gradient(135deg, var(--info-color), color-mix(in srgb, var(--info-color) 75%, var(--primary-color)));
 }
 
 .ainy-notification-card__icon--gray {
-  background: linear-gradient(135deg, #94a3b8, #64748b);
+  background: linear-gradient(135deg, var(--text-muted), color-mix(in srgb, var(--text-muted) 70%, var(--text-primary)));
 }
 
 .ainy-notification-card__icon--red {
-  background: linear-gradient(135deg, #fb7185, var(--danger-color, #ef4444));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--danger-color) 85%, var(--bg-primary)), var(--danger-color));
 }
 
 .ainy-notification-card__meta {

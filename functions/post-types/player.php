@@ -183,21 +183,18 @@ function render_player_metabox($post) {
         </tr>
     </table>
 
-    <script>
-    // 年齢自動計算
-    document.getElementById('birth_date').addEventListener('change', function() {
-        const birthDate = new Date(this.value);
-        const today = new Date();
-        const age = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
-
-        document.getElementById('age').value = age;
-    });
-    </script>
+    <?php
+    $age_js = get_stylesheet_directory() . '/assets/js/admin/player-metabox-age.js';
+    if (is_readable($age_js)) {
+        wp_enqueue_script(
+            'aidunite-player-metabox-age',
+            get_stylesheet_directory_uri() . '/assets/js/admin/player-metabox-age.js',
+            [],
+            (string) filemtime($age_js),
+            true
+        );
+    }
+    ?>
     <?php
 }
 

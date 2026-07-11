@@ -56,7 +56,7 @@
               el.select();
               el.setSelectionRange(0, text.length);
             }
-            window.alert('コピーに失敗しました。URLを選択して手動でコピーしてください。');
+            aiduniteToast('コピーに失敗しました。URLを選択して手動でコピーしてください。', 'warning');
           });
       });
     });

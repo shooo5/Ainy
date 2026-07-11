@@ -233,3 +233,38 @@ function aidunite_notification_schedule_date_line($date) {
     $formatted = aidunite_format_notification_date($date);
     return '対象日程: ' . ($formatted !== '' ? $formatted : '—');
 }
+
+/**
+ * チャット等 API 用: MySQL 日時（GMT として保存）をサイト TZ の ISO8601 に変換
+ *
+ * TIMESTAMP / current_time('mysql') 経由の DB 値は UTC として解釈し、
+ * フロントの new Date() が正しいローカル時刻を表示できるようにする。
+ *
+ * @param string|null $mysql_datetime Y-m-d H:i:s
+ * @return string ISO8601（例: 2026-06-03T22:53:00+09:00）空入力時は ''
+ */
+function aidunite_format_chat_created_at_for_client($mysql_datetime) {
+    $mysql_datetime = trim((string) $mysql_datetime);
+    if ($mysql_datetime === '') {
+        return '';
+    }
+    if (function_exists('mysql2date') && function_exists('wp_date')) {
+        $ts = mysql2date('U', $mysql_datetime, true);
+        if ($ts) {
+            return wp_date('c', (int) $ts);
+        }
+    }
+    if (class_exists('AidUniteDateUtils')) {
+        $converted = AidUniteDateUtils::convertTimezone(
+            $mysql_datetime,
+            'UTC',
+            AidUniteDateUtils::TIMEZONE,
+            'Y-m-d\TH:i:sP'
+        );
+        if ($converted !== '') {
+            return $converted;
+        }
+    }
+
+    return $mysql_datetime;
+}

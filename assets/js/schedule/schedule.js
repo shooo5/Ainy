@@ -152,7 +152,9 @@
      * intentに応じて表示用typeを正規化（確定時は募集表記を除去）
      */
     function normalizeScheduleType(schedule) {
-        const rawType = String(schedule?.type || '').trim();
+        const rawType = String(
+            schedule?.type || schedule?.schedule_type || schedule?.display_type || ''
+        ).trim();
         if (!rawType) return rawType;
         const intent = String(schedule?.intent || '').toLowerCase();
         if (intent === 'confirmed') {
@@ -181,10 +183,105 @@
         if (start && end) {
             return start + '〜' + end;
         }
-        return start || end || '';
+        if (start || end) {
+            return start || end;
+        }
+        return '';
+    }
+
+    /** リスト表示用（09:00 - 11:00） */
+    function formatScheduleListTime(schedule) {
+        const start = String(schedule?.start_time || '').trim();
+        const end = String(schedule?.end_time || '').trim();
+        if (start && end) {
+            return start + ' - ' + end;
+        }
+        if (start || end) {
+            return start || end;
+        }
+        return '';
+    }
+
+    function presentationToListModifier(cardClass) {
+        if (!cardClass) return 'practice';
+        if (cardClass.indexOf('match-confirmed') >= 0) return 'match-confirmed';
+        if (cardClass.indexOf('match-recruit') >= 0) return 'match-recruit';
+        if (cardClass.indexOf('tentative') >= 0) return 'tentative';
+        if (cardClass.indexOf('meeting') >= 0) return 'meeting';
+        if (cardClass.indexOf('event') >= 0) return 'event';
+        if (cardClass.indexOf('off') >= 0) return 'off';
+        return 'practice';
+    }
+
+    function resolveScheduleVenueLabel(schedule) {
+        if (typeof AidUniteScheduleUtils !== 'undefined' && AidUniteScheduleUtils.resolveScheduleVenueLabel) {
+            return AidUniteScheduleUtils.resolveScheduleVenueLabel(schedule);
+        }
+        return '';
+    }
+
+    function resolveScheduleMemoLabel(schedule) {
+        return String(schedule?.memo || schedule?.note || schedule?.quick_memo || '').trim();
+    }
+
+    /**
+     * 月間リスト／日別パネル用の行データ
+     */
+    function hasNormalizedCardDisplay(schedule) {
+        return !!(schedule && (schedule.card_line1 != null || schedule.status_label != null));
+    }
+
+    function buildScheduleListRowData(schedule) {
+        const compact = buildScheduleCompactLines(schedule);
+        const modifier = schedule?.card_modifier
+            ? String(schedule.card_modifier)
+            : presentationToListModifier(compact.cardClass);
+        const teamName = schedule?.team_name ? String(schedule.team_name).trim() : '';
+        const kindLabel = schedule?.status_label != null && String(schedule.status_label).trim() !== ''
+            ? String(schedule.status_label).trim()
+            : resolveStatusLabel(
+                resolveScheduleIntent(schedule),
+                normalizeScheduleType(schedule),
+                getScheduleTypeFlags(schedule)
+            );
+        const listTimeLabel = schedule?.list_time_label != null
+            ? String(schedule.list_time_label)
+            : (schedule?.card_line2 != null ? String(schedule.card_line2) : formatScheduleListTime(schedule));
+
+        return {
+            scheduleId: String(schedule.id || schedule.post_id || schedule.schedule_id || ''),
+            modifier: modifier,
+            teamClass: getTeamGenderClass(schedule),
+            teamName: teamName,
+            kindLabel: kindLabel,
+            timeLabel: listTimeLabel,
+            venueLabel: resolveScheduleVenueLabel(schedule),
+            opponentLabel: resolveOpponentDisplay(schedule),
+            opponentTitle: resolveOpponentFullDisplay(schedule),
+            memoLabel: resolveScheduleMemoLabel(schedule),
+        };
+    }
+
+    function isScheduleMobileViewport() {
+        const cfg = window.AIDUNITE_SCHEDULE_VIEW || {};
+        const bp = cfg.listBreakpointPx || 768;
+        return window.matchMedia('(max-width: ' + bp + 'px)').matches;
+    }
+
+    function shouldHideInlineCalendarCards() {
+        const cfg = window.AIDUNITE_SCHEDULE_VIEW || {};
+        const mode = cfg.currentViewMode || 'calendar';
+        return mode === 'calendar' && isScheduleMobileViewport();
+    }
+
+    function shouldUseMobileCalendarDayPanel() {
+        return shouldHideInlineCalendarCards();
     }
 
     function resolveScheduleIntent(schedule) {
+        if (typeof AidUniteScheduleUtils !== 'undefined' && AidUniteScheduleUtils.normalizeScheduleIntent) {
+            return AidUniteScheduleUtils.normalizeScheduleIntent(schedule);
+        }
         let intent = String(schedule?.intent || '').toLowerCase().trim();
         const matching = schedule?.matching === 1 || schedule?.matching === '1' || schedule?.matching === true;
         if (!intent && matching) {
@@ -196,39 +293,128 @@
         return intent;
     }
 
-    function getScheduleTypeFlags(scheduleType) {
-        const t = String(scheduleType || '');
+    /** 種別名から「（仮）」を除いた表示用ラベル */
+    function stripTentativeTypeSuffix(type) {
+        return String(type || '')
+            .replace(/（仮）/g, '')
+            .replace(/\(仮\)/g, '')
+            .trim();
+    }
+
+    /** 仮予定カード1行目: 「仮　合宿」形式 */
+    function resolveTentativeStatusLabel(scheduleType) {
+        const base = stripTentativeTypeSuffix(scheduleType);
+        const label = shortenScheduleTitle(base) || base || '予定';
+        return '仮\u3000' + label;
+    }
+
+    function getScheduleTypeFlags(schedule) {
+        const t = normalizeScheduleType(schedule)
+            || String(schedule?.schedule_type || schedule?.display_type || '');
+        const uiKind = String(schedule?.ui_schedule_kind || '');
+        const isJointPractice = t.includes('合同練習');
         return {
             scheduleType: t,
-            isPractice: t.includes('練習') && !t.includes('練習試合') && !t.includes('公式試合'),
+            isPractice: t.includes('練習')
+                && !t.includes('練習試合')
+                && !t.includes('公式試合')
+                && !isJointPractice,
             isMatch: t.includes('公式試合') || t.includes('練習試合') || t.includes('公式戦'),
-            isEvent: t.includes('合宿') || t.includes('遠征') || t.includes('イベント'),
-            isOff: t.includes('休み'),
+            isMeeting: t.includes('ミーティング') || t.includes('会議'),
+            isEvent: t.includes('合宿') || t.includes('遠征') || t.includes('イベント') || isJointPractice,
+            isOff: uiKind === 'rest' || t.includes('休み'),
         };
     }
 
+    function splitOpponentNameList(text) {
+        return String(text || '')
+            .split(/[,、]/)
+            .map((s) => s.trim())
+            .filter(Boolean);
+    }
+
+    function abbreviateOpponentNames(names) {
+        const unique = [];
+        names.forEach((name) => {
+            const n = String(name || '').trim();
+            if (!n) return;
+            if (!unique.includes(n)) unique.push(n);
+        });
+        if (unique.length === 0) return '';
+        if (unique.length === 1) return unique[0];
+        return unique[0] + '他' + (unique.length - 1);
+    }
+
+    function isAbbreviatedOpponentLabel(text) {
+        return /他\d+$/.test(String(text || '').trim());
+    }
+
+    function collectOpponentNameList(schedule) {
+        const names = [];
+        const participantsList = String(schedule?.participants_list || '').trim();
+        if (participantsList && participantsList !== '-') {
+            names.push(...splitOpponentNameList(participantsList));
+        }
+        if (names.length > 0) {
+            return names;
+        }
+
+        const display = String(schedule?.opponent_display || '').trim();
+        if (display) {
+            if (isAbbreviatedOpponentLabel(display)) {
+                return [display];
+            }
+            const split = splitOpponentNameList(display);
+            return split.length > 0 ? split : [display];
+        }
+
+        const opponentName = String(schedule?.opponent?.name || '').trim();
+        if (opponentName) {
+            const split = splitOpponentNameList(opponentName);
+            return split.length > 0 ? split : [opponentName];
+        }
+
+        const count = parseInt(String(schedule?.participant_count || 0), 10) || 0;
+        if (count > 1 && display) {
+            return [display];
+        }
+
+        return [];
+    }
+
+    function resolveOpponentFullDisplay(schedule) {
+        const names = collectOpponentNameList(schedule);
+        if (names.length === 0) return '';
+        if (names.length === 1 && isAbbreviatedOpponentLabel(names[0])) {
+            return names[0];
+        }
+        return names.join('、');
+    }
+
     function resolveOpponentDisplay(schedule) {
-        if (schedule?.opponent_display) {
-            return String(schedule.opponent_display).trim();
+        const names = collectOpponentNameList(schedule);
+        if (names.length === 0) return '';
+        if (names.length === 1 && isAbbreviatedOpponentLabel(names[0])) {
+            return names[0];
         }
-        if (schedule?.opponent?.name) {
-            return String(schedule.opponent.name).trim();
-        }
-        return '';
+        return abbreviateOpponentNames(names);
     }
 
     function resolveStatusLabel(schedule, intent, scheduleType, flags) {
+        if (intent === 'tentative') {
+            return resolveTentativeStatusLabel(scheduleType);
+        }
         if (flags.isOff) {
             return '休み';
         }
-        if (intent === 'tentative') {
-            return schedule?.intent_label || shortenScheduleTitle(scheduleType) || '仮押さえ';
+        if (flags.isMeeting) {
+            return 'ミーティング';
         }
         if (flags.isEvent) {
             return shortenScheduleTitle(scheduleType) || 'イベント';
         }
         if (intent === 'recruit') {
-            return '試合を募集';
+            return '試合の募集';
         }
         if (intent === 'confirmed' && flags.isMatch) {
             if (scheduleType.includes('練習試合')) {
@@ -246,11 +432,14 @@
     }
 
     function resolveCardClass(intent, flags) {
+        if (intent === 'tentative') {
+            return 'schedule-card off';
+        }
         if (flags.isOff) {
             return 'schedule-card off';
         }
-        if (intent === 'tentative') {
-            return 'schedule-card tentative';
+        if (flags.isMeeting) {
+            return 'schedule-card meeting';
         }
         if (flags.isEvent) {
             return 'schedule-card event';
@@ -270,15 +459,30 @@
      * line2: 時間 / 時間　相手（試合系）
      */
     function buildScheduleCompactLines(schedule) {
+        if (hasNormalizedCardDisplay(schedule)) {
+            const line1 = String(schedule.card_line1 || '').trim();
+            const line2 = String(schedule.card_line2 || '').trim();
+            const cardClass = schedule.card_class
+                ? String(schedule.card_class)
+                : ('schedule-card ' + (schedule.card_modifier || 'practice'));
+            return {
+                line1: line1,
+                line2: line2,
+                cardClass: cardClass,
+                lines: [line1, line2].filter(Boolean),
+            };
+        }
+
         const intent = resolveScheduleIntent(schedule);
         const scheduleType = normalizeScheduleType(schedule);
-        const flags = getScheduleTypeFlags(scheduleType);
+        const flags = getScheduleTypeFlags(schedule);
         const timeLine = formatScheduleTimeRange(schedule);
         const opponentName = resolveOpponentDisplay(schedule);
         const statusLabel = resolveStatusLabel(schedule, intent, scheduleType, flags);
         const cfg = window.AIDUNITE_SCHEDULE_VIEW || {};
         const teamName = schedule?.team_name ? String(schedule.team_name).trim() : '';
         const showTeam = cfg.multiTeam && teamName;
+        const cardClass = resolveCardClass(intent, flags);
 
         let line1 = showTeam ? teamName + '\u3000' + statusLabel : statusLabel;
         let line2 = timeLine;
@@ -286,7 +490,6 @@
             line2 = timeLine ? timeLine + '\u3000' + opponentName : opponentName;
         }
 
-        const cardClass = resolveCardClass(intent, flags);
         return {
             line1: line1,
             line2: line2,
@@ -370,13 +573,35 @@
      * スケジュールのHTMLを生成
      * dateString は Y-m-d に正規化して window.schedules と照合（マイページとの整合を確保）
      */
+    function getDissolutionMarkerHTML(dateString) {
+        const key = dateString ? String(dateString).trim().substring(0, 10) : '';
+        if (!key || !window.scheduleDissolutionMarkers || !window.scheduleDissolutionMarkers[key]) {
+            return '';
+        }
+        return window.scheduleDissolutionMarkers[key].map(function(marker) {
+            const team = marker.team_name ? String(marker.team_name) : 'チーム';
+            const label = marker.label ? String(marker.label) : 'チーム解散予定日';
+            return '<div class="schedule-dissolution-marker" title="' + team + '">'
+                + '<span class="schedule-dissolution-marker__label">' + label + '</span>'
+                + '<span class="schedule-dissolution-marker__team">' + team + '</span>'
+                + '</div>';
+        }).join('');
+    }
+
     function getScheduleHTML(dateString) {
         const key = dateString ? String(dateString).trim().substring(0, 10) : '';
-        if (!key || !window.schedules[key] || window.schedules[key].length === 0) {
+        if (!key) {
+            return '';
+        }
+        const dissolutionHtml = getDissolutionMarkerHTML(key);
+        if (shouldHideInlineCalendarCards()) {
+            return dissolutionHtml;
+        }
+        if ((!window.schedules[key] || window.schedules[key].length === 0) && !dissolutionHtml) {
             return '';
         }
 
-        const scheduleList = window.schedules[key];
+        const scheduleList = Array.isArray(window.schedules[key]) ? window.schedules[key] : [];
         const maxDisplay = 2; // 最大表示件数（3件目以降は +N件）
         const showMore = scheduleList.length > maxDisplay;
         const displaySchedules = showMore ? scheduleList.slice(0, maxDisplay) : scheduleList;
@@ -390,15 +615,19 @@
                 ? generateScheduleCard
                 : null);
 
-        if (!cardGenerator) {
+        if (!cardGenerator && !dissolutionHtml) {
             console.warn('⚠️ generateScheduleCard関数が見つかりません');
-            return '';
+            return dissolutionHtml;
         }
 
+        html += dissolutionHtml;
+
         // 表示するスケジュール
-        displaySchedules.forEach(schedule => {
-            html += cardGenerator(schedule);
-        });
+        if (cardGenerator && window.schedules[key]) {
+            displaySchedules.forEach(schedule => {
+                html += cardGenerator(schedule);
+            });
+        }
 
         // 残り件数表示（複数スケジュールをすべて表示）
         if (showMore) {
@@ -428,11 +657,18 @@
         console.log('📅 renderCalendar関数開始');
 
         const calendarGrid = document.getElementById('calendar-grid');
+        const calendarPanel = document.getElementById('schedule-calendar-panel');
         updateScheduleMonthTitle();
 
         if (!calendarGrid) {
             console.warn('❌ カレンダーグリッドが見つかりません');
             return;
+        }
+
+        const mobileCompact = shouldHideInlineCalendarCards();
+        calendarGrid.classList.toggle('calendar-grid--mobile-compact', mobileCompact);
+        if (calendarPanel) {
+            calendarPanel.classList.toggle('schedule-calendar-panel--mobile-compact', mobileCompact);
         }
 
         // window.currentDateを安全に参照
@@ -486,8 +722,21 @@
                 if (scheduleKey && window.schedules[scheduleKey] && window.schedules[scheduleKey].length > 0) {
                     dayClass += ' has-schedule';
                 }
+                if (scheduleKey && window.scheduleDissolutionMarkers
+                    && window.scheduleDissolutionMarkers[scheduleKey]
+                    && window.scheduleDissolutionMarkers[scheduleKey].length > 0) {
+                    dayClass += ' has-dissolution';
+                }
 
-                const clickHandler = isPast ? '' : `onclick="handleDateCellClick(event, '${dateString}')"`;
+                const selectedDate = String(window.AIDUNITE_SCHEDULE_VIEW?.selectedCalendarDate || '');
+                if (selectedDate && dateString === selectedDate) {
+                    dayClass += ' se-selected';
+                }
+
+                const allowDayTap = !isPast || shouldUseMobileCalendarDayPanel();
+                const clickHandler = allowDayTap
+                    ? `onclick="handleDateCellClick(event, '${dateString}')"`
+                    : '';
                 const labelHtml = holidayLabel ? `<span class="day-label">${holidayLabel}</span>` : '';
                 calendarHTML += `
                     <div class="${dayClass}" data-date="${dateString}" ${clickHandler}>
@@ -618,6 +867,13 @@
         if (event && event.target && (event.target.closest('.schedule-card') || event.target.closest('.schedule-more'))) {
             return;
         }
+        if (shouldUseMobileCalendarDayPanel()) {
+            if (typeof window.AidUniteScheduleMonthView !== 'undefined'
+                && typeof window.AidUniteScheduleMonthView.selectCalendarDay === 'function') {
+                window.AidUniteScheduleMonthView.selectCalendarDay(dateString);
+            }
+            return;
+        }
         // 過去の日付は選択不可
         const selectedDate = new Date(dateString + 'T00:00:00');
         const today = new Date();
@@ -647,59 +903,15 @@
      * 新規登録ポップアップを表示
      */
     function showNewSchedulePopup(dateString) {
-        console.log('新規登録ポップアップ表示:', dateString);
-
-        // 日付を日本語形式で表示
-        const date = new Date(dateString);
-        const formattedDate = date.toLocaleDateString('ja-JP', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            weekday: 'long'
-        });
-
-        // 既存のポップアップを削除
-        const existingPopup = document.getElementById('new-schedule-popup');
-        if (existingPopup) {
-            existingPopup.remove();
+        if (typeof AidUniteScheduleQuickModal !== 'undefined' && AidUniteScheduleQuickModal.canEdit()) {
+            AidUniteScheduleQuickModal.openRegister(dateString);
+            return;
         }
-
-        // ポップアップHTMLを生成
-        const popupHTML = `
-            <div id="new-schedule-popup" class="new-schedule-popup">
-                <div class="popup-overlay" onclick="closeNewSchedulePopup()"></div>
-                <div class="popup-content">
-                    <div class="popup-header">
-                        <h3>新規スケジュール登録</h3>
-                        <button class="popup-close" onclick="closeNewSchedulePopup()">&times;</button>
-                    </div>
-                    <div class="popup-body">
-                        <p class="date-info">${typeof AidUniteThemeIcons !== 'undefined' ? AidUniteThemeIcons.html('calendar_month', 18) : ''} <strong>${formattedDate}</strong></p>
-                        <p class="message">この日には予定がありません。</p>
-                        <p class="message">新規スケジュールを登録しますか？</p>
-                    </div>
-                    <div class="popup-footer">
-                        <button class="btn btn-primary" onclick="goToScheduleEdit('${dateString}')">
-                            新規登録
-                        </button>
-                        <button class="btn btn-secondary" onclick="closeNewSchedulePopup()">
-                            キャンセル
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        // ポップアップを表示
-        document.body.insertAdjacentHTML('beforeend', popupHTML);
-
-        // アニメーション効果
-        setTimeout(() => {
-            const popup = document.getElementById('new-schedule-popup');
-            if (popup) {
-                popup.classList.add('show');
-            }
-        }, 10);
+        const viewCfg = window.AIDUNITE_SCHEDULE_VIEW || {};
+        if (viewCfg.canEdit === false || viewCfg.canEdit === '0' || viewCfg.canEdit === 0) {
+            return;
+        }
+        goToScheduleEdit(dateString);
     }
 
     /**
@@ -719,9 +931,11 @@
      * スケジュール編集ページに遷移
      */
     function goToScheduleEdit(dateString) {
-        console.log('スケジュール編集ページに遷移:', dateString);
-        const editUrl = window.location.origin + '/schedule-edit?date=' + dateString;
-        window.location.href = editUrl;
+        if (typeof AidUniteScheduleQuickModal !== 'undefined' && typeof AidUniteScheduleQuickModal.openRegister === 'function') {
+            AidUniteScheduleQuickModal.openRegister(dateString);
+            return;
+        }
+        window.location.href = window.location.origin + '/schedule-management/?open_register=' + encodeURIComponent(dateString);
     }
 
     /**
@@ -791,7 +1005,10 @@
     window.generateScheduleCard = generateScheduleCard;
     window.AidUniteBuildCalendarScheduleCard = buildCalendarScheduleCard;
     window.AidUniteBuildScheduleCompactLines = buildScheduleCompactLines;
+    window.AidUniteBuildScheduleListRowData = buildScheduleListRowData;
     window.AidUniteGetTeamGenderClass = getTeamGenderClass;
+    window.AidUniteIsScheduleMobileViewport = isScheduleMobileViewport;
+    window.AidUniteShouldUseMobileCalendarDayPanel = shouldUseMobileCalendarDayPanel;
     window.AidUniteUpdateScheduleMonthTitle = updateScheduleMonthTitle;
     window.AidUniteResolveCalendarCardPresentation = resolveCalendarCardPresentation;
     window.AidUniteCalendarEscapeHtml = escapeCalendarHtml;
@@ -809,6 +1026,23 @@
         if (!id) return;
         e.preventDefault();
         e.stopPropagation();
+        let schedule = null;
+        if (window.schedules) {
+            for (const dateKey in window.schedules) {
+                const list = window.schedules[dateKey];
+                if (!Array.isArray(list)) continue;
+                schedule = list.find((s) => String(s.id || s.schedule_id) === String(id));
+                if (schedule) break;
+            }
+        }
+        if (typeof AidUniteScheduleQuickModal !== 'undefined') {
+            if (schedule) {
+                AidUniteScheduleQuickModal.openCardActions(schedule);
+            } else if (typeof window.showScheduleDetail === 'function') {
+                window.showScheduleDetail(id);
+            }
+            return;
+        }
         if (typeof window.showScheduleDetail === 'function') {
             window.showScheduleDetail(id);
         } else if (typeof AidUniteScheduleModal !== 'undefined') {
@@ -822,11 +1056,7 @@
         e.preventDefault();
         const id = card.getAttribute('data-schedule-id');
         if (!id) return;
-        if (typeof window.showScheduleDetail === 'function') {
-            window.showScheduleDetail(id);
-        } else if (typeof AidUniteScheduleModal !== 'undefined') {
-            AidUniteScheduleModal.showDetail(id, { mode: 'popup' });
-        }
+        card.click();
     }, true);
 
     // DOMContentLoaded時に初期化

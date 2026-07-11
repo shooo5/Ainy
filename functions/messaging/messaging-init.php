@@ -9,6 +9,7 @@ require_once __DIR__ . '/database-schema.php';
 require_once __DIR__ . '/rest-api.php';
 require_once __DIR__ . '/sse-functions.php';
 require_once __DIR__ . '/message-functions.php';
+require_once __DIR__ . '/chat-persist.php';
 require_once __DIR__ . '/chat-functions.php';
 require_once __DIR__ . '/notification-functions.php';
 require_once __DIR__ . '/match-chat-router.php';
@@ -65,8 +66,11 @@ add_action('aidunite_match_confirmed', function($match_id, $team_a_id, $team_b_i
     aidunite_create_match_chat($match_id, $team_a_id, $team_b_id, $match_date);
 }, 10, 4);
 
-// チーム登録時にチームチャット自動作成
-add_action('aidunite_team_registered', function($team_id) {
+// チーム登録時のチームチャット自動作成は Club プラン時のみ（Match は対戦チャットのみ）
+add_action('aidunite_team_registered', function ($team_id) {
+    if (function_exists('aidunite_payment_team_has_club_plan') && !aidunite_payment_team_has_club_plan($team_id)) {
+        return;
+    }
     aidunite_create_team_chat($team_id);
 });
 
@@ -177,14 +181,53 @@ add_action('wp_enqueue_scripts', function() {
     $messaging_css = get_stylesheet_directory() . '/assets/css/pages/messaging.css';
     wp_enqueue_style(
         'aidunite-messaging',
-        get_template_directory_uri() . '/assets/css/pages/messaging.css',
-        ['aidunite-style', 'aidunite-web-app-integrated-ui'],
+        get_stylesheet_directory_uri() . '/assets/css/pages/messaging.css',
+        ['aidunite-style', 'aidunite-web-app-integrated-ui', 'button-style', 'form-style', 'card-style'],
         is_readable($messaging_css) ? (string) filemtime($messaging_css) : '2.0.1'
     );
+    $messaging_buttons_css = get_stylesheet_directory() . '/assets/css/components/messaging-buttons.css';
+    if (is_readable($messaging_buttons_css)) {
+        wp_enqueue_style(
+            'aidunite-messaging-buttons',
+            get_stylesheet_directory_uri() . '/assets/css/components/messaging-buttons.css',
+            ['button-style', 'aidunite-messaging'],
+            (string) filemtime($messaging_buttons_css)
+        );
+    }
 
-    // aidunite_messaging は page-communication-main.php 等で使用。チャット画面は page-chat.php のインライン実装のため messaging.js は廃止
+    // aidunite_messaging は page-communication-main.php / page-chat.php で使用
     wp_register_script('aidunite-messaging-config', false, ['jquery'], '2.0.0', true);
     wp_enqueue_script('aidunite-messaging-config');
+    if (is_page('chat') || is_page_template('page-chat.php')) {
+        $chat_critical_css = get_stylesheet_directory() . '/assets/css/pages/chat-critical.css';
+        if (is_readable($chat_critical_css)) {
+            wp_enqueue_style(
+                'aidunite-chat-critical',
+                get_stylesheet_directory_uri() . '/assets/css/pages/chat-critical.css',
+                ['aidunite-style'],
+                (string) filemtime($chat_critical_css)
+            );
+        }
+        $chat_page_css = get_stylesheet_directory() . '/assets/css/pages/chat-page.css';
+        if (is_readable($chat_page_css)) {
+            wp_enqueue_style(
+                'aidunite-chat-page',
+                get_stylesheet_directory_uri() . '/assets/css/pages/chat-page.css',
+                ['aidunite-chat-critical', 'aidunite-messaging'],
+                (string) filemtime($chat_page_css)
+            );
+        }
+        $chat_page_js = get_stylesheet_directory() . '/assets/js/pages/chat-page.js';
+        if (is_readable($chat_page_js)) {
+            wp_enqueue_script(
+                'aidunite-chat-page',
+                get_stylesheet_directory_uri() . '/assets/js/pages/chat-page.js',
+                ['aidunite-messaging-config', 'aidunite-theme-icons'],
+                (string) filemtime($chat_page_js),
+                true
+            );
+        }
+    }
     wp_localize_script('aidunite-messaging-config', 'aidunite_messaging', [
         'ajax_url' => admin_url('admin-ajax.php'),
         'rest_url' => rest_url('aidunite/v1/'),
@@ -201,7 +244,12 @@ add_action('wp_enqueue_scripts', function() {
 add_action('admin_enqueue_scripts', function($hook) {
     if (strpos($hook, 'aidunite-messaging') !== false) {
         wp_enqueue_script('aidunite-messaging-admin', get_template_directory_uri() . '/assets/js/admin/messaging-admin.js', ['jquery'], '2.0.0', true);
-        wp_enqueue_style('aidunite-messaging-admin', get_template_directory_uri() . '/assets/css/pages/messaging-admin.css', [], '2.0.0');
+        wp_enqueue_style(
+            'aidunite-messaging-admin',
+            get_stylesheet_directory_uri() . '/assets/css/pages/messaging-admin.css',
+            ['aidunite-style', 'button-style'],
+            '2.0.0'
+        );
     }
 });
 

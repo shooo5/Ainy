@@ -1,6 +1,6 @@
 <?php
 /**
- * 統一ボトムナビ（スケジュール / 試合 / ホーム / チャット / メニュー）
+ * 統一ボトムナビ（ロール別・ダークシェル幅）
  *
  * @package AidUnite
  */
@@ -14,48 +14,38 @@ if (!function_exists('aidunite_get_bottom_nav_items')) {
 }
 
 $nav_items = aidunite_get_bottom_nav_items();
-if (empty($nav_items)) {
+if ($nav_items === []) {
     return;
 }
 
-$use_app_style = function_exists('aidunite_should_use_app_bottom_nav') && aidunite_should_use_app_bottom_nav();
-$nav_class     = 'ainy-bottom-nav' . ($use_app_style ? ' ainy-bottom-nav--app' : '');
+$nav_count   = count($nav_items);
+$inner_class = 'ainy-bottom-nav-inner ainy-bottom-nav-inner--count-' . max(1, min(5, $nav_count));
 ?>
 
-<nav class="<?php echo esc_attr($nav_class); ?>" aria-label="メインナビゲーション">
-    <div class="ainy-bottom-nav-inner">
+<nav class="ainy-bottom-nav" aria-label="メインナビゲーション">
+    <div class="<?php echo esc_attr($inner_class); ?>">
         <?php foreach ($nav_items as $item) : ?>
             <?php
-            $is_active = !empty($item['is_active']);
+            $is_active    = !empty($item['is_active']);
             $active_class = $is_active ? ' active' : '';
             $aria_current = $is_active ? ' aria-current="page"' : '';
-            $item_type = isset($item['type']) ? (string) $item['type'] : 'link';
-            $item_id = isset($item['id']) ? (string) $item['id'] : '';
+            $item_id      = isset($item['id']) ? (string) $item['id'] : '';
+            $item_attrs   = isset($item['attrs']) && is_array($item['attrs']) ? $item['attrs'] : [];
             ?>
-            <?php if ($item_type === 'menu-trigger') : ?>
-                <button type="button"
-                    class="ainy-bottom-nav-link ainy-bottom-nav-menu-trigger<?php echo esc_attr($active_class); ?>"
-                    title="<?php echo esc_attr($item['label']); ?>"
-                    aria-label="<?php echo esc_attr($item['label'] . 'を開く'); ?>">
-                    <?php
-                    if ($item_id !== '' && function_exists('aidunite_render_bottom_nav_icon')) {
-                        aidunite_render_bottom_nav_icon($item_id);
-                    }
-                    ?>
-                    <span><?php echo esc_html($item['label']); ?></span>
-                </button>
-            <?php else : ?>
-                <a href="<?php echo esc_url($item['url']); ?>"
-                    class="ainy-bottom-nav-link<?php echo esc_attr($active_class); ?>"
-                    title="<?php echo esc_attr($item['label']); ?>"<?php echo $aria_current; ?>>
-                    <?php
-                    if ($item_id !== '' && function_exists('aidunite_render_bottom_nav_icon')) {
-                        aidunite_render_bottom_nav_icon($item_id);
-                    }
-                    ?>
-                    <span><?php echo esc_html($item['label']); ?></span>
-                </a>
-            <?php endif; ?>
+            <a href="<?php echo esc_url($item['url']); ?>"
+                class="ainy-bottom-nav-link<?php echo esc_attr($active_class); ?>"
+                data-nav-id="<?php echo esc_attr($item_id); ?>"
+                title="<?php echo esc_attr($item['label']); ?>"<?php echo $aria_current; ?>
+                <?php foreach ($item_attrs as $attr_name => $attr_value) : ?>
+                    <?php echo esc_attr((string) $attr_name); ?>="<?php echo esc_attr((string) $attr_value); ?>"
+                <?php endforeach; ?>>
+                <?php
+                if ($item_id !== '' && function_exists('aidunite_render_bottom_nav_icon')) {
+                    aidunite_render_bottom_nav_icon($item_id);
+                }
+                ?>
+                <span><?php echo esc_html($item['label']); ?></span>
+            </a>
         <?php endforeach; ?>
     </div>
 </nav>

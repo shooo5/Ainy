@@ -154,7 +154,7 @@
         if (typeof AidUniteFormUtils !== 'undefined') {
           AidUniteFormUtils.showFormErrors(form, validation.errors);
         } else {
-          alert(validation.errors.join('\n'));
+          aiduniteToast(validation.errors.join('\n'), 'error');
         }
         form.classList.add('member-register-form--shake');
         setTimeout(function () {

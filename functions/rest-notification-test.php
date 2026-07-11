@@ -9,6 +9,9 @@ if (!defined('ABSPATH')) {
 }
 
 add_action('rest_api_init', function () {
+    if (!defined('WP_DEBUG') || !WP_DEBUG) {
+        return;
+    }
     register_rest_route('aidunite/v1', '/notification-test', [
         'methods'             => 'POST',
         'callback'            => 'aidunite_rest_notification_test_send',

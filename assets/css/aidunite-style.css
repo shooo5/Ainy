@@ -64,16 +64,42 @@
 
   /* スケジュールカレンダー：チーム性別の左枠（正本は gender-theme-tokens.css） */
   --schedule-calendar-team-male-border: var(--gender-boys-border, var(--ainy-navy-deep));
-  --schedule-calendar-team-female-border: var(--gender-girls-border, #7c3aed);
-  /* スケジュールカード：目的×種別の外枠色（背景は白・左枠は性別） */
+  --schedule-calendar-team-female-border: var(--gender-girls-border);
+  /* スケジュール：目的×種別（カレンダー・リスト・バッジ・フィルタの色正本） */
   --schedule-card-border-practice: rgba(3, 169, 244, 0.68);
+  --schedule-card-bg-practice: var(--bg-primary, #fff);
   --schedule-card-border-match-confirmed: rgba(76, 175, 80, 0.72);
+  --schedule-card-bg-match-confirmed: rgba(76, 175, 80, 0.06);
   --schedule-card-border-match-recruit: rgba(255, 152, 0, 0.76);
+  --schedule-card-bg-match-recruit: rgba(255, 152, 0, 0.08);
   --schedule-card-border-event: rgba(255, 193, 7, 0.8);
+  --schedule-card-bg-event: var(--bg-primary, #fff);
+  --schedule-card-border-meeting: rgba(179, 157, 219, 0.85);
+  --schedule-card-bg-meeting: rgba(156, 136, 255, 0.08);
   --schedule-card-border-off: rgba(158, 158, 158, 0.66);
+  --schedule-card-bg-off: rgba(158, 158, 158, 0.14);
   --schedule-card-border-tentative: var(--warning-color, #ffc107);
+  --schedule-card-bg-tentative: var(--bg-primary, #fff);
+  --schedule-badge-practice-bg: rgba(3, 169, 244, 0.2);
+  --schedule-badge-match-confirmed-bg: rgba(76, 175, 80, 0.22);
+  --schedule-badge-recruit-bg: rgba(255, 152, 0, 0.22);
+  --schedule-badge-meeting-bg: rgba(179, 157, 219, 0.28);
+  --schedule-badge-event-bg: rgba(255, 193, 7, 0.28);
+  --schedule-badge-off-bg: rgba(158, 158, 158, 0.2);
+  --schedule-badge-tentative-bg: rgba(255, 193, 7, 0.35);
+  --schedule-filter-recruit-bg: rgba(255, 152, 0, 0.22);
+  --schedule-filter-recruit-border: rgba(255, 152, 0, 0.85);
+  --schedule-filter-recruit-text: var(--text-primary);
+  /* レガシー塗り（カレンダー外の一覧カード等） */
+  --schedule-fill-practice: rgba(179, 229, 252, 0.85);
+  --schedule-fill-match-confirmed: rgba(165, 214, 167, 0.85);
+  --schedule-fill-match-recruit: rgba(255, 152, 0, 0.2);
+  --schedule-fill-meeting: rgba(206, 187, 252, 0.85);
+  --schedule-fill-event: rgba(255, 236, 179, 0.9);
 
   /* フォントサイズ定義（統一） */
+  --font-size-3xs: 0.5rem;    /* 8px */
+  --font-size-2xs: 0.625rem;  /* 10px */
   --font-size-xs: 0.75rem;    /* 12px */
   --font-size-sm: 0.875rem;   /* 14px */
   --font-size-base: 1rem;     /* 16px */
@@ -337,6 +363,24 @@ body {
   border-color: #bee5eb;
   color: var(--info-color);
 }
+/* 見出し下アクセントライン（.ainy-section-title / .aidunite-fp-section-title と同一） */
+.ainy-title-accent {
+  position: relative;
+  padding-bottom: var(--spacing-sm);
+}
+
+.ainy-title-accent::after {
+  content: '';
+  position: absolute;
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 4px;
+  background: var(--primary-color);
+  border-radius: 2px;
+}
+
 /* ========================================
    テキスト・背景・マージン・パディング系
    ======================================== */
@@ -595,27 +639,9 @@ body.web-app-page .page-content {
   padding-bottom: 3rem; /* 適切な余白を確保 */
 }
 
-/* モバイルでのボトムナビゲーション調整 */
-body.web-app-page .ainy-bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-}
-
-/* ボトムナビゲーション分の余白を確保 */
-body.web-app-page .main-content {
-  padding-bottom: 80px; /* ボトムナビゲーションの高さ分 */
-}
-
-/* フルスクリーンモーダル・ダイアログの位置調整 */
-body.web-app-page .modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
+/* レガシー .modal の位置調整は各ページ CSS / コンポーネント側で定義する。
+ * transform ベースのセンタリング（top/left 50% + translate）は
+ * フルスクリーンオーバーレイ（flex / margin:auto）と競合するためグローバル指定しない。 */
 
 /* 固定ヘッダーとの関係調整 */
 body.web-app-page .site-header {
@@ -827,50 +853,7 @@ body.web-app-page .page-container {
   margin: 0;
 }
 
-/* モバイル用ボトムナビゲーション */
-.ainy-bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: #ffffff;
-  border-top: 1px solid #e9ecef;
-  display: flex;
-  justify-content: space-around;
-  padding: 0.75rem 0;
-  z-index: 1000;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.ainy-bottom-nav-link {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-decoration: none;
-  color: #6c757d;
-  font-size: 0.8rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  padding: 0.5rem;
-  border-radius: 8px;
-  min-width: 60px;
-}
-
-.ainy-bottom-nav-link svg {
-  margin-bottom: 0.25rem;
-  transition: all 0.2s ease;
-}
-
-.ainy-bottom-nav-link:hover,
-.ainy-bottom-nav-link.active {
-  color: #3b82f6;
-  background: rgba(59, 130, 246, 0.1);
-}
-
-.ainy-bottom-nav-link:hover svg,
-.ainy-bottom-nav-link.active svg {
-  transform: scale(1.1);
-}
+/* ボトムナビ：layout/web-app-integrated-ui.css（body.ainy-has-bottom-nav）に集約 */
 
 /* レスポンシブデザイン */
 @media (max-width: 900px) {
@@ -917,20 +900,6 @@ body.web-app-page .page-container {
     padding-top: 1.5rem;
   }
 
-  /* モバイル用ボトムナビゲーションの調整 */
-  .ainy-bottom-nav {
-    padding: 0.5rem 0;
-  }
-
-  .ainy-bottom-nav-link {
-    font-size: 0.75rem;
-    min-width: 50px;
-  }
-
-  .ainy-bottom-nav-link svg {
-    width: 20px;
-    height: 20px;
-  }
 }
 
 /* ========================================
@@ -1300,7 +1269,11 @@ select.form-control {
 }
 
 select.form-control:focus {
+  background-color: var(--bg-primary);
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236a5af9' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
 }
 
 /* ブラウザのデフォルト矢印を完全に非表示 */

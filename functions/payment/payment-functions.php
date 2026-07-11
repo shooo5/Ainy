@@ -8,10 +8,23 @@
  * チームタイプを取得
  */
 function aidunite_get_team_type($team_id) {
-    $raw = get_post_meta($team_id, 'team_type', true);
+    $team_id = (int) $team_id;
+    if ($team_id <= 0) {
+        return '';
+    }
+    if (function_exists('aidunite_team_read_canonical_meta')) {
+        $canonical = aidunite_team_read_canonical_meta($team_id);
+        $raw = (string) ($canonical['team_type'] ?? '');
+    } elseif (function_exists('aidunite_team_get_canonical_meta')) {
+        $canonical = aidunite_team_get_canonical_meta($team_id);
+        $raw = (string) ($canonical['team_type'] ?? '');
+    } else {
+        $raw = '';
+    }
     if (function_exists('aidunite_team_type_to_canonical')) {
         return aidunite_team_type_to_canonical($raw);
     }
+
     return (string) $raw;
 }
 
@@ -60,31 +73,19 @@ function aidunite_get_registered_player_count($team_id) {
 /**
  * チームの月額料金を計算
  */
-function aidunite_calculate_monthly_fee($team_id) {
-    $team_type = aidunite_get_team_type($team_id);
-    $payment_mode = aidunite_get_team_payment_mode($team_id);
-    $config = aidunite_get_payment_config();
+function aidunite_calculate_monthly_fee($team_id, $user_id = 0) {
+    $team_id = (int) $team_id;
+    $user_id = (int) $user_id;
+    if ($team_id <= 0) {
+        return 0;
+    }
+    if ($user_id <= 0 && is_user_logged_in()) {
+        $user_id = (int) get_current_user_id();
+    }
+    if (function_exists('aidunite_payment_read_pricing_payload')) {
+        $pricing = aidunite_payment_read_pricing_payload($team_id, $user_id);
 
-    if ($team_type === 'school') {
-        // 学校チーム
-        if ($payment_mode === 'board') {
-            // 教育委員会契約
-            return (int) ($config['school']['board_amount'] ?? 2000);
-        } elseif ($payment_mode === 'school') {
-            // 学校契約
-            return (int) ($config['school']['school_amount'] ?? 2000);
-        } elseif ($payment_mode === 'personal') {
-            // 個人契約
-            return (int) ($config['school']['personal_amount'] ?? $config['school']['amount'] ?? 2000);
-        } else {
-            // デフォルト（個人契約）
-            return (int) ($config['school']['personal_amount'] ?? $config['school']['amount'] ?? 2000);
-        }
-    } elseif ($team_type === 'club') {
-        // クラブチーム（登録選手数 × 1人あたり金額）
-        $player_count = aidunite_get_registered_player_count($team_id);
-        $base_amount = (int) $config['club']['base_amount'];
-        return $player_count * $base_amount;
+        return (int) ($pricing['monthly_fee'] ?? 0);
     }
 
     return 0;
@@ -101,32 +102,71 @@ function aidunite_get_plan_info($team_id, $plan_id = null) {
         $plan_id = aidunite_get_selected_plan_id($team_id);
     }
 
+    $product_plan = function_exists('aidunite_get_team_product_plan')
+        ? aidunite_get_team_product_plan($team_id)
+        : 'match';
+    if (function_exists('aidunite_payment_normalize_selected_plan_id')) {
+        $plan_id = aidunite_payment_normalize_selected_plan_id((string) $plan_id, $product_plan);
+    }
+
+    $config_key = $product_plan === 'club' ? 'club' : 'match';
+
     if (empty($plan_id)) {
-        // デフォルトプランを取得
-        $config_key = function_exists('aidunite_team_type_payment_config_key')
-            ? aidunite_team_type_payment_config_key($team_type)
-            : ($team_type === 'club' ? 'club' : 'school');
-        $plans = $config[$config_key]['plans'];
+        $plans = $config[$config_key]['plans'] ?? $config['match']['plans'] ?? [];
         foreach ($plans as $plan) {
             if (!empty($plan['is_default'])) {
                 return $plan;
             }
         }
-        // デフォルトプランがない場合は最初のプラン
         return !empty($plans) ? $plans[0] : null;
     }
 
-    $config_key = function_exists('aidunite_team_type_payment_config_key')
-        ? aidunite_team_type_payment_config_key($team_type)
-        : ($team_type === 'club' ? 'club' : 'school');
-    $plans = $config[$config_key]['plans'];
+    $plans = $config[$config_key]['plans'] ?? $config['match']['plans'] ?? [];
     foreach ($plans as $plan) {
         if ($plan['id'] === $plan_id) {
             return $plan;
         }
     }
 
-    return null;
+    $fallback_plans = $config[$config_key]['plans'] ?? $config['match']['plans'] ?? [];
+    foreach ($fallback_plans as $plan) {
+        if (!empty($plan['is_default'])) {
+            return $plan;
+        }
+    }
+
+    return !empty($fallback_plans) ? $fallback_plans[0] : null;
+}
+
+/**
+ * 無料期間の終了日時（当月末 23:59:59）を算出
+ *
+ * 請求は毎月1日のため、開始日+Nヶ月の途中日ではなく
+ * 無料対象月の月末で締め、日割りと月額請求の齟齬を避ける。
+ *
+ * @param string|DateTimeInterface $trial_start_date
+ * @param int                      $free_months 無料対象の暦月数（2暦月無料=2）
+ * @return DateTimeImmutable|null
+ */
+function aidunite_payment_resolve_trial_end_at_month_end($trial_start_date, $free_months = 1) {
+    $free_months = max(1, (int) $free_months);
+    $tz = wp_timezone();
+
+    if ($trial_start_date instanceof DateTimeInterface) {
+        $start = DateTimeImmutable::createFromInterface($trial_start_date)->setTimezone($tz);
+    } else {
+        $start = new DateTimeImmutable((string) $trial_start_date, $tz);
+    }
+
+    $start = $start->setTime(0, 0, 0);
+    if ($free_months <= 1) {
+        $month_anchor = $start->modify('first day of this month');
+    } else {
+        $month_anchor = $start->modify('first day of this month')
+            ->modify('+' . ($free_months - 1) . ' months');
+    }
+
+    return $month_anchor->modify('last day of this month')->setTime(23, 59, 59);
 }
 
 /**
@@ -145,19 +185,99 @@ function aidunite_calculate_trial_end_date($team_id) {
         return null;
     }
 
+    if ($plan['trial_type'] === 'first_month_free' || $plan['trial_type'] === 'free_months') {
+        $free_months = max(1, (int) ($plan['trial_value'] ?? 1));
+        $end = aidunite_payment_resolve_trial_end_at_month_end($trial_start_date, $free_months);
+        return $end instanceof DateTimeImmutable ? $end->format('Y-m-d H:i:s') : null;
+    }
+
     $start_timestamp = strtotime($trial_start_date);
 
     if ($plan['trial_type'] === 'days') {
-        // 日数指定
         $trial_days = (int) $plan['trial_value'];
         return date('Y-m-d H:i:s', strtotime("+{$trial_days} days", $start_timestamp));
-    } elseif ($plan['trial_type'] === 'free_months') {
-        // 無料月数指定
-        $free_months = (int) $plan['trial_value'];
-        return date('Y-m-d H:i:s', strtotime("+{$free_months} months", $start_timestamp));
     }
 
     return null;
+}
+
+/**
+ * 次回請求日（毎月1日）を算出
+ *
+ * @param string|null $after_date_ymd この日より後の最初の月1日（Y-m-d）。null のときは「今日より後」
+ * @return string Y-m-d
+ */
+function aidunite_payment_resolve_next_billing_date_1st($after_date_ymd = null) {
+    $tz = wp_timezone();
+
+    if ($after_date_ymd === null || $after_date_ymd === '') {
+        $after = new DateTimeImmutable('now', $tz);
+    } else {
+        $after = DateTimeImmutable::createFromFormat('Y-m-d', substr($after_date_ymd, 0, 10), $tz);
+        if ($after === false) {
+            $after = new DateTimeImmutable($after_date_ymd, $tz);
+        }
+    }
+
+    $after = $after->setTime(0, 0, 0);
+    $candidate = $after->modify('first day of this month');
+
+    if ($candidate <= $after) {
+        $candidate = $candidate->modify('first day of next month');
+    }
+
+    return $candidate->format('Y-m-d');
+}
+
+/**
+ * 決済画面の日付表示（Ainy UI 統一: yy/mm/dd（曜））
+ *
+ * @param string|int|null $date Y-m-d / mysql datetime / Unix timestamp
+ * @return string
+ */
+function aidunite_payment_format_date_display($date) {
+    if ($date === null || $date === '') {
+        return '';
+    }
+
+    if (!class_exists('AidUniteDateUtils')) {
+        require_once get_template_directory() . '/functions/common/date-utils.php';
+    }
+
+    return AidUniteDateUtils::formatDateForDisplay($date);
+}
+
+/**
+ * 請求日の表示用フォーマット（毎月1日・画面表示統一）
+ *
+ * @param string $billing_date_ymd Y-m-d
+ * @return string
+ */
+function aidunite_payment_format_billing_date_display($billing_date_ymd) {
+    return aidunite_payment_format_date_display($billing_date_ymd);
+}
+
+/**
+ * Stripe 等の Unix 時刻から次回請求日（毎月1日）表示文字列へ
+ *
+ * @param int $timestamp
+ * @return string yy/mm/dd（曜）
+ */
+function aidunite_payment_format_next_billing_from_timestamp($timestamp) {
+    $timestamp = (int) $timestamp;
+    if ($timestamp <= 0) {
+        return '';
+    }
+
+    $day = (int) wp_date('j', $timestamp);
+    if ($day === 1) {
+        return aidunite_payment_format_date_display($timestamp);
+    }
+
+    $ymd = wp_date('Y-m-d', $timestamp);
+    $billing_ymd = aidunite_payment_resolve_next_billing_date_1st($ymd);
+
+    return aidunite_payment_format_billing_date_display($billing_ymd);
 }
 
 /**
@@ -206,120 +326,172 @@ function aidunite_is_payment_required($user_id) {
  * 契約パターンを判定
  */
 function aidunite_get_contract_pattern($team_id) {
-    $team_type = aidunite_get_team_type($team_id);
     $payment_mode = aidunite_get_team_payment_mode($team_id);
+    $product_plan = function_exists('aidunite_get_team_product_plan')
+        ? aidunite_get_team_product_plan($team_id)
+        : 'match';
 
-    if ($team_type === 'school') {
-        if ($payment_mode === 'board') {
-            return 'education_board'; // 教育委員会契約
-        } elseif ($payment_mode === 'school') {
-            return 'school_invoice'; // 学校契約（請求書）
-        } elseif ($payment_mode === 'personal') {
-            return 'personal_stripe'; // 個人契約（Stripe）
-        }
-    } elseif ($team_type === 'club') {
-        return 'club_stripe'; // クラブチーム（Stripe）
+    if ($payment_mode === 'corporate') {
+        return $product_plan === 'club' ? 'corporate_club' : 'corporate_match';
     }
 
-    return 'unknown';
+    return $product_plan === 'club' ? 'personal_club' : 'personal_match';
 }
 
 /**
- * 専用コードを生成
+ * トライアル終了日時を取得
+ *
+ * @param int $team_id
+ * @return string|null Y-m-d H:i:s
  */
-function aidunite_generate_registration_code($length = 12) {
-    $characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 0, O, I, 1を除外
-    $code = '';
+function aidunite_get_trial_end_date($team_id) {
+    $end = aidunite_calculate_trial_end_date((int) $team_id);
 
-    for ($i = 0; $i < $length; $i++) {
-        $code .= $characters[random_int(0, strlen($characters) - 1)];
-    }
-
-    return $code;
+    return $end !== null && $end !== '' ? (string) $end : null;
 }
 
 /**
- * ユニークな専用コードを生成（重複チェック付き）
+ * トライアル残日数（当日含む、0 以上）
+ *
+ * @param int $team_id
+ * @return int|null trial 未開始時は null
  */
-function aidunite_generate_unique_registration_code($length = 12) {
-    $max_attempts = 100;
-    $attempt = 0;
-
-    while ($attempt < $max_attempts) {
-        $code = aidunite_generate_registration_code($length);
-
-        if (!aidunite_is_registration_code_used($code)) {
-            return $code;
-        }
-
-        $attempt++;
-    }
-
-    // 最大試行回数に達した場合は長さを増やす
-    return aidunite_generate_registration_code($length + 2);
-}
-
-/**
- * 早期決済特典を計算（請求日統一対応・後払い方式）
- * @param int $team_id チームID
- * @return array|null ['bonus_months' => 2|1|0, 'unified_billing_date' => '2025-03-01', 'first_billing_date' => '2025-02-01', 'message' => '特典メッセージ']
- */
-function aidunite_calculate_early_payment_bonus($team_id) {
-    $trial_start = aidunite_get_trial_start_date($team_id);
-    if (empty($trial_start)) {
+function aidunite_payment_get_trial_days_remaining($team_id) {
+    $team_id = (int) $team_id;
+    if ($team_id <= 0 || aidunite_get_trial_start_date($team_id) === '') {
         return null;
     }
 
-    $days_elapsed = floor((time() - strtotime($trial_start)) / (24 * 60 * 60));
+    $end = aidunite_get_trial_end_date($team_id);
+    if ($end === null) {
+        return null;
+    }
 
-    // 元のトライアル終了日を計算（30日後）
-    $original_trial_end = strtotime('+30 days', strtotime($trial_start));
+    $remaining = (int) ceil((strtotime($end) - strtotime(current_time('mysql'))) / DAY_IN_SECONDS);
 
-    // 統一請求日（毎月1日・後払い方式）
-    $unified_billing_day = 1;
+    return max(0, $remaining);
+}
 
-    // 元のトライアル終了日以降の最初の統一請求日を計算（後払い方式）
-    // トライアル終了日の月の次の月の1日が最初の請求日
-    $year = date('Y', $original_trial_end);
-    $month = date('m', $original_trial_end);
+/**
+ * トライアル終了日の表示ラベル（yy/mm/dd（曜））
+ *
+ * @param int $team_id
+ * @return string
+ */
+function aidunite_payment_format_trial_end_label($team_id) {
+    $end = aidunite_get_trial_end_date((int) $team_id);
+    if ($end === null) {
+        return '';
+    }
 
-    // トライアル終了日の次の月の1日が最初の請求日（後払い方式）
-    $first_billing_timestamp = strtotime("{$year}-{$month}-{$unified_billing_day} +1 month");
-    $first_billing_date = date('Y-m-' . sprintf('%02d', $unified_billing_day), $first_billing_timestamp);
+    return aidunite_payment_format_date_display($end);
+}
 
-    // 早期決済特典を計算（後払い方式）
-    if ($days_elapsed <= 20) {
-        // 20日以内 → 2か月無料
-        // 最初の請求日から2か月後の請求日まで無料
-        $first_charge_date = date('Y-m-' . sprintf('%02d', $unified_billing_day), strtotime('+2 months', $first_billing_timestamp));
+/**
+ * 未課金チームの無料期間開始日を保証（表示用 trial_end 算出の前提）
+ *
+ * @param int $team_id
+ * @param int $user_id
+ * @return bool trial_start_date が利用可能になったか
+ */
+function aidunite_payment_ensure_trial_started($team_id, $user_id = 0) {
+    $team_id = (int) $team_id;
+    $user_id = (int) $user_id;
+    if ($team_id <= 0) {
+        return false;
+    }
 
-        return [
-            'bonus_months' => 2,
-            'unified_billing_date' => $first_charge_date,
-            'first_billing_date' => $first_billing_date, // 最初の請求日（ただし無料）
-            'message' => '🎉 早期決済特典: 2か月無料！',
-            'days_elapsed' => $days_elapsed
-        ];
-    } elseif ($days_elapsed <= 30) {
-        // 21-30日以内 → 1か月無料
-        // 最初の請求日から1か月後の請求日まで無料
-        $first_charge_date = date('Y-m-' . sprintf('%02d', $unified_billing_day), strtotime('+1 month', $first_billing_timestamp));
+    if (aidunite_get_trial_start_date($team_id) !== '') {
+        return true;
+    }
 
-        return [
-            'bonus_months' => 1,
-            'unified_billing_date' => $first_charge_date,
-            'first_billing_date' => $first_billing_date, // 最初の請求日（ただし無料）
-            'message' => '🎁 早期決済特典: 1か月無料！',
-            'days_elapsed' => $days_elapsed
-        ];
+    if (function_exists('aidunite_get_team_stripe_subscription_id')
+        && aidunite_get_team_stripe_subscription_id($team_id, $user_id) !== '') {
+        return false;
+    }
+
+    $team_status = function_exists('aidunite_get_team_payment_status')
+        ? (string) aidunite_get_team_payment_status($team_id, $user_id)
+        : '';
+    if ($team_status === 'paid') {
+        return false;
+    }
+
+    if (function_exists('aidunite_payment_start_trial_on_team_approval')) {
+        aidunite_payment_start_trial_on_team_approval($team_id, $user_id);
     } else {
-        // 30日を超えた場合（特典なしでも統一請求日に合わせる）
-        return [
-            'bonus_months' => 0,
-            'unified_billing_date' => $first_billing_date,
-            'first_billing_date' => $first_billing_date,
-            'message' => '通常料金',
-            'days_elapsed' => $days_elapsed
-        ];
+        aidunite_set_trial_start_date($team_id);
+    }
+
+    return aidunite_get_trial_start_date($team_id) !== '';
+}
+
+/**
+ * 画面表示用の無料期間終了日時（Y-m-d H:i:s）を解決
+ *
+ * @param int $team_id
+ * @param int $user_id
+ * @return string
+ */
+function aidunite_payment_resolve_trial_end_date($team_id, $user_id = 0) {
+    $team_id = (int) $team_id;
+    if ($team_id <= 0) {
+        return '';
+    }
+
+    aidunite_payment_ensure_trial_started($team_id, $user_id);
+
+    $end = aidunite_calculate_trial_end_date($team_id);
+    if ($end) {
+        return (string) $end;
+    }
+
+    return '';
+}
+
+/**
+ * チーム承認（publish）時に Match 2ヶ月無料トライアルを開始
+ *
+ * @param int $team_id
+ * @param int $leader_user_id
+ */
+function aidunite_payment_start_trial_on_team_approval($team_id, $leader_user_id = 0) {
+    $team_id = (int) $team_id;
+    if ($team_id <= 0) {
+        return;
+    }
+
+    if (aidunite_get_trial_start_date($team_id) !== '') {
+        return;
+    }
+
+    if (function_exists('aidunite_get_team_stripe_subscription_id')
+        && aidunite_get_team_stripe_subscription_id($team_id) !== '') {
+        return;
+    }
+
+    if ($leader_user_id <= 0 && function_exists('aidunite_team_resolve_leader_user_id')) {
+        $leader_user_id = (int) aidunite_team_resolve_leader_user_id($team_id);
+    }
+
+    $plan_id = function_exists('aidunite_get_selected_plan_id')
+        ? (string) aidunite_get_selected_plan_id($team_id)
+        : '';
+    if ($plan_id === '' && function_exists('aidunite_payment_persist_plan_selection')) {
+        aidunite_payment_persist_plan_selection($team_id, $leader_user_id, [
+            'selected_plan_id' => 'plan_match',
+            'product_plan' => 'match',
+        ]);
+    }
+
+    aidunite_set_trial_start_date($team_id);
+
+    if ($leader_user_id > 0 && function_exists('aidunite_set_team_payment_status')) {
+        $current = function_exists('aidunite_get_payment_status')
+            ? (string) aidunite_get_payment_status($leader_user_id)
+            : '';
+        if ($current === '' || $current === 'unpaid') {
+            aidunite_set_team_payment_status($team_id, 'trial', $leader_user_id);
+        }
     }
 }

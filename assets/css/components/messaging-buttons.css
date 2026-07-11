@@ -1,0 +1,186 @@
+/**
+ * メッセージング画面ボタン（コミュニケーション・モーダル）
+ * Base = 構造 / modifier = 見た目 + 全状態
+ */
+
+/* ── Base: 構造のみ ── */
+.post-btn,
+.draft-btn,
+.cancel-btn,
+.page-communication-main .action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  box-sizing: border-box;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: inherit;
+  border: 1px solid transparent;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+/* ── Primary: 投稿 ── */
+.post-btn--primary,
+.post-btn {
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-base);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: var(--text-light);
+  border-color: transparent;
+}
+
+.post-btn--primary:hover,
+.post-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.post-btn--primary:active,
+.post-btn:active {
+  transform: translateY(0);
+}
+
+.post-btn--primary:focus-visible,
+.post-btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* ── Secondary: 下書き ── */
+.draft-btn--secondary,
+.draft-btn {
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-base);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.draft-btn--secondary:hover,
+.draft-btn:hover {
+  background: var(--border-light);
+}
+
+.draft-btn--secondary:focus-visible,
+.draft-btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* ── Tertiary: キャンセル ── */
+.cancel-btn--tertiary,
+.cancel-btn {
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-base);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--border-color);
+}
+
+.cancel-btn--tertiary:hover,
+.cancel-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.cancel-btn--tertiary .cancel-icon {
+  display: none;
+}
+
+.cancel-btn--tertiary:focus-visible,
+.cancel-btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* ── Compact: タイムライン行アクション ── */
+.page-communication-main .action-btn {
+  min-height: 32px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-small);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--border-light);
+}
+
+.page-communication-main .action-btn:hover {
+  background: var(--border-light);
+  color: var(--text-primary);
+}
+
+.page-communication-main .action-btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.page-communication-main .action-btn.chat-btn {
+  color: var(--success-color);
+  border-color: var(--success-color);
+}
+
+.page-communication-main .action-btn.chat-btn:hover {
+  background: var(--success-color);
+  color: var(--text-light);
+}
+
+.page-communication-main .action-btn.chat-btn:focus-visible {
+  outline: 2px solid var(--success-color);
+  outline-offset: 2px;
+}
+
+.page-communication-main .action-btn.delete-btn {
+  color: var(--danger-color);
+  border-color: var(--danger-color);
+}
+
+.page-communication-main .action-btn.delete-btn:hover {
+  background: var(--danger-color);
+  color: var(--text-light);
+}
+
+.page-communication-main .action-btn.delete-btn:focus-visible {
+  outline: 2px solid var(--danger-color);
+  outline-offset: 2px;
+}
+
+/* ── モーダルフッター: レイアウト（pages は幅のみ） ── */
+.message-modal .form-actions .post-btn--primary,
+.message-modal .form-actions .post-btn,
+.message-modal .form-actions .draft-btn--secondary,
+.message-modal .form-actions .draft-btn {
+  flex: 1;
+  min-width: 100px;
+}
+
+.message-modal .form-actions .post-btn--primary,
+.message-modal .form-actions .post-btn {
+  min-width: 120px;
+}
+
+@media (max-width: 480px) {
+  .message-modal .form-actions .post-btn--primary,
+  .message-modal .form-actions .post-btn,
+  .message-modal .form-actions .draft-btn--secondary,
+  .message-modal .form-actions .draft-btn,
+  .message-modal .form-actions .cancel-btn {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+}

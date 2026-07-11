@@ -1,0 +1,29 @@
+/**
+ * page-match-board-own.php — 二重スクロール防止（早期読込）
+ */
+body.page-match-board-own #page,
+body.page-match-board-own #page-wrapper,
+body.page-match-board-own #main.site-main,
+body.page-match-board-own .full-container,
+body.page-template-page-match-board-own-php #page,
+body.page-template-page-match-board-own-php #page-wrapper,
+body.page-template-page-match-board-own-php #main.site-main,
+body.page-template-page-match-board-own-php .full-container {
+  overflow: visible;
+  height: auto;
+  min-height: auto;
+}
+
+body.page-match-board-own .team-dashboard-container.page-match-board-own,
+body.page-template-page-match-board-own-php .team-dashboard-container.page-match-board-own {
+  min-height: 0;
+  overflow: visible;
+}
+
+@media (max-width: 767px) {
+  body.page-match-board-own .team-dashboard-container.page-match-board-own,
+  body.page-template-page-match-board-own-php .team-dashboard-container.page-match-board-own {
+    min-height: 0;
+    overflow: visible;
+  }
+}

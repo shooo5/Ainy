@@ -111,7 +111,10 @@ get_header();
                     <?php foreach ($drill_teams as $idx => $team_id) : ?>
                     <?php
                     $team_id = (int) $team_id;
-                    $team_name = get_post_meta($team_id, 'team_name', true);
+                    $team_display = function_exists('aidunite_team_get_display_bundle')
+                        ? aidunite_team_get_display_bundle($team_id)
+                        : [];
+                    $team_name = (string) ($team_display['team_name'] ?? '');
                     if ($team_name === '') {
                         $p = get_post($team_id);
                         $team_name = $p ? $p->post_title : ('#' . $team_id);

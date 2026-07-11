@@ -41,14 +41,6 @@ function aidunite_get_user_info($user_id) {
 }
 
 /**
- * 後方互換性のためのラッパー関数（段階的削除予定）
- * @deprecated 代わりに aidunite_get_user_info() を使用してください
- */
-function tunageru_get_user_info($user_id) {
-    return aidunite_get_user_info($user_id);
-}
-
-/**
  * ユーザータイプ取得（統一命名）
  */
 function aidunite_get_user_type($user_id = null) {
@@ -57,13 +49,6 @@ function aidunite_get_user_type($user_id = null) {
     return $info['user_type'] ?? 'general';
 }
 
-/**
- * 後方互換性のためのラッパー関数（段階的削除予定）
- * @deprecated 代わりに aidunite_get_user_type() を使用してください
- */
-function tunageru_get_user_type($user_id = null) {
-    return aidunite_get_user_type($user_id);
-}
 /**
  * チームホームテンプレート
  * AidUnite統一仕様対応版
@@ -132,7 +117,7 @@ function aidunite_render_team_leader_content($team_info, $user_info) {
                 </div>
                 <div class="card-body">
                     <p>試合の申し込みや管理ができます。</p>
-                    <a href="<?php echo home_url('/match-management'); ?>" class="btn btn-primary">試合管理</a>
+                    <a href="<?php echo home_url('/match-requests'); ?>" class="btn btn-primary">試合管理</a>
                 </div>
             </div>
         </div>
@@ -187,7 +172,7 @@ function aidunite_render_parent_content($team_info, $user_info) {
                                             <td><?php echo esc_html($schedule['schedule_type']); ?></td>
                                             <td><?php echo esc_html($schedule['schedule_place']); ?></td>
                                             <td>
-                                                <a href="<?php echo home_url('/attendance-response?schedule_id=' . $schedule['schedule_id'] . '&user_id=' . $user_info['user_id']); ?>" class="btn btn-sm btn-primary">回答</a>
+                                                <a href="<?php echo home_url('/attendance-report?schedule_id=' . $schedule['schedule_id'] . '&user_id=' . $user_info['user_id']); ?>" class="btn btn-sm btn-primary">回答</a>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -209,7 +194,7 @@ function aidunite_render_parent_content($team_info, $user_info) {
                 </div>
                 <div class="card-body">
                     <p>子どもの出欠を連絡できます。</p>
-                    <a href="<?php echo home_url('/attendance'); ?>" class="btn btn-success">出欠連絡</a>
+                    <a href="<?php echo home_url('/attendance-report'); ?>" class="btn btn-success">出欠連絡</a>
                 </div>
             </div>
         </div>
@@ -222,7 +207,7 @@ function aidunite_render_parent_content($team_info, $user_info) {
                 </div>
                 <div class="card-body">
                     <p>チームからのお知らせを確認できます。</p>
-                    <a href="<?php echo home_url('/team-notifications'); ?>" class="btn btn-info">連絡確認</a>
+                    <a href="<?php echo home_url('/notifications'); ?>" class="btn btn-info">連絡確認</a>
                 </div>
             </div>
         </div>
@@ -317,7 +302,7 @@ function aidunite_render_player_content($team_info, $user_info) {
                 </div>
                 <div class="card-body">
                     <p>チームの掲示板を閲覧できます。</p>
-                    <a href="<?php echo home_url('/team-board'); ?>" class="btn btn-secondary">掲示板</a>
+                    <a href="<?php echo home_url('/communication-main'); ?>" class="btn btn-secondary">掲示板</a>
                 </div>
             </div>
         </div>
@@ -367,7 +352,7 @@ function aidunite_render_supporter_content($team_info, $user_info) {
                 </div>
                 <div class="card-body">
                     <p>チームに応援メッセージを送れます。</p>
-                    <a href="<?php echo home_url('/send-message?team_id=' . $team_info['team_id']); ?>" class="btn btn-success">メッセージ送信</a>
+                    <a href="<?php echo home_url('/communication-main?team_id=' . $team_info['team_id']); ?>" class="btn btn-success">メッセージ送信</a>
                 </div>
             </div>
         </div>
@@ -404,7 +389,7 @@ function aidunite_render_admin_content($team_info, $user_info) {
                 <div class="card-body">
                     <div class="d-grid gap-2">
                         <a href="<?php echo home_url('/team-approval'); ?>" class="btn btn-warning">チーム承認</a>
-                        <a href="<?php echo home_url('/match-management'); ?>" class="btn btn-success">マッチ管理</a>
+                        <a href="<?php echo home_url('/match-requests'); ?>" class="btn btn-success">マッチ管理</a>
                         <a href="<?php echo admin_url(); ?>" class="btn btn-secondary">管理画面</a>
                     </div>
                 </div>
@@ -502,7 +487,7 @@ function aidunite_render_general_content($team_info, $user_info) {
                         <div class="col-md-6">
                             <h6>チームを支援</h6>
                             <p>支援者としてチームを応援できます。</p>
-                            <a href="<?php echo home_url('/support-team?team_id=' . $team_info['team_id']); ?>" class="btn btn-success">支援する</a>
+                            <a href="<?php echo home_url('/team-apply?team_id=' . $team_info['team_id']); ?>" class="btn btn-success">支援する</a>
                         </div>
                     </div>
                 </div>
@@ -543,7 +528,7 @@ function aidunite_get_notification_count($user_id = null) {
 /**
  * マイページ用メニュー生成（統一命名）
  */
-function aidunite_get_mypage_menu_v2($user_type) {
+function aidunite_get_mypage_menu_v2($user_type, $user_id = null, $team_id = null) {
     // 強力なキャッシュクリア
     wp_cache_flush();
     wp_cache_delete('mypage_menu_' . $user_type, 'tunageru');
@@ -591,7 +576,7 @@ function aidunite_get_mypage_menu_v2($user_type) {
             ];
             $menu[] = [
                 'title' => '試合一覧',
-                'url'   => home_url('/match-board'),
+                'url'   => home_url('/match-board-own'),
                 'icon'  => '🏟️',
                 'description' => '試合の申し込み・管理'
             ];
@@ -611,22 +596,45 @@ function aidunite_get_mypage_menu_v2($user_type) {
                 'title' => '出欠一覧',
                 'url'   => home_url('/attendance-management'),
                 'icon'  => '✅',
-                'description' => '練習・試合の出欠確認'
+                'description' => '練習・試合の出欠確認',
+                'plan_feature' => 'attendance',
             ];
             $menu[] = [
                 'title' => 'メンバー一覧',
                 'url'   => home_url('/team-members'),
                 'icon'  => '👥',
                 'description' => 'チームメンバーの一覧・編集・管理',
-                'slug' => 'member_list' // 並び替え用のスラッグ
+                'slug' => 'member_list',
+                'plan_feature' => 'member_management',
             ];
             $menu[] = [
                 'title' => '保護者招待・追加',
-                'url'   => home_url('/invite-guardian'),
+                'url'   => function_exists('aidunite_get_invite_guardian_page_url')
+                    ? aidunite_get_invite_guardian_page_url()
+                    : home_url('/invite-guardian'),
                 'icon'  => '📩',
                 'icon_svg' => 'guardian-invite',
                 'description' => '保護者をメールで招待し、チームに参加してもらう',
-                'slug' => 'invite_guardian'
+                'slug' => 'invite_guardian',
+                'plan_feature' => 'guardian_comms',
+            ];
+            $menu[] = [
+                'title' => 'チーム月謝管理',
+                'url'   => home_url('/team-payment-management'),
+                'icon'  => '💰',
+                'icon_svg' => 'payments',
+                'description' => '月謝金額の設定と Stripe Connect 連携',
+                'slug' => 'membership_fee',
+                'plan_feature' => 'tuition_connect',
+            ];
+            $menu[] = [
+                'title' => '月謝の徴収状況',
+                'url'   => home_url('/team-tuition-collections'),
+                'icon'  => '📊',
+                'icon_svg' => 'bar_chart_4_bars',
+                'description' => '保護者ごとの今月の支払い状況と入金履歴の確認',
+                'slug' => 'tuition_collections',
+                'plan_feature' => 'tuition_connect',
             ];
             $menu[] = [
                 'title' => 'チーム管理',
@@ -639,6 +647,10 @@ function aidunite_get_mypage_menu_v2($user_type) {
             break;
 
         case 'parent':
+            if (function_exists('aidunite_parent_is_pending_only_mypage')
+                && aidunite_parent_is_pending_only_mypage(get_current_user_id())) {
+                break;
+            }
             // 保護者：子供の活動管理とチーム情報確認
             $menu[] = [
                 'title' => 'コミュニケーションルーム',
@@ -647,14 +659,25 @@ function aidunite_get_mypage_menu_v2($user_type) {
                 'description' => 'チームからの連絡事項確認'
             ];
             $menu[] = [
-                'title' => '子供の活動管理',
-                'url'   => home_url('/player-add'),
+                'title' => 'お子さまの一覧',
+                'url'   => home_url('/team-members'),
                 'icon'  => '👨‍👩‍👧‍👦',
-                'description' => '子供の登録・管理'
+                'description' => '登録済みのお子さまの確認・追加',
+                'plan_feature' => 'member_management',
             ];
+            if (function_exists('aidunite_payment_parent_should_show_tuition_menu')
+                && aidunite_payment_parent_should_show_tuition_menu(get_current_user_id())) {
+                $menu[] = [
+                    'title' => '月謝のお支払い',
+                    'url'   => home_url('/parent-payment'),
+                    'icon'  => '💳',
+                    'description' => '月謝のカード登録・支払い履歴',
+                    'plan_feature' => 'tuition_connect',
+                ];
+            }
             $menu[] = [
                 'title' => 'スケジュール確認',
-                'url'   => home_url('/schedule-list'),
+                'url'   => home_url('/schedule-management'),
                 'icon'  => '📅',
                 'description' => '練習・試合スケジュールの確認'
             ];
@@ -662,7 +685,8 @@ function aidunite_get_mypage_menu_v2($user_type) {
                 'title' => '出欠連絡',
                 'url'   => home_url('/attendance-report'),
                 'icon'  => '✅',
-                'description' => '練習・試合の出欠連絡'
+                'description' => '練習・試合の出欠連絡',
+                'plan_feature' => 'attendance',
             ];
             break;
 
@@ -676,7 +700,7 @@ function aidunite_get_mypage_menu_v2($user_type) {
             ];
             $menu[] = [
                 'title' => 'スケジュール確認',
-                'url'   => home_url('/schedule-list'),
+                'url'   => home_url('/schedule-management'),
                 'icon'  => '📅',
                 'description' => '練習・試合スケジュールの確認'
             ];
@@ -684,7 +708,8 @@ function aidunite_get_mypage_menu_v2($user_type) {
                 'title' => '出欠連絡',
                 'url'   => home_url('/attendance-report'),
                 'icon'  => '✅',
-                'description' => '練習・試合の出欠連絡'
+                'description' => '練習・試合の出欠連絡',
+                'plan_feature' => 'attendance',
             ];
             $menu[] = [
                 'title' => '個人記録',
@@ -707,12 +732,6 @@ function aidunite_get_mypage_menu_v2($user_type) {
                 'description' => 'KPI・やることラン・管理ショートカット'
             ];
             $menu[] = [
-                'title' => 'システム管理',
-                'url'   => home_url('/system-management'),
-                'icon'  => '⚙️',
-                'description' => 'システム全体の設定・管理'
-            ];
-            $menu[] = [
                 'title' => 'WordPress管理画面',
                 'url'   => admin_url(),
                 'icon'  => '🔧',
@@ -720,7 +739,7 @@ function aidunite_get_mypage_menu_v2($user_type) {
             ];
             $menu[] = [
                 'title' => 'ユーザー管理',
-                'url'   => home_url('/user-management'),
+                'url'   => home_url('/admin-user-list'),
                 'icon'  => '👥',
                 'description' => '全ユーザーの管理'
             ];
@@ -732,7 +751,7 @@ function aidunite_get_mypage_menu_v2($user_type) {
             ];
             $menu[] = [
                 'title' => 'システムログ',
-                'url'   => home_url('/system-logs'),
+                'url'   => home_url('/match-log-view'),
                 'icon'  => '📋',
                 'description' => 'システムログの確認'
             ];
@@ -767,15 +786,13 @@ function aidunite_get_mypage_menu_v2($user_type) {
     }
     $menu = au_sort_mypage_menu($menu);
 
-    return apply_filters('aidunite_mypage_menu_v2_items', $menu, $user_type);
-}
+    if (function_exists('aidunite_payment_filter_mypage_menu_items')) {
+        $filter_user_id = $user_id === null ? get_current_user_id() : (int) $user_id;
+        $filter_team_id = $team_id === null ? 0 : (int) $team_id;
+        $menu = aidunite_payment_filter_mypage_menu_items($menu, $filter_user_id, $filter_team_id);
+    }
 
-/**
- * 後方互換性のためのラッパー関数（段階的削除予定）
- * @deprecated 代わりに aidunite_get_mypage_menu_v2() を使用してください
- */
-function tunageru_get_mypage_menu_v2($user_type) {
-    return aidunite_get_mypage_menu_v2($user_type);
+    return apply_filters('aidunite_mypage_menu_v2_items', $menu, $user_type);
 }
 
 /**
@@ -794,14 +811,6 @@ function aidunite_get_user_type_icon($user_type) {
 }
 
 /**
- * 後方互換性のためのラッパー関数（段階的削除予定）
- * @deprecated 代わりに aidunite_get_user_type_icon() を使用してください
- */
-function tunageru_get_user_type_icon($user_type) {
-    return aidunite_get_user_type_icon($user_type);
-}
-
-/**
  * ユーザータイプに応じた日本語ラベルを返す（統一命名）
  */
 function aidunite_get_user_type_label($user_type) {
@@ -814,14 +823,6 @@ function aidunite_get_user_type_label($user_type) {
         'general'       => '一般ユーザー',
     ];
     return $labels[$user_type] ?? '一般ユーザー';
-}
-
-/**
- * 後方互換性のためのラッパー関数（段階的削除予定）
- * @deprecated 代わりに aidunite_get_user_type_label() を使用してください
- */
-function tunageru_get_user_type_label($user_type) {
-    return aidunite_get_user_type_label($user_type);
 }
 
 /**
@@ -1026,8 +1027,8 @@ function aidunite_render_dashboard_content($user_type, $dashboard_data) {
 
                     $html .= '</div>';
                     $html .= '<div class="text-center mt-3">';
-                    $html .= '<a href="' . esc_url(home_url('/match-management')) . '" class="btn btn-primary">マッチ管理</a>';
-                    $html .= '<a href="' . esc_url(home_url('/my-matches')) . '" class="btn btn-secondary ml-2">マイマッチ</a>';
+                    $html .= '<a href="' . esc_url(home_url('/match-requests')) . '" class="btn btn-primary">マッチ管理</a>';
+                    $html .= '<a href="' . esc_url(home_url('/match-history')) . '" class="btn btn-secondary ml-2">マイマッチ</a>';
                     $html .= '</div>';
                     $html .= '</div>';
                 }
@@ -1365,9 +1366,14 @@ function aidunite_get_next_team_event($team_id) {
 
     if (!empty($upcoming_schedules)) {
         $schedule = $upcoming_schedules[0];
-        $schedule_date = get_post_meta($schedule->ID, 'schedule_date', true);
-        $schedule_type = get_post_meta($schedule->ID, 'schedule_type', true);
-        $start_time = get_post_meta($schedule->ID, 'start_time', true);
+        $sch_next = function_exists('aidunite_schedule_get_display_bundle')
+            ? aidunite_schedule_get_display_bundle((int) $schedule->ID)
+            : [];
+        $schedule_date = (string) ($sch_next['date'] ?? (function_exists('aidunite_schedule_read_normalized_date')
+            ? aidunite_schedule_read_normalized_date((int) $schedule->ID)
+            : ''));
+        $schedule_type = (string) ($sch_next['schedule_type'] ?? '');
+        $start_time = (string) ($sch_next['start_time'] ?? '');
 
         $date_obj = new DateTime($schedule_date);
         $formatted_date = $date_obj->format('m/d');
@@ -1407,23 +1413,39 @@ function aidunite_get_pending_requests_count($team_id) {
 }
 
 /**
- * 総試合数を取得（実際のデータから）（統一命名）
+ * match_request でチームが from / to のいずれかに含まれる条件
+ *
+ * @param int $team_id
+ * @return array<string, mixed>
+ */
+function aidunite_user_team_match_request_team_clause($team_id) {
+    $team_id = (int) $team_id;
+
+    return [
+        'relation' => 'OR',
+        ['key' => 'from_team_id', 'value' => (string) $team_id, 'compare' => '='],
+        ['key' => 'to_team_id', 'value' => (string) $team_id, 'compare' => '='],
+    ];
+}
+
+/**
+ * 総試合数を取得（成立済み match_request）
  */
 function aidunite_get_total_matches($team_id) {
-    if (!$team_id) return 0;
+    if (!$team_id) {
+        return 0;
+    }
 
-    // チームの試合数を取得
     $matches = get_posts([
-        'post_type' => 'multi_match',
-        'post_status' => 'publish',
+        'post_type' => 'match_request',
+        'post_status' => ['publish', 'draft'],
         'posts_per_page' => -1,
+        'fields' => 'ids',
         'meta_query' => [
-            [
-                'key' => 'team_id',
-                'value' => $team_id,
-                'compare' => '='
-            ]
-        ]
+            'relation' => 'AND',
+            aidunite_user_team_match_request_team_clause($team_id),
+            ['key' => 'status', 'value' => ['accepted', 'established'], 'compare' => 'IN'],
+        ],
     ]);
 
     return count($matches);
@@ -1475,15 +1497,11 @@ function aidunite_get_unpaid_fees_count($team_id) {
  * 出欠確認待ち数を取得（実際のデータから）（統一命名）
  */
 function aidunite_get_pending_attendance_count_team($team_id) {
-    if (!$team_id) return 0;
+    if (!$team_id) {
+        return 0;
+    }
 
-    // 今月のスケジュールで出欠未回答の数を取得
     $current_month = date('Y-m');
-    $date_range = [
-        'start' => $current_month . '-01',
-        'end' => $current_month . '-31'
-    ];
-
     $schedules = get_posts([
         'post_type' => 'schedule',
         'post_status' => 'publish',
@@ -1491,32 +1509,50 @@ function aidunite_get_pending_attendance_count_team($team_id) {
         'meta_query' => [
             [
                 'key' => 'team_id',
-                'value' => $team_id,
-                'compare' => '='
+                'value' => (int) $team_id,
+                'compare' => '=',
             ],
             [
                 'key' => 'schedule_date',
-                'value' => [$date_range['start'], $date_range['end']],
+                'value' => [$current_month . '-01', $current_month . '-31'],
                 'compare' => 'BETWEEN',
-                'type' => 'DATE'
-            ]
-        ]
+                'type' => 'DATE',
+            ],
+            [
+                'key' => 'attendance_required',
+                'value' => '1',
+                'compare' => '=',
+            ],
+        ],
     ]);
+
+    if (empty($schedules)) {
+        return 0;
+    }
+
+    $target_members = function_exists('aidunite_attendance_get_target_member_ids_for_team')
+        ? aidunite_attendance_get_target_member_ids_for_team((int) $team_id)
+        : [];
+    $member_ids = array_values(array_unique(array_map('intval', $target_members)));
+    if ($member_ids === []) {
+        return 0;
+    }
 
     $pending_count = 0;
     foreach ($schedules as $schedule) {
-        // 各スケジュールに対する出欠回答状況を確認
-        $schedule_id = $schedule->ID;
-        $team_members = aidunite_get_team_members($team_id, 'player');
-
-        foreach ($team_members as $member) {
-            // $memberはWP_Userオブジェクトなので、->IDでアクセス
-            $user_id = is_object($member) ? $member->ID : (is_array($member) ? ($member['user_id'] ?? $member['ID'] ?? 0) : 0);
-            if ($user_id) {
-                $attendance_status = get_post_meta($schedule_id, 'attendance_' . $user_id, true);
-                if (empty($attendance_status)) {
-                    $pending_count++;
-                }
+        $schedule_id = (int) $schedule->ID;
+        $attendance_data = get_post_meta($schedule_id, 'attendance_data', true);
+        if (!is_array($attendance_data)) {
+            $attendance_data = [];
+        }
+        foreach ($member_ids as $user_id) {
+            if (!isset($attendance_data[$user_id])) {
+                $pending_count++;
+                continue;
+            }
+            $status = $attendance_data[$user_id]['status'] ?? '';
+            if (function_exists('aidunite_attendance_status_is_unanswered') && aidunite_attendance_status_is_unanswered($status)) {
+                $pending_count++;
             }
         }
     }
@@ -1561,10 +1597,13 @@ function aidunite_get_team_calendar_events($team_id) {
 
     $events = [];
     foreach ($schedules as $schedule) {
-        $schedule_date = get_post_meta($schedule->ID, 'schedule_date', true);
-        $schedule_type = get_post_meta($schedule->ID, 'schedule_type', true);
-        $start_time = get_post_meta($schedule->ID, 'start_time', true);
-        $end_time = get_post_meta($schedule->ID, 'end_time', true);
+        $sch_ev = function_exists('aidunite_schedule_get_display_bundle')
+            ? aidunite_schedule_get_display_bundle((int) $schedule->ID)
+            : [];
+        $schedule_date = (string) ($sch_ev['date'] ?? '');
+        $schedule_type = (string) ($sch_ev['schedule_type'] ?? '');
+        $start_time = (string) ($sch_ev['start_time'] ?? '');
+        $end_time = (string) ($sch_ev['end_time'] ?? '');
 
         if ($schedule_date) {
             $events[] = [
@@ -1607,7 +1646,9 @@ function aidunite_get_team_recent_activities($team_id) {
     ]);
 
     foreach ($recent_schedules as $schedule) {
-        $schedule_date = get_post_meta($schedule->ID, 'schedule_date', true);
+        $schedule_date = function_exists('aidunite_schedule_read_normalized_date')
+            ? aidunite_schedule_read_normalized_date((int) $schedule->ID)
+            : '';
         $activities[] = [
             'type' => 'schedule',
             'title' => 'スケジュール作成: ' . $schedule->post_title,
@@ -1617,27 +1658,27 @@ function aidunite_get_team_recent_activities($team_id) {
         ];
     }
 
-    // 最近の試合結果
+    // 最近の成立試合（match_request）
     $recent_matches = get_posts([
-        'post_type' => 'multi_match',
-        'post_status' => 'publish',
+        'post_type' => 'match_request',
+        'post_status' => ['publish', 'draft'],
         'posts_per_page' => 5,
         'meta_query' => [
-            [
-                'key' => 'team_id',
-                'value' => $team_id,
-                'compare' => '='
-            ]
+            'relation' => 'AND',
+            aidunite_user_team_match_request_team_clause($team_id),
+            ['key' => 'status', 'value' => ['accepted', 'established'], 'compare' => 'IN'],
         ],
         'orderby' => 'date',
-        'order' => 'DESC'
+        'order' => 'DESC',
     ]);
 
     foreach ($recent_matches as $match) {
-        $match_date = get_post_meta($match->ID, 'match_date', true);
+        $match_date = function_exists('aidunite_payment_exit_match_request_primary_date')
+            ? aidunite_payment_exit_match_request_primary_date((int) $match->ID, (int) $team_id)
+            : '';
         $activities[] = [
             'type' => 'match',
-            'title' => '試合完了: ' . $match->post_title,
+            'title' => '試合成立: ' . $match->post_title,
             'date' => $match->post_date,
             'match_date' => $match_date,
             'description' => '試合が完了しました'
@@ -2122,99 +2163,42 @@ function aidunite_get_team_match_status($team_id) {
         'recent_matches' => 0
     ];
 
-    // 保留中のマッチ申請
+    // 保留中のマッチ申請（from / to のいずれかに関与）
     $pending_requests = get_posts([
         'post_type' => 'match_request',
-        'post_status' => 'publish',
+        'post_status' => ['publish', 'draft'],
         'posts_per_page' => -1,
+        'fields' => 'ids',
         'meta_query' => [
-            [
-                'key' => 'team_id',
-                'value' => $team_id,
-                'compare' => '='
-            ],
-            [
-                'key' => 'status',
-                'value' => 'pending',
-                'compare' => '='
-            ]
-        ]
+            'relation' => 'AND',
+            aidunite_user_team_match_request_team_clause($team_id),
+            ['key' => 'status', 'value' => ['pending', '申請中', 'publish'], 'compare' => 'IN'],
+        ],
     ]);
     $match_status['pending_requests'] = count($pending_requests);
 
-    // 承認された試合
-    $accepted_matches = get_posts([
-        'post_type' => 'multi_match',
-        'post_status' => 'publish',
-        'posts_per_page' => -1,
-        'meta_query' => [
-            [
-                'key' => 'team_id',
-                'value' => $team_id,
-                'compare' => '='
-            ],
-            [
-                'key' => 'result_status',
-                'value' => ['scheduled', 'in_progress'],
-                'compare' => 'IN'
-            ]
-        ]
-    ]);
-    $match_status['accepted_matches'] = count($accepted_matches);
-
-    // 今後の試合
     $current_date = date('Y-m-d');
-    $upcoming_matches = get_posts([
-        'post_type' => 'multi_match',
-        'post_status' => 'publish',
-        'posts_per_page' => -1,
-        'meta_query' => [
-            [
-                'key' => 'team_id',
-                'value' => $team_id,
-                'compare' => '='
-            ],
-            [
-                'key' => 'match_date',
-                'value' => $current_date,
-                'compare' => '>=',
-                'type' => 'DATE'
-            ]
-        ]
-    ]);
-    $match_status['upcoming_matches'] = count($upcoming_matches);
-
-    // 最近の試合（過去30日）
     $thirty_days_ago = date('Y-m-d', strtotime('-30 days'));
-    $recent_matches = get_posts([
-        'post_type' => 'multi_match',
-        'post_status' => 'publish',
-        'posts_per_page' => -1,
-        'meta_query' => [
-            [
-                'key' => 'team_id',
-                'value' => $team_id,
-                'compare' => '='
-            ],
-            [
-                'key' => 'match_date',
-                'value' => [$thirty_days_ago, $current_date],
-                'compare' => 'BETWEEN',
-                'type' => 'DATE'
-            ]
-        ]
-    ]);
-    $match_status['recent_matches'] = count($recent_matches);
+    $established_rows = function_exists('aidunite_payment_exit_collect_team_match_rows')
+        ? aidunite_payment_exit_collect_team_match_rows((int) $team_id, ['accepted', 'established'])
+        : [];
+
+    $match_status['accepted_matches'] = count($established_rows);
+
+    foreach ($established_rows as $row) {
+        $match_date = (string) ($row['match_date'] ?? '');
+        if ($match_date === '') {
+            continue;
+        }
+        if ($match_date >= $current_date) {
+            $match_status['upcoming_matches']++;
+        }
+        if ($match_date >= $thirty_days_ago && $match_date <= $current_date) {
+            $match_status['recent_matches']++;
+        }
+    }
 
     return $match_status;
-}
-
-/**
- * 後方互換性のためのラッパー関数（段階的削除予定）
- * @deprecated 代わりに aidunite_get_team_match_status() を使用してください
- */
-function tunageru_get_team_match_status($team_id) {
-    return aidunite_get_team_match_status($team_id);
 }
 
 /**
@@ -2275,9 +2259,12 @@ function aidunite_get_parent_upcoming_schedules($user_id) {
         ]);
 
         foreach ($child_schedules as $schedule) {
-            $schedule_date = get_post_meta($schedule->ID, 'schedule_date', true);
-            $schedule_time = get_post_meta($schedule->ID, 'schedule_time', true);
-            $schedule_type = get_post_meta($schedule->ID, 'schedule_type', true);
+            $sch_ch = function_exists('aidunite_schedule_get_display_bundle')
+                ? aidunite_schedule_get_display_bundle((int) $schedule->ID)
+                : [];
+            $schedule_date = (string) ($sch_ch['date'] ?? '');
+            $schedule_time = (string) ($sch_ch['legacy_time'] ?? '');
+            $schedule_type = (string) ($sch_ch['schedule_type'] ?? '');
 
             $schedules[] = [
                 'id' => $schedule->ID,
@@ -2296,14 +2283,6 @@ function aidunite_get_parent_upcoming_schedules($user_id) {
     });
 
     return array_slice($schedules, 0, 5); // 最新5件
-}
-
-/**
- * 後方互換性のためのラッパー関数（段階的削除予定）
- * @deprecated 代わりに aidunite_get_parent_upcoming_schedules() を使用してください
- */
-function tunageru_get_parent_upcoming_schedules($user_id) {
-    return aidunite_get_parent_upcoming_schedules($user_id);
 }
 
 /**
@@ -2371,9 +2350,12 @@ function aidunite_get_player_upcoming_schedules($user_id) {
 
     $formatted_schedules = [];
     foreach ($schedules as $schedule) {
-        $schedule_date = get_post_meta($schedule->ID, 'schedule_date', true);
-        $schedule_time = get_post_meta($schedule->ID, 'schedule_time', true);
-        $schedule_type = get_post_meta($schedule->ID, 'schedule_type', true);
+        $sch_pl = function_exists('aidunite_schedule_get_display_bundle')
+            ? aidunite_schedule_get_display_bundle((int) $schedule->ID)
+            : [];
+        $schedule_date = (string) ($sch_pl['date'] ?? '');
+        $schedule_time = (string) ($sch_pl['legacy_time'] ?? '');
+        $schedule_type = (string) ($sch_pl['schedule_type'] ?? '');
 
         $formatted_schedules[] = [
             'id' => $schedule->ID,
@@ -2391,121 +2373,48 @@ function aidunite_get_player_upcoming_schedules($user_id) {
  * プレイヤーの最近の出欠記録を取得（統一命名）
  */
 function aidunite_get_player_recent_attendance($user_id) {
-    if (!$user_id) return [];
-
-    $uid = (int) $user_id;
-    $has_team = (function_exists('aidunite_get_managed_team_ids') && !empty(aidunite_get_managed_team_ids($uid)))
-        || (int) get_user_meta($uid, 'team_id', true) > 0;
-    if (!$has_team) {
+    if (!$user_id) {
         return [];
     }
 
-    $current_date = date('Y-m-d');
-    $thirty_days_ago = date('Y-m-d', strtotime('-30 days'));
-
-    $attendances = get_posts([
-        'post_type' => 'attendance',
-        'post_status' => 'publish',
-        'posts_per_page' => 5,
-        'meta_query' => [
-            [
-                'key' => 'player_id',
-                'value' => $user_id,
-                'compare' => '='
-            ],
-            [
-                'key' => 'schedule_date',
-                'value' => [$thirty_days_ago, $current_date],
-                'compare' => 'BETWEEN',
-                'type' => 'DATE'
-            ]
-        ],
-        'orderby' => 'meta_value',
-        'meta_key' => 'schedule_date',
-        'order' => 'DESC'
-    ]);
-
-    $formatted_attendances = [];
-    foreach ($attendances as $attendance) {
-        $schedule_date = get_post_meta($attendance->ID, 'schedule_date', true);
-        $attendance_status = get_post_meta($attendance->ID, 'attendance_status', true);
-        $schedule_title = get_post_meta($attendance->ID, 'schedule_title', true);
-
-        $formatted_attendances[] = [
-            'id' => $attendance->ID,
-            'date' => $schedule_date,
-            'status' => $attendance_status,
-            'schedule_title' => $schedule_title
-        ];
+    if (function_exists('aidunite_attendance_read_user_recent')) {
+        return aidunite_attendance_read_user_recent((int) $user_id, 5, 30);
     }
 
-    return $formatted_attendances;
+    return [];
 }
 
 /**
  * 保護者の最近の出欠記録を取得（統一命名）
  */
 function aidunite_get_parent_recent_attendance($user_id) {
-    if (!$user_id) return [];
-
-    $children = aidunite_get_parent_children_list($user_id);
-    if (empty($children)) return [];
+    if (!$user_id) {
+        return [];
+    }
 
     $attendances = [];
-    $current_date = date('Y-m-d');
-    $thirty_days_ago = date('Y-m-d', strtotime('-30 days'));
 
-    foreach ($children as $child) {
-        $child_uid = (int) $child['ID'];
-        $has_team = (function_exists('aidunite_get_managed_team_ids') && !empty(aidunite_get_managed_team_ids($child_uid)))
-            || (int) get_user_meta($child_uid, 'team_id', true) > 0;
-        if (!$has_team) {
-            continue;
-        }
-
-        $child_attendances = get_posts([
-            'post_type' => 'attendance',
-            'post_status' => 'publish',
-            'posts_per_page' => 5,
-            'meta_query' => [
-                [
-                    'key' => 'player_id',
-                    'value' => $child['ID'],
-                    'compare' => '='
-                ],
-                [
-                    'key' => 'schedule_date',
-                    'value' => [$thirty_days_ago, $current_date],
-                    'compare' => 'BETWEEN',
-                    'type' => 'DATE'
-                ]
-            ],
-            'orderby' => 'meta_value',
-            'meta_key' => 'schedule_date',
-            'order' => 'DESC'
-        ]);
-
-        foreach ($child_attendances as $attendance) {
-            $schedule_date = get_post_meta($attendance->ID, 'schedule_date', true);
-            $attendance_status = get_post_meta($attendance->ID, 'attendance_status', true);
-            $schedule_title = get_post_meta($attendance->ID, 'schedule_title', true);
-
-            $attendances[] = [
-                'id' => $attendance->ID,
-                'date' => $schedule_date,
-                'status' => $attendance_status,
-                'schedule_title' => $schedule_title,
-                'child_name' => $child['display_name']
-            ];
+    if (function_exists('aidunite_attendance_read_user_recent')) {
+        foreach (aidunite_attendance_read_user_recent((int) $user_id, 5, 30) as $row) {
+            $attendances[] = array_merge($row, ['child_name' => '']);
         }
     }
 
-    // 日付順でソート
-    usort($attendances, function($a, $b) {
-        return strtotime($b['date']) - strtotime($a['date']);
+    $children = aidunite_get_parent_children_list($user_id);
+    foreach ($children as $child) {
+        if (!function_exists('aidunite_attendance_read_user_recent')) {
+            break;
+        }
+        foreach (aidunite_attendance_read_user_recent((int) $child['ID'], 5, 30) as $row) {
+            $attendances[] = array_merge($row, ['child_name' => $child['display_name'] ?? '']);
+        }
+    }
+
+    usort($attendances, function ($a, $b) {
+        return strtotime((string) ($b['date'] ?? '')) - strtotime((string) ($a['date'] ?? ''));
     });
 
-    return array_slice($attendances, 0, 5); // 最新5件
+    return array_slice($attendances, 0, 5);
 }
 
 /**

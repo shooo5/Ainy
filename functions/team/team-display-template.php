@@ -60,7 +60,14 @@ function aidunite_team_type_options_for_select() {
  */
 function aidunite_team_type_is_school($raw_or_team_id) {
     if (is_numeric($raw_or_team_id)) {
-        $raw = (string) get_post_meta((int) $raw_or_team_id, 'team_type', true);
+        $team_id = (int) $raw_or_team_id;
+        if (function_exists('aidunite_team_read_canonical_meta')) {
+            $raw = (string) (aidunite_team_read_canonical_meta($team_id)['team_type'] ?? '');
+        } elseif (function_exists('aidunite_team_get_display_bundle')) {
+            $raw = (string) (aidunite_team_get_display_bundle($team_id)['team_type'] ?? '');
+        } else {
+            $raw = (string) get_post_meta($team_id, 'team_type', true);
+        }
     } else {
         $raw = (string) $raw_or_team_id;
     }
@@ -72,7 +79,14 @@ function aidunite_team_type_is_school($raw_or_team_id) {
  */
 function aidunite_team_type_is_club($raw_or_team_id) {
     if (is_numeric($raw_or_team_id)) {
-        $raw = (string) get_post_meta((int) $raw_or_team_id, 'team_type', true);
+        $team_id = (int) $raw_or_team_id;
+        if (function_exists('aidunite_team_read_canonical_meta')) {
+            $raw = (string) (aidunite_team_read_canonical_meta($team_id)['team_type'] ?? '');
+        } elseif (function_exists('aidunite_team_get_display_bundle')) {
+            $raw = (string) (aidunite_team_get_display_bundle($team_id)['team_type'] ?? '');
+        } else {
+            $raw = (string) get_post_meta($team_id, 'team_type', true);
+        }
     } else {
         $raw = (string) $raw_or_team_id;
     }
@@ -138,50 +152,58 @@ function aidunite_display_team_info($team_id, $display_mode = 'supporter_view', 
  * @return array チーム情報配列
  */
 function aidunite_get_team_display_data($team_id) {
-    // チーム投稿の存在確認
+    $team_id = (int) $team_id;
+    if ($team_id <= 0) {
+        return [];
+    }
+
     $team_post = get_post($team_id);
     if (!$team_post || $team_post->post_type !== 'team') {
         return [];
     }
 
-    // メタキーの存在確認とフォールバック処理
-    $sport_type = get_post_meta($team_id, 'sport_type', true);
-    $team_category = get_post_meta($team_id, 'team_category', true);
-    $team_type = get_post_meta($team_id, 'team_type', true);
-    $team_gender_option = get_post_meta($team_id, 'team_gender_option', true);
-    $region = function_exists('aidunite_team_activity_display_label')
-        ? aidunite_team_activity_display_label((int) $team_id)
-        : get_post_meta($team_id, 'region', true);
-    $team_description = get_post_meta($team_id, 'team_description', true);
-    $team_achievements = get_post_meta($team_id, 'team_achievements', true);
-    $team_logo = get_post_meta($team_id, 'team_logo', true);
-    $registrant_name = get_post_meta($team_id, 'registrant_name', true);
-    $contact_mail = get_post_meta($team_id, 'contact_mail', true);
-    $contact_phone = get_post_meta($team_id, 'contact_phone', true);
+    $bundle = function_exists('aidunite_team_get_display_bundle')
+        ? aidunite_team_get_display_bundle($team_id)
+        : [];
 
-    $team_website = get_post_meta($team_id, 'team_website', true);
-    $team_sns_url = get_post_meta($team_id, 'team_sns_url', true);
-    $team_name_kana = get_post_meta($team_id, 'team_name_kana', true);
+    if ($bundle === []) {
+        return [];
+    }
+
+    $sport_type = (string) ($bundle['sport_type'] ?? '');
+    $team_category = (string) ($bundle['team_category'] ?? '');
+    $team_type_raw = (string) ($bundle['team_type'] ?? '');
+    $team_gender_option = (string) ($bundle['team_gender_option'] ?? '');
+    $region = (string) ($bundle['region'] ?? '');
+    $team_description = (string) ($bundle['team_description'] ?? '');
+    $team_achievements = (string) ($bundle['team_achievements'] ?? '');
+    $team_logo = (string) ($bundle['team_logo'] ?? '');
+    $registrant_name = (string) ($bundle['registrant_name'] ?? '');
+    $contact_mail = (string) ($bundle['contact_mail'] ?? '');
+    $contact_phone = (string) ($bundle['contact_phone'] ?? '');
+    $team_website = (string) get_post_meta($team_id, 'team_website', true);
+    $team_sns_url = (string) get_post_meta($team_id, 'team_sns_url', true);
+    $team_name_kana = (string) ($bundle['team_name_kana'] ?? '');
 
     return [
         'team_id' => $team_id,
-        'team_name' => get_the_title($team_id),
-        'team_name_kana' => $team_name_kana ?: '',
-        'sport_type' => $sport_type ?: '未設定',
-        'team_category' => $team_category ?: '未設定',
-        'team_type' => $team_type !== '' ? aidunite_team_type_label($team_type) : '未設定',
-        'team_gender_option' => $team_gender_option ?: '未設定',
-        'region' => $region ?: '未設定',
-        'team_description' => $team_description ?: '',
-        'team_achievements' => $team_achievements ?: '',
-        'team_logo' => $team_logo ?: '',
-        'team_website' => $team_website ?: '',
-        'team_sns_url' => $team_sns_url ?: '',
-        'registrant_name' => $registrant_name ?: '',
-        'contact_mail' => $contact_mail ?: '',
-        'contact_phone' => $contact_phone ?: '',
+        'team_name' => (string) ($bundle['team_name'] ?? get_the_title($team_id)),
+        'team_name_kana' => $team_name_kana !== '' ? $team_name_kana : '',
+        'sport_type' => $sport_type !== '' ? $sport_type : '未設定',
+        'team_category' => $team_category !== '' ? $team_category : '未設定',
+        'team_type' => $team_type_raw !== '' ? aidunite_team_type_label($team_type_raw) : '未設定',
+        'team_gender_option' => $team_gender_option !== '' ? $team_gender_option : '未設定',
+        'region' => $region !== '' ? $region : '未設定',
+        'team_description' => $team_description,
+        'team_achievements' => $team_achievements,
+        'team_logo' => $team_logo,
+        'team_website' => $team_website !== '' ? $team_website : '',
+        'team_sns_url' => $team_sns_url !== '' ? $team_sns_url : '',
+        'registrant_name' => $registrant_name !== '' ? $registrant_name : '',
+        'contact_mail' => $contact_mail !== '' ? $contact_mail : '',
+        'contact_phone' => $contact_phone !== '' ? $contact_phone : '',
         'post_status' => get_post_status($team_id),
-        'post_author' => get_post_field('post_author', $team_id)
+        'post_author' => get_post_field('post_author', $team_id),
     ];
 }
 
@@ -356,7 +378,7 @@ function aidunite_team_management_render_test_fixture_notice() {
             一括削除できるのは<strong>テスト用マーク（aidunite_test_fixture）が付いた <?php echo (int) count($deletable_ids); ?> 件のみ</strong>です。名前が「テストチーム」の本番データは自動削除されません。個別にカードから削除してください。
         </p>
         <?php if (!empty($deletable_ids)) : ?>
-        <form method="post" style="margin:0;" onsubmit="return confirm('テスト用マーク付きの <?php echo (int) count($deletable_ids); ?> 件のみ削除します。よろしいですか？');">
+        <form method="post" style="margin:0;" data-aidunite-confirm="テスト用マーク付きの <?php echo (int) count($deletable_ids); ?> 件のみ削除します。よろしいですか？" data-aidunite-confirm-label="削除する">
             <?php wp_nonce_field('delete_test_fixture_teams'); ?>
             <button type="submit" name="delete_test_fixture_teams" value="1" class="button button-warning">テスト用マーク付きチームを削除（<?php echo (int) count($deletable_ids); ?> 件）</button>
         </form>
@@ -990,19 +1012,22 @@ function aidunite_generate_admin_approval_view($team_info, $additional_data = []
 
     if ($post_status === 'pending') {
         $approve_url = wp_nonce_url(admin_url('admin-post.php?action=approve_team_creation&team_id=' . $team_id), 'approve_team_creation_' . $team_id);
+        $approve_confirm_message = $team_name !== ''
+            ? $team_name . 'の申請を承認しますか？'
+            : 'チームの申請を承認しますか？';
 
         $html .= '<div class="team-approval-card__actions">';
-        $html .= '<a href="' . esc_url($approve_url) . '" class="team-approval-card__btn team-approval-card__btn--approve" onclick="return confirm(\'このチーム申請を承認しますか？\');">承認する</a>';
+        $html .= '<a href="' . esc_url($approve_url) . '" class="team-approval-card__btn team-approval-card__btn--approve" data-aidunite-confirm="' . esc_attr($approve_confirm_message) . '" data-aidunite-confirm-label="承認する" data-aidunite-confirm-variant="success" data-aidunite-confirm-message-align="center">承認する</a>';
         $html .= '</div>';
 
-        $html .= '<form class="team-approval-card__revision" method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        $html .= '<form class="team-approval-card__revision" method="post" action="' . esc_url(admin_url('admin-post.php')) . '" data-aidunite-confirm="確認・修正依頼を送信しますか？" data-aidunite-confirm-label="送信する" data-aidunite-confirm-variant="primary">';
         $html .= wp_nonce_field('request_team_revision_' . $team_id, '_wpnonce', true, false);
         $html .= '<input type="hidden" name="action" value="request_team_revision">';
         $html .= '<input type="hidden" name="team_id" value="' . esc_attr((string) $team_id) . '">';
         $html .= '<label class="team-approval-card__revision-label" for="team-revision-message-' . esc_attr((string) $team_id) . '">確認・修正依頼内容</label>';
         $html .= '<textarea id="team-revision-message-' . esc_attr((string) $team_id) . '" class="team-approval-card__revision-input" name="revision_message" rows="4" required placeholder="例：チーム名の表記を確認してください。正式名称をご記入のうえ再申請をお願いします。"></textarea>';
         $html .= '<p class="team-approval-card__revision-note">申請者のマイページ・通知一覧・メールに表示されます。「却下」ではなく修正依頼として送信されます。</p>';
-        $html .= '<button type="submit" class="team-approval-card__btn team-approval-card__btn--revision" onclick="return confirm(\'確認・修正依頼を送信しますか？\');">修正依頼を送る</button>';
+        $html .= '<button type="submit" class="team-approval-card__btn team-approval-card__btn--revision">修正依頼を送る</button>';
         $html .= '</form>';
     }
 
@@ -1177,384 +1202,43 @@ function aidunite_generate_application_review_info_item($row) {
  * チーム情報表示用のCSSを出力
  */
 function aidunite_team_display_styles() {
-    ?>
-    <style>
-    /* ===== チーム申請承認カード（統一UI・Design Tokens） ===== */
-    .team-approval-card {
-        background: var(--bg-primary);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-medium);
-        box-shadow: var(--shadow-sm);
-        overflow: hidden;
-        transition: box-shadow 0.2s ease;
+    static $done = false;
+    if ($done) {
+        return;
     }
-    .team-approval-card:hover {
-        box-shadow: var(--shadow-md);
+    $done = true;
+    $css = get_stylesheet_directory() . '/assets/css/components/team-display.css';
+    if (is_readable($css)) {
+        wp_enqueue_style(
+            'aidunite-team-display',
+            get_stylesheet_directory_uri() . '/assets/css/components/team-display.css',
+            ['aidunite-style'],
+            (string) filemtime($css)
+        );
     }
-    .team-approval-card__content {
-        padding: var(--spacing-base);
-    }
-    .team-approval-card__header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: var(--spacing-sm);
-        margin-bottom: var(--spacing-base);
-        padding-bottom: var(--spacing-sm);
-        border-bottom: 1px solid var(--border-light);
-    }
-    .team-approval-card__title {
-        margin: 0;
-        font-size: var(--font-size-lg);
-        font-weight: bold;
-        color: var(--text-primary);
-    }
-    .team-approval-card__badge {
-        padding: var(--spacing-xs) var(--spacing-sm);
-        border-radius: var(--radius-small);
-        font-size: var(--font-size-xs);
-        font-weight: bold;
-    }
-    .team-approval-card__badge--pending {
-        background: rgba(255, 193, 7, 0.15);
-        color: var(--warning-color);
-    }
-    .team-approval-card__badge--publish {
-        background: rgba(40, 167, 69, 0.15);
-        color: var(--success-color);
-    }
-    .team-approval-card__body {
-        margin-bottom: var(--spacing-base);
-    }
-    .team-approval-card__logo-wrap {
-        display: flex;
-        justify-content: center;
-        margin-bottom: var(--spacing-base);
-    }
-    .team-approval-card__logo-frame {
-        width: 72px;
-        height: 72px;
-        overflow: hidden;
-        border-radius: 50%;
-        border: 2px solid var(--border-light);
-        background: var(--bg-primary);
-    }
-    .team-approval-card__logo {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transform-origin: center center;
-    }
-    .team-approval-card__grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: var(--spacing-sm);
-    }
-    .team-approval-card__grid .info-item .info-value a {
-        color: var(--primary-color);
-        word-break: break-all;
-    }
-    .team-approval-card__grid .info-item {
-        padding: var(--spacing-sm) var(--spacing-base);
-        background: var(--bg-secondary);
-        border-radius: var(--radius-small);
-    }
-    .team-approval-card__grid .info-item label {
-        display: block;
-        font-size: var(--font-size-xs);
-        color: var(--text-secondary);
-        margin-bottom: var(--spacing-xs);
-    }
-    .team-approval-card__grid .info-item .info-value {
-        font-size: var(--font-size-sm);
-        color: var(--text-primary);
-    }
-    .team-approval-card__desc {
-        margin-top: var(--spacing-base);
-    }
-    .team-approval-card__label {
-        font-size: var(--font-size-xs);
-        color: var(--text-secondary);
-        display: block;
-        margin-bottom: var(--spacing-xs);
-    }
-    .team-approval-card__value {
-        margin: 0;
-        font-size: var(--font-size-sm);
-        color: var(--text-primary);
-        line-height: 1.5;
-    }
-    .team-approval-card__actions {
-        display: flex;
-        gap: var(--spacing-sm);
-        padding-top: var(--spacing-base);
-        border-top: 1px solid var(--border-light);
-    }
-    .team-approval-card__btn {
-        flex: 1;
-        min-height: 44px;
-        padding: var(--spacing-sm) var(--spacing-base);
-        border-radius: var(--radius-small);
-        font-size: var(--font-size-base);
-        font-weight: bold;
-        text-align: center;
-        text-decoration: none;
-        cursor: pointer;
-        transition: background 0.2s, color 0.2s;
-    }
-    .team-approval-card__btn:focus-visible {
-        outline: 2px solid var(--primary-color);
-        outline-offset: 2px;
-    }
-    .team-approval-card__btn--approve {
-        background: var(--success-color);
-        color: #fff;
-        border: none;
-    }
-    .team-approval-card__btn--approve:hover {
-        background: #218838;
-    }
-    .team-approval-card__btn--reject {
-        background: var(--bg-secondary);
-        color: var(--danger-color);
-        border: 1px solid var(--danger-color);
-    }
-    .team-approval-card__btn--reject:hover {
-        background: rgba(220, 53, 69, 0.1);
-    }
-    .team-approval-card__revision {
-        margin-top: var(--spacing-base);
-        padding-top: var(--spacing-base);
-        border-top: 1px solid var(--border-light);
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-sm);
-    }
-    .team-approval-card__revision-label {
-        font-size: var(--font-size-sm);
-        font-weight: 700;
-        color: var(--text-primary);
-    }
-    .team-approval-card__revision-input {
-        width: 100%;
-        min-height: 96px;
-        padding: var(--spacing-sm) var(--spacing-base);
-        font-size: var(--font-size-sm);
-        font-family: inherit;
-        color: var(--text-primary);
-        background: var(--bg-primary);
-        border: 1px solid var(--border-light);
-        border-radius: var(--radius-small);
-        resize: vertical;
-        box-sizing: border-box;
-    }
-    .team-approval-card__revision-input:focus-visible {
-        outline: 2px solid var(--primary-color);
-        outline-offset: 2px;
-        border-color: var(--primary-color);
-    }
-    .team-approval-card__revision-note {
-        margin: 0;
-        font-size: var(--font-size-xs);
-        color: var(--text-muted);
-        line-height: 1.55;
-    }
-    .team-approval-card__btn--revision {
-        background: rgba(253, 126, 20, 0.12);
-        color: var(--warning-color, #fd7e14);
-        border: 1px solid rgba(253, 126, 20, 0.35);
-    }
-    .team-approval-card__btn--revision:hover {
-        background: rgba(253, 126, 20, 0.2);
-    }
-    @media (max-width: 768px) {
-        .team-approval-card__header { flex-direction: column; align-items: flex-start; }
-        .team-approval-card__grid { grid-template-columns: 1fr; }
-        .team-approval-card__actions { flex-direction: column; }
-    }
-
-    /* ===== 従来の team-info-* （match_request / supporter_view 用） ===== */
-  .team-info-match-request,
-  .team-info-supporter-view {
-      background: var(--bg-primary);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-base);
-      padding: var(--spacing-md);
-      margin-bottom: var(--spacing-md);
-      box-shadow: var(--shadow-sm);
-      max-width: 100%;
-  }
-    .team-info-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: var(--spacing-md);
-        padding-bottom: var(--spacing-base);
-        border-bottom: 1px solid var(--border-light);
-    }
-    .team-info-header h3 {
-        margin: 0;
-        color: var(--text-primary);
-        font-size: var(--font-size-lg);
-    }
-    .status-badge {
-        padding: var(--spacing-xs) var(--spacing-sm);
-        border-radius: var(--radius-small);
-        font-size: var(--font-size-sm);
-        font-weight: bold;
-    }
-    .status-pending { background: rgba(255, 193, 7, 0.15); color: var(--warning-color); }
-    .status-publish { background: rgba(40, 167, 69, 0.15); color: var(--success-color); }
-    .team-info-section { margin-bottom: var(--spacing-md); }
-    .team-info-section h4 {
-        color: var(--text-primary);
-        margin-bottom: var(--spacing-base);
-        font-size: var(--font-size-base);
-        border-left: 4px solid var(--info-color);
-        padding-left: var(--spacing-sm);
-    }
-  .team-info-match-request .info-grid,
-  .team-info-supporter-view .info-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: var(--spacing-base);
-  }
-  .team-info-match-request .info-item,
-  .team-info-supporter-view .info-item {
-      padding: var(--spacing-sm) var(--spacing-base);
-      background: var(--bg-secondary);
-      border-radius: var(--radius-small);
-  }
-  .team-info-match-request .info-item label,
-  .team-info-supporter-view .info-item label {
-      display: block;
-      font-weight: bold;
-      color: var(--text-secondary);
-      font-size: var(--font-size-sm);
-      margin-bottom: var(--spacing-xs);
-  }
-  .team-info-match-request .info-item .info-value,
-  .team-info-supporter-view .info-item .info-value {
-      color: var(--text-primary);
-  }
-    .team-description,
-    .team-achievements {
-        background: var(--bg-secondary);
-        padding: var(--spacing-base);
-        border-radius: var(--radius-small);
-        line-height: 1.6;
-    }
-    .match-conditions {
-        background: rgba(23, 162, 184, 0.08);
-        padding: var(--spacing-base);
-        border-radius: var(--radius-small);
-    }
-    .condition-item { margin-bottom: var(--spacing-sm); }
-    .condition-item:last-child { margin-bottom: 0; }
-    .team-info-actions {
-        display: flex;
-        gap: var(--spacing-base);
-        margin-top: var(--spacing-md);
-        padding-top: var(--spacing-base);
-        border-top: 1px solid var(--border-light);
-    }
-  .team-info-match-request .btn,
-  .team-info-supporter-view .btn {
-      padding: var(--spacing-sm) var(--spacing-md);
-      min-height: 44px;
-      border: none;
-      border-radius: var(--radius-small);
-      cursor: pointer;
-      text-decoration: none;
-      font-weight: bold;
-      text-align: center;
-      transition: background 0.2s;
-  }
-  .team-info-match-request .btn-approve,
-  .team-info-supporter-view .btn-approve {
-      background: var(--success-color);
-      color: #fff;
-  }
-  .team-info-match-request .btn-approve:hover,
-  .team-info-supporter-view .btn-approve:hover { background: #218838; }
-  .team-info-match-request .btn-reject,
-  .team-info-supporter-view .btn-reject {
-      background: var(--danger-color);
-      color: #fff;
-  }
-  .team-info-match-request .btn-reject:hover,
-  .team-info-supporter-view .btn-reject:hover { background: #c82333; }
-  .team-info-match-request .btn-support,
-  .team-info-supporter-view .btn-support {
-      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-      color: #fff;
-  }
-  .team-info-match-request .btn-support:hover,
-  .team-info-supporter-view .btn-support:hover {
-      opacity: 0.9;
-      transform: translateY(-1px);
-  }
-    .team-logo { text-align: center; }
-    @media (max-width: 768px) {
-        .team-info-match-request .info-grid,
-        .team-info-supporter-view .info-grid { grid-template-columns: 1fr; }
-        .team-info-header { flex-direction: column; text-align: center; }
-        .team-info-actions { flex-direction: column; }
-    }
-    </style>
-    <?php
 }
-
 /**
- * チーム支援用のJavaScriptを出力
+ * チーム支援用 JavaScript
  */
 function aidunite_team_support_script() {
-    ?>
-    <script>
-    function supportTeam(teamId) {
-        if (confirm('このチームを応援しますか？')) {
-            // 支援処理のAJAX呼び出し
-            const formData = new FormData();
-            formData.append('action', 'support_team');
-            formData.append('team_id', teamId);
-            formData.append('nonce', '<?php echo wp_create_nonce('support_team_nonce'); ?>');
-
-            fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    if (typeof showToastNotification !== 'undefined') {
-                        showToastNotification('応援ありがとうございます！', 'success');
-                    } else {
-                        alert('応援ありがとうございます！');
-                    }
-                    // ボタンを無効化
-                    const btn = document.querySelector('.btn-support');
-                    if (btn) {
-                        btn.disabled = true;
-                        btn.textContent = '❤️ 応援済み';
-                    }
-                } else {
-                    if (typeof showToastNotification !== 'undefined') {
-                        showToastNotification(data.message || 'エラーが発生しました。', 'error');
-                    } else {
-                        alert(data.message || 'エラーが発生しました。');
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                if (typeof showToastNotification !== 'undefined') {
-                    showToastNotification('通信エラーが発生しました。', 'error');
-                } else {
-                    alert('通信エラーが発生しました。');
-                }
-            });
-        }
+    static $done = false;
+    if ($done) {
+        return;
     }
-    </script>
-    <?php
+    $done = true;
+    $js = get_stylesheet_directory() . '/assets/js/team/team-support.js';
+    if (!is_readable($js)) {
+        return;
+    }
+    wp_enqueue_script(
+        'aidunite-team-support',
+        get_stylesheet_directory_uri() . '/assets/js/team/team-support.js',
+        ['aidunite-confirm-modal', 'aidunite-toast-notification'],
+        (string) filemtime($js),
+        true
+    );
+    wp_localize_script('aidunite-team-support', 'aiduniteTeamSupport', [
+        'ajaxUrl' => admin_url('admin-ajax.php'),
+        'nonce' => wp_create_nonce('support_team_nonce'),
+    ]);
 }

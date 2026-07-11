@@ -33,7 +33,7 @@ if (isset($_GET['pending']) && $_GET['pending'] == '1') {
                 <?php echo aidunite_get_theme_icon_svg('brightness_alert', ['width' => '48', 'height' => '48']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
               </div>
             </div>
-            <h1 class="registration-complete-title">確認メールの送信に失敗しました</h1>
+            <h1 class="registration-complete-title">確認メールの送信に失敗しました。</h1>
             <div class="registration-complete-description">
               <p>仮登録は完了していますが、本登録用メールを送信できませんでした。</p>
               <p>しばらくしてから再度お試しいただくか、管理者にお問い合わせください。</p>
@@ -48,10 +48,10 @@ if (isset($_GET['pending']) && $_GET['pending'] == '1') {
                 <?php echo aidunite_registration_complete_asset_icon('forward_to_inbox'); ?>
               </div>
             </div>
-            <h1 class="registration-complete-title">確認メールを送信しました</h1>
+            <h1 class="registration-complete-title">確認メールを送信しました。</h1>
             <div class="registration-complete-description">
-              <p>メール内のリンクを押すと、<br>アカウント登録が完了します。</p>
-              <p>メールが見つからない場合は、<br>迷惑メールフォルダもご確認ください。</p>
+              <p>メール内のリンクから、<br>本登録を完了してください。</p>
+              <p>※届かない場合は、<br>迷惑メールフォルダもご確認ください。</p>
             </div>
           <?php endif; ?>
 

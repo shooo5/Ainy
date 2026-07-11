@@ -502,7 +502,7 @@ function aidunite_admin_post_match_module_render_list($base_url) {
         echo '<td class="admin-pmm-actions">';
         echo '<button type="button" class="btn btn-secondary btn-sm admin-pmm-preview-btn" data-module-id="' . (int) $post->ID . '" data-testid="post-match-module-preview-open">プレビュー</button> ';
         echo '<a href="' . esc_url($edit_url) . '" class="btn btn-secondary btn-sm">編集</a> ';
-        echo '<form method="post" class="admin-pmm-inline-form" onsubmit="return confirm(\'このモジュールを削除しますか？\');">';
+        echo '<form method="post" class="admin-pmm-inline-form" data-aidunite-confirm="このモジュールを削除しますか？" data-aidunite-confirm-label="削除する">';
         echo '<input type="hidden" name="aidunite_pmm_action" value="delete">';
         echo '<input type="hidden" name="module_id" value="' . (int) $post->ID . '">';
         wp_nonce_field('aidunite_admin_pmm_delete_' . $post->ID);

@@ -22,8 +22,9 @@ $group_labels = ainy_notification_group_labels();
 wp_localize_script('ainy-notifications-list', 'ainyNotificationsList', array(
     'restMarkRead' => esc_url_raw(rest_url('aidunite/v1/mark-read')),
     'restDelete'   => esc_url_raw(rest_url('aidunite/v1/notifications/delete')),
-    'restNonce'    => wp_create_nonce('wp_rest'),
-    'i18n'         => array(
+    'restNonce'            => wp_create_nonce('wp_rest'),
+    'matchDetailUrlBase'   => esc_url_raw(home_url('/match-detail/?id=')),
+    'i18n'                 => array(
         'noUnread'        => '既読にする通知がありません。',
         'markedAll'       => 'すべて既読にしました。',
         'error'           => 'エラーが発生しました。',
@@ -33,6 +34,7 @@ wp_localize_script('ainy-notifications-list', 'ainyNotificationsList', array(
         'deleteFailed'    => '削除に失敗しました。',
         'closeDetail'     => '閉じる',
         'detailAria'      => '通知の詳細',
+        'openMatchDetail' => '現在の申請状況を見る',
     ),
 ));
 
@@ -86,7 +88,7 @@ $settings_url = home_url('/notification-settings');
     ?>
 
     <?php if ($items) : ?>
-        <nav class="ainy-notifications-filter-tabs" role="tablist" aria-label="通知の絞り込み">
+        <nav class="ainy-notifications-filter-tabs" data-aidunite-tabs="filter" role="tablist" aria-label="通知の絞り込み">
             <button type="button" class="active" role="tab" aria-selected="true" data-filter="unread">
                 未読
                 <span class="ainy-notifications-tab-count" data-tab-count="unread" data-count="<?php echo (int) $count_unread; ?>" aria-label="<?php echo $count_unread > 0 ? '未読' . (int) $count_unread . '件' : ''; ?>"><?php echo $count_unread > 0 ? (int) $count_unread : ''; ?></span>
@@ -120,6 +122,7 @@ $settings_url = home_url('/notification-settings');
                                 data-id="<?php echo (int) $item['id']; ?>"
                                 data-link="<?php echo esc_attr($item['link_url']); ?>"
                                 data-type="<?php echo esc_attr($item['type']); ?>"
+                                data-related-id="<?php echo (int) ($item['related_id'] ?? 0); ?>"
                                 data-filter-unread="<?php echo $item['is_read'] ? '0' : '1'; ?>"
                             >
                                 <span class="ainy-notification-card__dot" aria-hidden="true"></span>
