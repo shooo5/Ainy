@@ -69,6 +69,70 @@ function scheduleEditIconHtml(basename, size) {
     return '';
 }
 
+function scheduleEditEscapeHtml(str) {
+    return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function scheduleEditEscapeAttr(str) {
+    return scheduleEditEscapeHtml(str).replace(/`/g, '&#96;');
+}
+
+/** エスケープ済み HTML フラグメントを親要素へ安全に挿入（script 実行を避ける） */
+function scheduleEditReplaceHtml(parent, html) {
+    if (!parent) {
+        return;
+    }
+    parent.replaceChildren();
+    if (!html) {
+        return;
+    }
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    parent.appendChild(template.content);
+}
+
+function scheduleEditSyncTotalTeamsDisplay(count) {
+    const numeric = Number(count) || 0;
+    let valueEl = document.getElementById('total_teams_value');
+    if (valueEl) {
+        valueEl.textContent = String(numeric);
+        return;
+    }
+    const totalTeamsDiv = document.querySelector('.total-teams');
+    if (!totalTeamsDiv) {
+        return;
+    }
+    totalTeamsDiv.replaceChildren();
+    totalTeamsDiv.appendChild(document.createTextNode('募集チーム数: '));
+    valueEl = document.createElement('span');
+    valueEl.id = 'total_teams_value';
+    valueEl.textContent = String(numeric);
+    totalTeamsDiv.appendChild(valueEl);
+    totalTeamsDiv.appendChild(document.createTextNode('チーム'));
+}
+
+function scheduleEditIsDateKey(str) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(str || ''));
+}
+
+/** API/meta 由来の data-value を安全に照合（querySelector インジェクション回避） */
+function scheduleEditFindSelectionCard(root, value) {
+    if (value == null || value === '') {
+        return null;
+    }
+    const target = String(value);
+    const scope = typeof root === 'string' ? document.querySelector(root) : root;
+    if (!scope) {
+        return null;
+    }
+    return Array.from(scope.querySelectorAll('.selection-card[data-value]'))
+        .find((card) => card.getAttribute('data-value') === target) || null;
+}
+
 // 日本の祝日判定（簡易版：主要な祝日のみ）
 function isJapaneseHoliday(date) {
     const year = date.getFullYear();
@@ -296,7 +360,27 @@ let existingSchedulesByDate = {};
 // カレンダーの初期化
 function initializeCalendar() {
     bindScheduleEditCalendarMonthNav();
+    bindScheduleEditCalendarDayClicks();
     renderCalendar();
+}
+
+/** カレンダー日付クリック（inline onclick を使わず委譲） */
+function bindScheduleEditCalendarDayClicks() {
+    const grid = document.getElementById('calendar_grid');
+    if (!grid || grid.dataset.dayClickBound === '1') {
+        return;
+    }
+    grid.dataset.dayClickBound = '1';
+    grid.addEventListener('click', function (e) {
+        const day = e.target.closest('.calendar-day[data-date]:not(.past)');
+        if (!day || !grid.contains(day)) {
+            return;
+        }
+        const dateString = day.getAttribute('data-date');
+        if (scheduleEditIsDateKey(dateString)) {
+            selectDate(dateString);
+        }
+    });
 }
 
 /** 登録画面：前月・次月ボタン */
@@ -448,7 +532,9 @@ function renderCalendar() {
 
             // ローカルタイムゾーンで日付文字列を生成（toISOString()によるタイムゾーン問題を回避）
             const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-            const clickHandler = isPast ? '' : `onclick="selectDate('${dateString}')"`;
+            if (!isPast) {
+                classes += ' calendar-day--interactive';
+            }
             // 該当日の既存スケジュールを取得
             const daySchedules = existingSchedulesByDate[dateString] || [];
             let innerHtml = `<span class="day-number">${date.getDate()}`;
@@ -459,21 +545,23 @@ function renderCalendar() {
             if (daySchedules.length > 0) {
                 innerHtml += '<div class="schedule-list">';
                 daySchedules.forEach(s => {
-                    const title = s.type || 'スケジュール';
+                    const title = scheduleEditEscapeHtml(s.type || 'スケジュール');
                     const hasTime = s.start_time && s.end_time;
-                    const timeText = hasTime ? ' ' + s.start_time + '～' + s.end_time : '';
+                    const timeText = hasTime
+                        ? ' ' + scheduleEditEscapeHtml(s.start_time) + '～' + scheduleEditEscapeHtml(s.end_time)
+                        : '';
                     innerHtml += '<div class="schedule-card"><span class="schedule-line-1">' + title + timeText + '</span></div>';
                 });
                 innerHtml += '</div>';
             }
-            html += `<div class="${classes}" data-date="${dateString}" ${clickHandler}>${innerHtml}</div>`;
+            html += '<div class="' + classes + '" data-date="' + scheduleEditEscapeAttr(dateString) + '">' + innerHtml + '</div>';
 
             currentWeek.setDate(currentWeek.getDate() + 1);
         }
         html += '</div>';
     }
 
-    grid.innerHTML = html;
+    scheduleEditReplaceHtml(grid, html);
 }
 
 // 登録画面カレンダー用：自チームの既存スケジュールをREST APIから取得して反映
@@ -1201,14 +1289,30 @@ function applyTrialRecruitTypeRestrictions() {
 function createScheduleTypeCard(option) {
     const card = document.createElement('div');
     card.className = 'selection-card';
-    card.setAttribute('data-value', option.value);
-    card.innerHTML = `
-        <div class="card-header-row">
-            <div class="card-icon">${scheduleEditIconHtml(option.icon, 24)}</div>
-            <div class="card-title">${option.text}</div>
-        </div>
-        <div class="card-description">${option.description}</div>
-    `;
+    card.setAttribute('data-value', option.value || '');
+
+    const headerRow = document.createElement('div');
+    headerRow.className = 'card-header-row';
+
+    const iconWrap = document.createElement('div');
+    iconWrap.className = 'card-icon';
+    if (option.icon) {
+        iconWrap.innerHTML = scheduleEditIconHtml(option.icon, 24);
+    }
+
+    const title = document.createElement('div');
+    title.className = 'card-title';
+    title.textContent = option.text || '';
+
+    headerRow.appendChild(iconWrap);
+    headerRow.appendChild(title);
+
+    const description = document.createElement('div');
+    description.className = 'card-description';
+    description.textContent = option.description || '';
+
+    card.appendChild(headerRow);
+    card.appendChild(description);
 
     card.addEventListener('click', function() {
         if (this.classList.contains('is-locked') && !isTrialSimplifiedScheduleEdit()) {
@@ -1651,26 +1755,11 @@ function updateTotalTeams() {
         const genderCondition = document.getElementById('gender_condition').value;
 
         if (genderCondition === 'male') {
-            totalTeamsValue.textContent = maleTotal;
-            // 表示テキストも更新
-            const totalTeamsDiv = document.querySelector('.total-teams');
-            if (totalTeamsDiv) {
-                totalTeamsDiv.innerHTML = `募集チーム数: <span id="total_teams_value">${maleTotal}</span>チーム`;
-            }
+            scheduleEditSyncTotalTeamsDisplay(maleTotal);
         } else if (genderCondition === 'female') {
-            totalTeamsValue.textContent = femaleTotal;
-            // 表示テキストも更新
-            const totalTeamsDiv = document.querySelector('.total-teams');
-            if (totalTeamsDiv) {
-                totalTeamsDiv.innerHTML = `募集チーム数: <span id="total_teams_value">${femaleTotal}</span>チーム`;
-            }
-        } else { // 'both' or null/undefined
-            totalTeamsValue.textContent = grandTotal;
-            // 表示テキストも更新
-            const totalTeamsDiv = document.querySelector('.total-teams');
-            if (totalTeamsDiv) {
-                totalTeamsDiv.innerHTML = `募集チーム数: <span id="total_teams_value">${grandTotal}</span>チーム`;
-            }
+            scheduleEditSyncTotalTeamsDisplay(femaleTotal);
+        } else {
+            scheduleEditSyncTotalTeamsDisplay(grandTotal);
         }
     }
 
@@ -1960,7 +2049,8 @@ function getOverlappingScheduleLabels(dateString, startMin, endMin) {
         const a1 = timeStringToMinutes(s.start_time);
         const a2 = timeStringToMinutes(s.end_time);
         if (startMin < a2 && a1 < endMin) {
-            labels.push((s.type || 'スケジュール') + ' ' + s.start_time + '～' + s.end_time);
+            const label = (s.type || 'スケジュール') + ' ' + s.start_time + '～' + s.end_time;
+            labels.push(label);
         }
     }
     return labels;
@@ -2021,7 +2111,9 @@ function validateDateAndTimeSelection() {
             }
         }
         if (allLabels.length > 0) {
-            const message = 'この時間帯は既に「' + allLabels.join('」「') + '」が登録されています。重複してよければこのまま登録できます。';
+            const message = 'この時間帯は既に「' + allLabels.map(function (label) {
+                return scheduleEditEscapeHtml(label);
+            }).join('」「') + '」が登録されています。重複してよければこのまま登録できます。';
             if (typeof showToastNotification !== 'undefined') {
                 showToastNotification(message, 'warning');
             }
@@ -2459,7 +2551,7 @@ function loadScheduleForEdit(postId) {
         if (intentInput && meta.intent) {
             intentInput.value = meta.intent;
             updateScheduleTypes(meta.intent);
-            const intentCard = document.querySelector(`.intent-selection .selection-card[data-value="${meta.intent}"]`);
+            const intentCard = scheduleEditFindSelectionCard('.intent-selection', meta.intent);
             if (intentCard) {
                 intentCard.classList.add('selected');
             }
@@ -2471,7 +2563,7 @@ function loadScheduleForEdit(postId) {
             scheduleTypeInput.value = meta.schedule_type;
             const scheduleTypeCards = document.getElementById('schedule_type_cards');
             if (scheduleTypeCards) {
-                const typeCard = scheduleTypeCards.querySelector(`[data-value="${meta.schedule_type}"]`);
+                const typeCard = scheduleEditFindSelectionCard(scheduleTypeCards, meta.schedule_type);
                 if (typeCard) {
                     selectCard(typeCard, 'schedule_type', meta.schedule_type);
                 }
@@ -2512,8 +2604,9 @@ function loadScheduleForEdit(postId) {
             if (venueConditionInput) {
                 venueConditionInput.value = venueCondition;
                 // 会場条件カードを選択状態にする
-                const venueCard = document.querySelector(`[data-value="${venueCondition}"]`);
-                if (venueCard && venueCard.closest('#match_conditions .match-conditions__venue')) {
+                const venueSection = document.querySelector('#match_conditions .match-conditions__venue');
+                const venueCard = scheduleEditFindSelectionCard(venueSection, venueCondition);
+                if (venueCard) {
                     activateVenueConditionCard(venueCard, venueCondition);
                 }
                 //  loadScheduleForEdit: Set venue_condition=' + venueCondition);
@@ -2528,8 +2621,9 @@ function loadScheduleForEdit(postId) {
             if (genderConditionInput) {
                 genderConditionInput.value = genderCondition;
                 // 性別条件カードを選択状態にする
-                const genderCard = document.querySelector(`#match_conditions .match-conditions__gender .selection-card[data-value="${genderCondition}"]`);
-                if (genderCard && genderCard.closest('#match_conditions .match-conditions__gender')) {
+                const genderSection = document.querySelector('#match_conditions .match-conditions__gender');
+                const genderCard = scheduleEditFindSelectionCard(genderSection, genderCondition);
+                if (genderCard) {
                     activateGenderConditionCard(genderCard, genderCondition);
                 }
                 //  loadScheduleForEdit: Set gender_condition=' + genderCondition);
@@ -2760,7 +2854,9 @@ document.addEventListener('DOMContentLoaded', function() {
             updateDateInputs && updateDateInputs();
             renderCalendar && renderCalendar();
         }
-    } catch (e) {}
+    } catch (e) {
+        console.debug('schedule-edit history state init skipped:', e);
+    }
 
     // 戻る/進むでステップだけ戻す
     window.addEventListener('popstate', function(event) {

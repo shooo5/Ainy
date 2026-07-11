@@ -128,7 +128,7 @@
 |----|--------|------------|--------------|----------|
 | P1-01 | PHPUnit 統合テストの CI 復帰 | **完了** | テスト | GitHub Actions Tests #2 緑。unit 148 + simple-integration 7。[`github-ci-setup.md`](../operations/github-ci-setup.md) |
 | P1-02 | 権限マトリクス自動テスト | **完了** | セキュリティ / テスト | `PermissionMatrixCatalog` 17行 + `PermissionMatrixEvaluator` + `PermissionMatrixTest`。CI unit スイートに含まれる |
-| P1-03 | XSS 監査（JS innerHTML 箇所） | **要修正（主要画面対応済）** | セキュリティ | match-detail / parent-payment / communication-main / notification-settings / payment-setup。**残:** schedule-edit 等の大型 JS |
+| P1-03 | XSS 監査（JS innerHTML 箇所） | **要修正（スケジュール系対応済）** | セキュリティ | schedule-edit / schedule-management / parent-payment / communication 等。**残:** schedule-modal 大型テンプレ・mypage-dashboard-joy |
 | P1-04 | マルチチーム操作の結合テスト | **要修正（SimpleIntegration 5件）** | チーム / マッチ / 決済 | チーム切替・未知 team 拒否・managed 検証。**残:** WP 実 DB / E2E でチェックリスト実行 |
 | P1-05 | Connect オンボーディング未完時の UX | **完了** | 月謝 / Stripe | `aidunite_payment_read_tuition_block_message()` で代表者/保護者文言を統一 |
 | P1-06 | Webhook 失敗時のリカバリ手順 | **要修正（文書完了）** | Stripe | [`stripe-webhook-recovery.md`](../operations/stripe-webhook-recovery.md)。**残:** 本番で再送ドリル1回 |
@@ -336,6 +336,7 @@ P2 品質タスク + 実地運用 2〜4週
 
 | 日付 | 内容 | 更新者 |
 |------|------|--------|
+| 2026-07-11 | P1-03 schedule-edit / schedule-management XSS（template 挿入・DOM 化・ID サニタイズ） | Cursor |
 | 2026-07-11 | P1-03 communication/notification/payment-setup XSS・P1-04 マルチチーム managed 検証追加 | Cursor |
 | 2026-07-11 | P1-03 parent-payment XSS・P1-04 マルチチーム切替テスト・P1-05 Connect 文言統一 | Cursor |
 | 2026-07-11 | P1-01 CI 緑化完了・P1-02 権限マトリクス17行（member payment-setup / guardian team-settings 追加） | Cursor |

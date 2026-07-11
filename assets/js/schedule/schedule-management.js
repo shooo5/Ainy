@@ -354,9 +354,9 @@ class ScheduleManager {
             const schedule = dateSchedules[0];
             modalContent = this.generateScheduleDetailHTML(schedule);
 
-            // 編集・削除ボタンのリンクを設定
-            editBtn.href = `/schedule-edit?id=${schedule.id}`;
-            deleteBtn.dataset.scheduleId = schedule.id;
+            const scheduleId = parseInt(schedule.id, 10) || 0;
+            editBtn.href = scheduleId > 0 ? `/schedule-edit?id=${encodeURIComponent(String(scheduleId))}` : '#';
+            deleteBtn.dataset.scheduleId = scheduleId > 0 ? String(scheduleId) : '';
         } else {
             // 複数スケジュール
             modalContent = '<h4>複数のスケジュールがあります</h4>';
@@ -369,7 +369,12 @@ class ScheduleManager {
             deleteBtn.dataset.scheduleId = '';
         }
 
-        modalBody.innerHTML = modalContent;
+        modalBody.replaceChildren();
+        if (modalContent) {
+            const template = document.createElement('template');
+            template.innerHTML = modalContent;
+            modalBody.appendChild(template.content);
+        }
         modal.classList.add('active');
         this.selectedDate = date;
     }
@@ -587,7 +592,9 @@ class ScheduleManager {
         const monthSchedules = this.getSchedulesForMonth(this.currentMonth, this.currentYear);
 
         if (monthSchedules.length === 0) {
-            listContent.innerHTML = '<p class="no-schedules">この月のスケジュールはありません</p>';
+            listContent.innerHTML = typeof aiduniteCompactEmptyHtml === 'function'
+                ? aiduniteCompactEmptyHtml('この月のスケジュールはありません', 'no-schedules')
+                : '<p class="no-schedules">この月のスケジュールはありません</p>';
             return;
         }
 
@@ -598,7 +605,26 @@ class ScheduleManager {
         });
         listHTML += '</div>';
 
-        listContent.innerHTML = listHTML;
+        listContent.replaceChildren();
+        const template = document.createElement('template');
+        template.innerHTML = listHTML;
+        listContent.appendChild(template.content);
+        listContent.querySelectorAll('[data-schedule-edit-id]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const id = parseInt(btn.getAttribute('data-schedule-edit-id'), 10) || 0;
+                if (id > 0) {
+                    this.editScheduleById(id);
+                }
+            });
+        });
+        listContent.querySelectorAll('[data-schedule-delete-id]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const id = parseInt(btn.getAttribute('data-schedule-delete-id'), 10) || 0;
+                if (id > 0) {
+                    this.deleteScheduleById(id);
+                }
+            });
+        });
     }
 
     getSchedulesForMonth(month, year) {
@@ -618,6 +644,7 @@ class ScheduleManager {
     }
 
     generateScheduleListItemHTML(schedule) {
+        const scheduleId = parseInt(schedule.id, 10) || 0;
         return `
             <div class="schedule-list-item">
                 <div class="schedule-list-date">${this.formatDisplayDate(schedule.date)}</div>
@@ -630,8 +657,8 @@ class ScheduleManager {
                     </div>
                 </div>
                 <div class="schedule-list-actions">
-                    <button class="dashboard-btn btn-secondary btn-sm" onclick="scheduleManager.editScheduleById(${schedule.id})">編集</button>
-                    <button class="dashboard-btn btn-danger btn-sm" onclick="scheduleManager.deleteScheduleById(${schedule.id})">削除</button>
+                    <button type="button" class="dashboard-btn btn-secondary btn-sm" data-schedule-edit-id="${scheduleId}">編集</button>
+                    <button type="button" class="dashboard-btn btn-danger btn-sm" data-schedule-delete-id="${scheduleId}">削除</button>
                 </div>
             </div>
         `;
@@ -639,7 +666,11 @@ class ScheduleManager {
 
     editScheduleById(scheduleId) {
         const win = getWindow();
-        win.location.href = `/schedule-edit?id=${scheduleId}`;
+        const id = parseInt(scheduleId, 10) || 0;
+        if (id <= 0) {
+            return;
+        }
+        win.location.href = `/schedule-edit?id=${encodeURIComponent(String(id))}`;
     }
 
     deleteScheduleById(scheduleId) {
